@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>삣삐이 온다</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="사이드 메뉴">
+        <a class="brand" href="#">
+          <span class="brand-kicker">삣삐 유틸</span>
+          <strong>삣삐</strong>
+          <small>SevenKnight : Rebith</small>
+        </a>
+
+        <nav class="side-nav">
+          <a class="active" href="#"><span>⌂</span>홈</a>
+          <a href="#guides"><span>▦</span>전체 게시판</a>
+          <a href="#ranking"><span>★</span>베스트</a>
+          <a href="guild-war.html"><span>✹</span>길드전 족보</a>
+          <a href="#guides"><span>✦</span>PVE 공략</a>
+          <a href="upload.html" target="_blank" rel="noopener"><span>✦</span>공략 업로드</a>
+          <a href="#"><span>⌬</span>데미지 고급</a>
+          <a href="#"><span>☽</span>아이템 고급</a>
+        </nav>
+
+        <section class="score-card">
+          <span>오늘의 공략 지수</span>
+          <strong>89.7<small>/100</small></strong>
+          <div class="sparkline" aria-hidden="true">
+            <i style="height: 22%"></i>
+            <i style="height: 48%"></i>
+            <i style="height: 58%"></i>
+            <i style="height: 38%"></i>
+            <i style="height: 78%"></i>
+            <i style="height: 42%"></i>
+            <i style="height: 70%"></i>
+            <i style="height: 30%"></i>
+            <i style="height: 54%"></i>
+            <i style="height: 44%"></i>
+            <i style="height: 82%"></i>
+          </div>
+          <p>지수는 추천수와 조회 흐름을 반영합니다.</p>
+        </section>
+      </aside>
+
+      <main class="main-area">
+        <header class="topbar">
+          <label class="search-box">
+            <span>검색</span>
+            <input id="searchInput" type="search" placeholder="공략이나 게임을 검색해보세요..." />
+          </label>
+          <div class="top-actions">
+            <a class="write-button" href="upload.html" target="_blank" rel="noopener">글쓰기</a>
+            <button class="icon-button" type="button" aria-label="접기">⌁</button>
+            <button class="icon-button" type="button" aria-label="메시지">□</button>
+            <button class="avatar theme-button" id="themeButton" type="button" aria-label="사이트 설정" aria-expanded="false"></button>
+          </div>
+
+          <section class="settings-panel" id="settingsPanel" aria-label="사이트 설정" hidden>
+            <div class="settings-head">
+              <strong>사이트 설정</strong>
+              <button class="icon-button" id="settingsClose" type="button" aria-label="설정 닫기">×</button>
+            </div>
+            <div class="theme-list" id="themeList"></div>
+            <div class="setting-toggles">
+              <label><input type="checkbox" id="wideLayoutToggle" /> 넓은 화면</label>
+              <label><input type="checkbox" id="compactListToggle" /> 촘촘한 목록</label>
+              <label><input type="checkbox" id="glowToggle" /> 배경 빛 효과</label>
+            </div>
+          </section>
+        </header>
+
+        <section class="hero">
+          <img src="assets/common/singularity-hero.png" alt="" />
+          <div class="hero-shade"></div>
+          <div class="hero-copy">
+            <p>삣삐,</p>
+            <h1>삣삐인데요..</h1>
+            <span>삣삐 커뮤니티</span>
+            <a href="#guides">길드전 가이드 보기</a>
+          </div>
+        </section>
+
+        <div class="category-strip" aria-label="게시판 분류">
+          <button class="active" type="button" data-filter="전체">전체</button>
+          <button type="button" data-filter="길드전 족보">길드전 족보</button>
+          <button type="button" data-filter="PVE 공략">PVE 공략</button>
+          <button type="button" data-filter="질문">질문</button>
+          <button type="button" data-filter="게임">게임</button>
+          <button type="button" data-filter="기술">기술</button>
+          <button type="button" data-filter="잡담">잡담</button>
+          <button type="button" data-filter="유머">유머</button>
+        </div>
+
+        <section class="feed-card" id="guides">
+          <div class="section-title">
+            <div>
+              <h2 id="boardTitle">전체 게시판</h2>
+              <p id="boardDesc">지금 올라온 공략과 사람들이 주목하는 게시글들</p>
+            </div>
+            <span id="boardCount">0개</span>
+          </div>
+          <div id="guideList" class="guide-list" aria-live="polite"></div>
+        </section>
+      </main>
+
+      <aside class="right-rail" aria-label="오른쪽 정보">
+        <section class="rail-card rail-login">
+          <div class="login-card compact-login">
+            <p>로그인하고<br />댓글과 공략글을</p>
+            <button type="button">로그인</button>
+            <a href="#">회원가입</a>
+          </div>
+        </section>
+
+        <section class="rail-card notice-card" id="live">
+          <div class="rail-title compact-rail-title">
+            <h2>세븐나이츠 공지사항</h2>
+            <span class="feed-status" id="noticeStatus" role="status" aria-label="대기중" title="대기중"></span>
+            <a href="#" id="noticeSourceLink" aria-label="공지사항 원문 보기">더보기</a>
+          </div>
+          <div class="notice-list" id="noticeList" aria-live="polite"></div>
+        </section>
+
+        <section class="rail-card notice-card" id="ranking">
+          <div class="rail-title compact-rail-title">
+            <h2>개발자노트</h2>
+            <span class="feed-status" id="devNoteStatus" role="status" aria-label="대기중" title="대기중"></span>
+            <a href="#" id="devNoteSourceLink" aria-label="개발자노트 원문 보기">더보기</a>
+          </div>
+          <div class="notice-list" id="devNoteList" aria-live="polite"></div>
+          <ol id="rankingList" class="trend-list" hidden></ol>
+          <div id="hotList" class="hot-list" hidden></div>
+        </section>
+      </aside>
+    </div>
+
+    <script src="theme.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

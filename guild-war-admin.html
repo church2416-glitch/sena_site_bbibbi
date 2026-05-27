@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>길드전 족보 작성기 - 삣베이 온다</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="guild-page">
+    <main class="guild-shell admin-shell">
+      <header class="guild-header">
+        <a class="brand upload-brand" href="index.html">
+          <span class="brand-kicker">삣삐 커뮤니티</span>
+          <strong>길드전 족보 작성기</strong>
+          <small>ADMIN TOOL</small>
+        </a>
+        <nav class="guild-links" aria-label="관리자 메뉴">
+          <a href="guild-war.html">공개 화면</a>
+          <a href="upload.html">업로드</a>
+        </nav>
+      </header>
+
+      <section class="guild-editor-card">
+        <div class="section-title">
+          <div>
+            <span class="admin-badge">관리자 작성 영역</span>
+            <h1>족보 작성기</h1>
+            <p>공격 족보는 선택 박스로 압축해서 관리하고, 방어 족보는 카드 목록으로 확인합니다.</p>
+          </div>
+          <span id="saveState">저장 대기</span>
+        </div>
+
+        <div class="sheet-tabs" id="adminSheetTabs" aria-label="작성할 족보 종류"></div>
+
+        <form id="guildForm" class="guild-form" autocomplete="off">
+          <label class="attack-target-select" id="adminTargetSelectWrap">
+            <span id="adminTargetSelectLabel">공격 대상</span>
+            <select id="adminTargetSelect"></select>
+          </label>
+
+          <div class="formation-row admin-plan-row" id="adminPlanRow">
+            <article class="formation-card active" data-admin-plan-card="0" role="button" tabindex="0" aria-pressed="true">
+              <span>1</span>
+              <strong>공격 조합</strong>
+              <small>메인</small>
+            </article>
+            <article class="formation-card" data-admin-plan-card="1" role="button" tabindex="0" aria-pressed="false">
+              <span>2</span>
+              <strong>세팅 보류</strong>
+              <small>대체</small>
+            </article>
+            <article class="formation-card" data-admin-plan-card="2" role="button" tabindex="0" aria-pressed="false">
+              <span>3</span>
+              <strong>위험 조합</strong>
+              <small>주의</small>
+            </article>
+          </div>
+
+          <div class="guild-form-grid">
+            <label>
+              <span id="formationTypeLabelText">상대 진형</span>
+              <select name="formationType">
+                <option value="att">공격진형</option>
+                <option value="bal">밸런스진형</option>
+                <option value="base">기본진형</option>
+                <option value="def">보호진형</option>
+              </select>
+            </label>
+            <label id="allyFormationLabel">
+              우리 진형
+              <select name="allyFormationType">
+                <option value="att">공격진형</option>
+                <option value="bal">밸런스진형</option>
+                <option value="base">기본진형</option>
+                <option value="def">보호진형</option>
+              </select>
+            </label>
+          </div>
+
+          <section class="target-manager" id="targetManager">
+            <div class="mini-label" id="targetManagerTitle">공격 대상 관리</div>
+            <input name="bosses" type="hidden" />
+            <div class="target-list" id="targetList"></div>
+            <div class="target-add-row">
+              <input id="newTargetName" type="text" maxlength="12" placeholder="대상 이름" />
+              <button type="button" id="addTarget">추가</button>
+            </div>
+            <p>공개 화면의 대상 선택 목록에 반영됩니다.</p>
+          </section>
+
+          <div class="guild-form-grid" id="teamEditor">
+            <label>
+              <span id="enemyTeamLabelText">상대 방어대</span>
+              <div class="character-select-grid">
+                <select name="enemyHero0" data-character-select data-placeholder="1번 영웅"></select>
+                <select name="enemyHero1" data-character-select data-placeholder="2번 영웅"></select>
+                <select name="enemyHero2" data-character-select data-placeholder="3번 영웅"></select>
+              </div>
+            </label>
+            <label id="allyTeamLabel">
+              공격 조합
+              <div class="character-select-grid">
+                <select name="allyHero0" data-character-select data-placeholder="1번 영웅"></select>
+                <select name="allyHero1" data-character-select data-placeholder="2번 영웅"></select>
+                <select name="allyHero2" data-character-select data-placeholder="3번 영웅"></select>
+              </div>
+            </label>
+          </div>
+
+          <section class="position-editor" id="positionEditor" aria-label="진형 자리 지정">
+            <div id="enemyPositionPanel">
+              <div class="mini-label" id="enemyPositionLabelText">상대 자리 지정</div>
+              <div class="position-grid">
+                <label>1번째 <select name="enemyPosition0" data-position-select></select></label>
+                <label>2번째 <select name="enemyPosition1" data-position-select></select></label>
+                <label>3번째 <select name="enemyPosition2" data-position-select></select></label>
+              </div>
+            </div>
+            <div id="allyPositionPanel">
+              <div class="mini-label" id="allyPositionLabelText">우리 자리 지정</div>
+              <div class="position-grid">
+                <label>1번째 <select name="allyPosition0" data-position-select></select></label>
+                <label>2번째 <select name="allyPosition1" data-position-select></select></label>
+                <label>3번째 <select name="allyPosition2" data-position-select></select></label>
+              </div>
+            </div>
+          </section>
+
+          <section class="pet-editor" id="petEditor" aria-label="펫 입력">
+            <div>
+              <div class="mini-label" id="enemyPetLabelText">상대 펫</div>
+              <div class="pet-grid">
+                <label>메인펫 <input name="enemyMainPet" list="petOptions" maxlength="16" placeholder="메인펫" /></label>
+                <label id="enemyAltPetLabel">대체펫 <input name="enemyAltPet" list="petOptions" maxlength="16" placeholder="대체펫" /></label>
+              </div>
+            </div>
+            <div id="allyPetPanel">
+              <div class="mini-label">우리 펫</div>
+              <div class="pet-grid">
+                <label>메인펫 <input name="allyMainPet" list="petOptions" maxlength="16" placeholder="메인펫" /></label>
+                <label>대체펫 <input name="allyAltPet" list="petOptions" maxlength="16" placeholder="대체펫" /></label>
+              </div>
+            </div>
+          </section>
+          <datalist id="petOptions"></datalist>
+
+          <section class="gear-editor" aria-label="장비 입력">
+            <div class="mini-label">장비 입력</div>
+            <fieldset class="gear-editor-row">
+              <legend>장비 1</legend>
+              <select name="gearHero0" data-character-select data-gear-hero readonly disabled data-placeholder="영웅"></select>
+              <input name="gearSet0" maxlength="18" placeholder="세트" />
+              <input name="gearWeapon0" maxlength="18" placeholder="무기" />
+              <input name="gearArmor0" maxlength="18" placeholder="방어구" />
+              <div class="accessory-editor">
+                <select name="gearAccessoryType0">
+                  <option value="">반지</option>
+                  <option value="-">없음</option>
+                  <option value="불사의반지">불사의반지</option>
+                  <option value="부활의반지">부활의반지</option>
+                  <option value="권능의반지">권능의반지</option>
+                </select>
+                <select name="gearAccessoryRefine0">
+                  <option value="">세공</option>
+                  <option value="-">없음</option>
+                  <option value="권불">권불</option>
+                  <option value="불권">불권</option>
+                  <option value="부불">부불</option>
+                  <option value="불부">불부</option>
+                  <option value="권기">권기</option>
+                  <option value="기권">기권</option>
+                </select>
+                <select name="gearAccessoryGrade0">
+                  <option value="">반지 옵션</option>
+                  <option value="6/6">6/6</option>
+                  <option value="6/5">6/5</option>
+                  <option value="6/4">6/4</option>
+                </select>
+              </div>
+              <input name="gearMemo0" maxlength="40" placeholder="메모" />
+            </fieldset>
+            <fieldset class="gear-editor-row">
+              <legend>장비 2</legend>
+              <select name="gearHero1" data-character-select data-gear-hero readonly disabled data-placeholder="영웅"></select>
+              <input name="gearSet1" maxlength="18" placeholder="세트" />
+              <input name="gearWeapon1" maxlength="18" placeholder="무기" />
+              <input name="gearArmor1" maxlength="18" placeholder="방어구" />
+              <div class="accessory-editor">
+                <select name="gearAccessoryType1">
+                  <option value="">반지</option>
+                  <option value="-">없음</option>
+                  <option value="불사의반지">불사의반지</option>
+                  <option value="부활의반지">부활의반지</option>
+                  <option value="권능의반지">권능의반지</option>
+                </select>
+                <select name="gearAccessoryRefine1">
+                  <option value="">세공</option>
+                  <option value="-">없음</option>
+                  <option value="권불">권불</option>
+                  <option value="불권">불권</option>
+                  <option value="부불">부불</option>
+                  <option value="불부">불부</option>
+                  <option value="권기">권기</option>
+                  <option value="기권">기권</option>
+                </select>
+                <select name="gearAccessoryGrade1">
+                  <option value="">반지 옵션</option>
+                  <option value="6/6">6/6</option>
+                  <option value="6/5">6/5</option>
+                  <option value="6/4">6/4</option>
+                </select>
+              </div>
+              <input name="gearMemo1" maxlength="40" placeholder="메모" />
+            </fieldset>
+            <fieldset class="gear-editor-row">
+              <legend>장비 3</legend>
+              <select name="gearHero2" data-character-select data-gear-hero readonly disabled data-placeholder="영웅"></select>
+              <input name="gearSet2" maxlength="18" placeholder="세트" />
+              <input name="gearWeapon2" maxlength="18" placeholder="무기" />
+              <input name="gearArmor2" maxlength="18" placeholder="방어구" />
+              <div class="accessory-editor">
+                <select name="gearAccessoryType2">
+                  <option value="">반지</option>
+                  <option value="-">없음</option>
+                  <option value="불사의반지">불사의반지</option>
+                  <option value="부활의반지">부활의반지</option>
+                  <option value="권능의반지">권능의반지</option>
+                </select>
+                <select name="gearAccessoryRefine2">
+                  <option value="">세공</option>
+                  <option value="-">없음</option>
+                  <option value="권불">권불</option>
+                  <option value="불권">불권</option>
+                  <option value="부불">부불</option>
+                  <option value="불부">불부</option>
+                  <option value="권기">권기</option>
+                  <option value="기권">기권</option>
+                </select>
+                <select name="gearAccessoryGrade2">
+                  <option value="">반지 옵션</option>
+                  <option value="6/6">6/6</option>
+                  <option value="6/5">6/5</option>
+                  <option value="6/4">6/4</option>
+                </select>
+              </div>
+              <input name="gearMemo2" maxlength="40" placeholder="메모" />
+            </fieldset>
+          </section>
+
+          <section class="skill-slot-editor" aria-label="스킬 순서 지정">
+            <div class="mini-label">스킬 순서 지정</div>
+            <div class="skill-slot-grid">
+              <fieldset>
+                <legend>칸 1</legend>
+                <select name="slotHero0" data-character-select data-skill-hero readonly disabled data-placeholder="캐릭터"></select>
+                <div class="skill-choice" data-slot="0">
+                  <button type="button" data-skill="1">1번칸</button>
+                  <button type="button" data-skill="2">2번칸</button>
+                  <input name="slotSkill0" type="hidden" />
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend>칸 2</legend>
+                <select name="slotHero1" data-character-select data-skill-hero readonly disabled data-placeholder="캐릭터"></select>
+                <div class="skill-choice" data-slot="1">
+                  <button type="button" data-skill="1">1번칸</button>
+                  <button type="button" data-skill="2">2번칸</button>
+                  <input name="slotSkill1" type="hidden" />
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend>칸 3</legend>
+                <select name="slotHero2" data-character-select data-skill-hero readonly disabled data-placeholder="캐릭터"></select>
+                <div class="skill-choice" data-slot="2">
+                  <button type="button" data-skill="1">1번칸</button>
+                  <button type="button" data-skill="2">2번칸</button>
+                  <input name="slotSkill2" type="hidden" />
+                </div>
+              </fieldset>
+            </div>
+            <label class="skill-note-field">
+              스킬 순서 메모
+              <input name="skillNote" maxlength="70" placeholder="예: 노아 버프 후 레긴레이프 스킬" />
+            </label>
+            <p>칸 1, 2, 3에 입력한 순서 그대로 공개 족보에 표시됩니다.</p>
+          </section>
+
+          <label>
+            전략 메모/팁
+            <textarea name="memo" maxlength="180" placeholder="예: 내실 / 라운드 제한과 나눠야함"></textarea>
+          </label>
+
+          <div class="upload-actions">
+            <a href="guild-war.html">공개 화면 보기</a>
+            <button class="ghost-button" type="button" id="resetGuild">전체 초기화</button>
+            <button class="submit-button" type="submit">저장</button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <script src="theme.js"></script>
+    <script src="guild-war.js"></script>
+    <script>
+      const form = document.querySelector("#guildForm");
+      const saveState = document.querySelector("#saveState");
+      let guildState = GuildWar.loadState();
+      let activeMode = "attack";
+      let activePlanIndex = 0;
+
+      function currentSheet() {
+        return guildState[activeMode];
+      }
+
+      function renderAdminPage() {
+        GuildWar.renderModeTabs("#adminSheetTabs", activeMode, (mode) => {
+          guildState[activeMode] = GuildWar.readAdminForm(form, GuildWar.sheetDefaults[activeMode], guildState[activeMode], activePlanIndex);
+          GuildWar.saveState(guildState);
+          activeMode = mode;
+          activePlanIndex = 0;
+          GuildWar.fillAdminForm(form, currentSheet(), activeMode, activePlanIndex);
+          renderTargetManager();
+          renderAdminPage();
+        });
+        syncAdminPlanCards();
+      }
+
+      function syncAdminPlanCards() {
+        document.querySelectorAll("[data-admin-plan-card]").forEach((card) => {
+          const isActive = Number(card.dataset.adminPlanCard) === activePlanIndex;
+          card.classList.toggle("active", isActive);
+          card.setAttribute("aria-pressed", String(isActive));
+        });
+      }
+
+      function saveDraft(event) {
+        const sourcePrefix = activeMode === "defense" ? "enemy" : "ally";
+        if (event?.target?.name?.startsWith(`${sourcePrefix}Hero`)) {
+          GuildWar.syncGearHeroes(form, sourcePrefix);
+          GuildWar.syncSkillHeroes(form, sourcePrefix);
+        }
+        guildState[activeMode] = GuildWar.readAdminForm(form, GuildWar.sheetDefaults[activeMode], guildState[activeMode], activePlanIndex);
+        GuildWar.saveState(guildState);
+        saveState.textContent = "자동 저장됨";
+      }
+
+      GuildWar.fillAdminForm(form, currentSheet(), activeMode, activePlanIndex);
+      renderTargetManager();
+      renderAdminPage();
+
+      form.addEventListener("input", saveDraft);
+      form.addEventListener("change", saveDraft);
+
+      function getTargets() {
+        return form.elements.namedItem("bosses").value
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+
+      function setTargets(targets) {
+        const beforeTargets = getTargets();
+        const beforeSheet = GuildWar.readAdminForm(form, GuildWar.sheetDefaults[activeMode], guildState[activeMode], activePlanIndex);
+        const nextTargetSheets = targets.map((target) => {
+          const oldIndex = beforeTargets.indexOf(target);
+          return oldIndex >= 0 ? beforeSheet.targetSheets[oldIndex] : undefined;
+        });
+        form.elements.namedItem("bosses").value = targets.join(", ");
+        guildState[activeMode] = GuildWar.readAdminForm(form, GuildWar.sheetDefaults[activeMode], {
+          ...beforeSheet,
+          targetSheets: nextTargetSheets,
+          activeTargetIndex: Math.min(beforeSheet.activeTargetIndex, Math.max(0, targets.length - 1)),
+        }, activePlanIndex);
+        GuildWar.renderTargetSelect(guildState[activeMode], "#adminTargetSelect");
+        GuildWar.fillAdminForm(form, currentSheet(), activeMode, activePlanIndex);
+        renderTargetManager();
+        GuildWar.saveState(guildState);
+        saveState.textContent = "자동 저장됨";
+      }
+
+      function renderTargetManager() {
+        const manager = document.querySelector("#targetManager");
+        const list = document.querySelector("#targetList");
+        manager.hidden = false;
+
+        list.replaceChildren();
+        getTargets().forEach((target, index) => {
+          const item = document.createElement("div");
+          const name = document.createElement("span");
+          const remove = document.createElement("button");
+
+          item.className = "target-item";
+          name.textContent = target;
+          remove.type = "button";
+          remove.textContent = "삭제";
+          remove.disabled = getTargets().length <= 1;
+          remove.addEventListener("click", () => {
+            const nextTargets = getTargets().filter((_, itemIndex) => itemIndex !== index);
+            setTargets(nextTargets);
+          });
+          item.append(name, remove);
+          list.append(item);
+        });
+      }
+
+      document.querySelector("#addTarget").addEventListener("click", () => {
+        const input = document.querySelector("#newTargetName");
+        const value = input.value.trim();
+        if (!value) return;
+        if (getTargets().includes(value)) return;
+        const nextTargets = [...getTargets(), value];
+        input.value = "";
+        setTargets(nextTargets);
+      });
+
+      document.querySelector("#newTargetName").addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        document.querySelector("#addTarget").click();
+      });
+
+      form.querySelectorAll(".skill-choice button").forEach((button) => {
+        button.addEventListener("click", () => {
+          const choice = button.closest(".skill-choice");
+          GuildWar.setSkillChoice(form, choice.dataset.slot, button.dataset.skill);
+          guildState[activeMode] = GuildWar.readAdminForm(form, GuildWar.sheetDefaults[activeMode], guildState[activeMode], activePlanIndex);
+          GuildWar.saveState(guildState);
+          saveState.textContent = "자동 저장됨";
+        });
+      });
+
+      document.querySelectorAll("[data-admin-plan-card]").forEach((card) => {
+        const selectCard = () => {
+          const nextIndex = Number(card.dataset.adminPlanCard) || 0;
+          if (nextIndex === activePlanIndex) return;
+          guildState[activeMode] = GuildWar.readAdminForm(form, GuildWar.sheetDefaults[activeMode], guildState[activeMode], activePlanIndex);
+          activePlanIndex = nextIndex;
+          GuildWar.fillAdminForm(form, currentSheet(), activeMode, activePlanIndex);
+          syncAdminPlanCards();
+          GuildWar.saveState(guildState);
+          saveState.textContent = "자동 저장됨";
+        };
+        card.addEventListener("click", selectCard);
+        card.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          selectCard();
+        });
+      });
+
+      document.querySelector("#adminTargetSelect").addEventListener("change", (event) => {
+        guildState[activeMode] = GuildWar.readAdminForm(form, GuildWar.sheetDefaults[activeMode], guildState[activeMode], activePlanIndex);
+        guildState[activeMode] = GuildWar.setActiveTarget(guildState[activeMode], Number(event.target.value));
+        activePlanIndex = 0;
+        GuildWar.fillAdminForm(form, currentSheet(), activeMode, activePlanIndex);
+        renderTargetManager();
+        syncAdminPlanCards();
+        GuildWar.saveState(guildState);
+        saveState.textContent = "자동 저장됨";
+      });
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        guildState[activeMode] = GuildWar.readAdminForm(form, GuildWar.sheetDefaults[activeMode], guildState[activeMode], activePlanIndex);
+        GuildWar.saveState(guildState);
+        saveState.textContent = "저장 완료";
+      });
+
+      document.querySelector("#resetGuild").addEventListener("click", () => {
+        guildState = GuildWar.resetState();
+        activePlanIndex = 0;
+        GuildWar.fillAdminForm(form, currentSheet(), activeMode, activePlanIndex);
+        renderAdminPage();
+        saveState.textContent = "초기화 완료";
+      });
+    </script>
+  </body>
+</html>

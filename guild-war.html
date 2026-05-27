@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>길드전 족보 - 삣베이 온다</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="guild-page">
+    <main class="guild-shell">
+      <header class="guild-header">
+        <a class="brand upload-brand" href="index.html">
+          <span class="brand-kicker">삣삐 커뮤니티</span>
+          <strong>길드전 족보</strong>
+          <small>SEVENKNIGHT : REBIRTH</small>
+        </a>
+        <nav class="guild-links" aria-label="길드전 메뉴">
+          <a href="index.html">게시판</a>
+          <a href="upload.html">업로드</a>
+        </nav>
+      </header>
+
+      <section class="guild-season-card">
+        <span class="viewer-badge">사용자 공개 화면</span>
+        <div>
+          <h1>삣삐</h1>
+          <p id="previewSeasonNote"></p>
+        </div>
+        <div class="season-progress">
+          <div class="season-row">
+            <span>길드전 시즌</span>
+            <strong id="previewRound"></strong>
+          </div>
+          <div class="progress-track">
+            <i id="previewProgress"></i>
+          </div>
+          <small>관리자가 저장한 족보가 이 화면에 표시됩니다.</small>
+        </div>
+      </section>
+
+      <section class="guild-board">
+        <div class="guild-board-head">
+          <div>
+            <h2 id="publicModeLabel">공격 족보</h2>
+            <p>공격/방어 족보를 선택해서 조합과 스킬 순서를 확인하세요.</p>
+          </div>
+          <div class="guild-public-actions">
+            <span id="copyState">공개 보기</span>
+            <button type="button" id="copySummary">요약 복사</button>
+          </div>
+        </div>
+
+        <div class="sheet-tabs" id="publicSheetTabs" aria-label="족보 종류"></div>
+        <label class="attack-target-select" id="targetSelectControl">
+          <span id="targetSelectLabel">공격 대상</span>
+          <select id="publicTargetSelect"></select>
+        </label>
+
+        <div class="guild-layout">
+          <aside class="enemy-panel">
+            <div class="panel-label">
+              <strong id="publicDefensePanelTitle">상대 방어대</strong>
+              <span id="publicDefensePanelSubtitle">공격 진형</span>
+            </div>
+            <div class="battle-stage" id="enemyStage"></div>
+            <div class="formation-preview">
+              <img id="formationTypeImage" src="assets/formation/att.png" alt="공격진형" />
+              <span id="formationTypeLabel">공격진형</span>
+            </div>
+          </aside>
+
+          <section class="strategy-panel">
+            <div class="formation-row" id="formationCardRow">
+              <article class="formation-card active" data-plan-card="0" role="button" tabindex="0" aria-pressed="true">
+                <span>1</span>
+                <strong>공격 조합</strong>
+                <small id="primaryFormationHint">권장</small>
+              </article>
+              <article class="formation-card" data-plan-card="1" role="button" tabindex="0" aria-pressed="false">
+                <span>2</span>
+                <strong>세팅 보류</strong>
+                <small>대체</small>
+              </article>
+              <article class="formation-card" data-plan-card="2" role="button" tabindex="0" aria-pressed="false">
+                <span>3</span>
+                <strong>위험 조합</strong>
+                <small>주의</small>
+              </article>
+            </div>
+
+            <div class="attack-grid" id="compositionGrid">
+              <div class="attack-team" id="allyCompositionPanel">
+                <div class="mini-label" id="activeCompositionLabel">필수 조합</div>
+                <div class="team-stage" id="allyStage"></div>
+              </div>
+
+              <div class="skill-table">
+                <div class="table-head">
+                  <span>영웅</span>
+                  <span>세트</span>
+                  <span>무기</span>
+                  <span>방어구</span>
+                  <span>장신구</span>
+                  <span>메모</span>
+                </div>
+                <div id="gearRows"></div>
+              </div>
+            </div>
+
+            <div class="skill-memo-grid">
+              <div class="skill-order">
+                <h3>스킬 순서</h3>
+                <div class="order-card-list" id="skillOrderPreview"></div>
+                <p class="skill-note-preview" id="skillNotePreview"></p>
+              </div>
+              <div class="strategy-memo">
+                <h3>전략 메모</h3>
+                <p id="memoPreview"></p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script src="theme.js"></script>
+    <script src="guild-war.js"></script>
+    <script>
+      const guildState = GuildWar.loadState();
+      let activeMode = "attack";
+      let activePlanIndex = 0;
+
+      function renderPublicPage() {
+        GuildWar.renderModeTabs("#publicSheetTabs", activeMode, (mode) => {
+          activeMode = mode;
+          activePlanIndex = 0;
+          renderPublicPage();
+        });
+        GuildWar.renderPublic(guildState[activeMode], activeMode, activePlanIndex);
+      }
+
+      document.querySelector("#copySummary").addEventListener("click", async () => {
+        const copied = await GuildWar.copySummary(GuildWar.getActivePlanTarget(guildState[activeMode], activeMode, activePlanIndex), activeMode);
+        document.querySelector("#copyState").textContent = copied ? "복사 완료" : "복사 권한 없음";
+      });
+
+      document.querySelector("#publicTargetSelect").addEventListener("change", (event) => {
+        guildState[activeMode] = GuildWar.setActiveTarget(guildState[activeMode], Number(event.target.value));
+        activePlanIndex = 0;
+        renderPublicPage();
+      });
+
+      document.querySelectorAll("[data-plan-card]").forEach((card) => {
+        const selectCard = () => {
+          activePlanIndex = Number(card.dataset.planCard) || 0;
+          renderPublicPage();
+        };
+        card.addEventListener("click", selectCard);
+        card.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          selectCard();
+        });
+      });
+
+      renderPublicPage();
+    </script>
+  </body>
+</html>

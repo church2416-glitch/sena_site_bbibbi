@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>게시글 상세 - 삣삐이 온다</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="post-page">
+    <main class="post-shell">
+      <a class="brand upload-brand" href="index.html">
+        <span class="brand-kicker">삣삐 커뮤니티</span>
+        <strong>삣삐이 온다</strong>
+        <small>SEVENKNIGHT : REBITH</small>
+      </a>
+
+      <article class="post-card" id="postCard" hidden>
+        <div class="post-head">
+          <span class="status" id="postCategory"></span>
+          <h1 id="postTitle"></h1>
+          <p id="postSummary"></p>
+        </div>
+
+        <div class="post-body-layout">
+          <div class="post-main-flow">
+            <dl class="post-meta">
+              <div>
+                <dt>게임</dt>
+                <dd id="postGame"></dd>
+              </div>
+              <div>
+                <dt>작성</dt>
+                <dd id="postDate"></dd>
+              </div>
+              <div>
+                <dt>추천</dt>
+                <dd id="postVotes"></dd>
+              </div>
+              <div>
+                <dt>조회</dt>
+                <dd id="postViews"></dd>
+              </div>
+            </dl>
+
+            <section class="post-section post-article-section">
+              <h2>공략 내용</h2>
+              <div class="post-content" id="postBody"></div>
+            </section>
+
+            <section class="post-section">
+              <h2>태그</h2>
+              <div class="post-tags" id="postTags"></div>
+            </section>
+
+            <section class="post-section" id="attachmentSection" hidden>
+              <h2>첨부</h2>
+              <p id="postAttachment"></p>
+            </section>
+
+            <nav class="post-nav" aria-label="이전글 다음글">
+              <a id="prevPost" href="#" aria-disabled="true">
+                <span>이전글</span>
+                <strong>이전 글이 없습니다</strong>
+              </a>
+              <a id="nextPost" href="#" aria-disabled="true">
+                <span>다음글</span>
+                <strong>다음 글이 없습니다</strong>
+              </a>
+            </nav>
+
+            <section class="post-list-section">
+              <div class="section-title">
+                <div>
+                  <h2>게시글 목록</h2>
+                  <p>다른 공략도 이어서 확인해보세요.</p>
+                </div>
+              </div>
+              <div class="compact-post-list" id="compactPostList"></div>
+            </section>
+
+            <div class="post-actions">
+              <a href="index.html">목록으로</a>
+            </div>
+          </div>
+
+          <aside class="post-side-panel" aria-label="게시글 정보">
+            <strong>게시글 정보</strong>
+            <a href="index.html">목록</a>
+            <a href="upload.html" target="_blank" rel="noopener">글쓰기</a>
+            <span id="sideCategory">게시판</span>
+            <span id="sideViews">조회 0</span>
+          </aside>
+        </div>
+      </article>
+
+      <section class="post-card not-found" id="notFound" hidden>
+        <h1>게시글을 찾을 수 없습니다</h1>
+        <p>삭제되었거나 잘못된 주소일 수 있습니다.</p>
+        <a href="index.html">목록으로 돌아가기</a>
+      </section>
+    </main>
+
+    <script src="theme.js"></script>
+    <script>
+      const storageKey = "bbibbi-board-items-v2";
+      const params = new URLSearchParams(location.search);
+      const postId = params.get("id");
+
+      function formatNumber(value) {
+        const number = Number(value) || 0;
+        if (number >= 10000) return `${(number / 10000).toFixed(1)}만`;
+        return number.toLocaleString("ko-KR");
+      }
+
+      function loadGuides() {
+        try {
+          return JSON.parse(localStorage.getItem(storageKey) || "[]");
+        } catch {
+          return [];
+        }
+      }
+
+      function setText(id, value) {
+        const target = document.querySelector(id);
+        if (target) target.textContent = value;
+      }
+
+      function renderPostBody(guide) {
+        const body = document.querySelector("#postBody");
+        const source = guide.body || guide.content || guide.summary || "아직 상세 본문이 없습니다.";
+        const parts = String(source)
+          .split(/\n{2,}/)
+          .map((item) => item.trim())
+          .filter(Boolean);
+
+        body.innerHTML = "";
+        parts.forEach((part) => {
+          const paragraph = document.createElement("p");
+          paragraph.textContent = part;
+          body.append(paragraph);
+        });
+
+        if (!guide.body && !guide.content) {
+          const note = document.createElement("div");
+          note.className = "post-inline-note";
+          note.textContent = "상세 본문 입력 기능을 붙이면 이 영역에 긴 공략글과 이미지가 순서대로 표시됩니다.";
+          body.append(note);
+        }
+
+        renderPostMedia(body, guide.media || {});
+      }
+
+      function renderPostMedia(body, media) {
+        const hasImages = Array.isArray(media.images) && media.images.length;
+        const hasYoutube = Boolean(media.youtubeEmbed);
+        const hasVideo = Boolean(media.videoFile);
+
+        if (!hasImages && !hasYoutube && !hasVideo) return;
+
+        const wrap = document.createElement("div");
+        wrap.className = "post-media";
+
+        if (hasYoutube) {
+          const frameWrap = document.createElement("div");
+          const frame = document.createElement("iframe");
+          frameWrap.className = "youtube-embed";
+          frame.src = media.youtubeEmbed;
+          frame.title = "YouTube video player";
+          frame.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+          frame.allowFullscreen = true;
+          frameWrap.append(frame);
+          wrap.append(frameWrap);
+        }
+
+        if (hasImages) {
+          media.images.forEach((image) => {
+            const figure = document.createElement("figure");
+            const img = document.createElement("img");
+            const caption = document.createElement("figcaption");
+            img.src = image.src;
+            img.alt = image.name || "첨부 이미지";
+            caption.textContent = image.name || "첨부 이미지";
+            figure.append(img, caption);
+            wrap.append(figure);
+          });
+        }
+
+        if (hasVideo) {
+          const videoNote = document.createElement("div");
+          videoNote.className = "post-inline-note";
+          videoNote.textContent = `동영상 파일: ${media.videoFile.name} (실제 서버 업로드 연결 전까지 파일명만 저장됩니다.)`;
+          wrap.append(videoNote);
+        }
+
+        body.append(wrap);
+      }
+
+      function bindSiblingPost(selector, label, sibling) {
+        const link = document.querySelector(selector);
+        const title = link.querySelector("strong");
+
+        if (!sibling) {
+          link.removeAttribute("href");
+          link.setAttribute("aria-disabled", "true");
+          title.textContent = `${label}이 없습니다`;
+          return;
+        }
+
+        link.href = `post.html?id=${encodeURIComponent(sibling.id)}`;
+        link.setAttribute("aria-disabled", "false");
+        title.textContent = sibling.title || "제목 없음";
+      }
+
+      function renderCompactList(guides, currentId) {
+        const list = document.querySelector("#compactPostList");
+        const posts = guides.slice(0, 8);
+
+        posts.forEach((item) => {
+          const link = document.createElement("a");
+          const title = document.createElement("span");
+          const meta = document.createElement("small");
+
+          link.href = `post.html?id=${encodeURIComponent(item.id)}`;
+          link.className = item.id === currentId ? "active" : "";
+          title.textContent = item.title || "제목 없음";
+          meta.textContent = `${item.category || "게시글"} · ${item.createdAt || "알 수 없음"} · 추천 ${formatNumber(item.votes)}`;
+          link.append(title, meta);
+          list.append(link);
+        });
+      }
+
+      const guides = loadGuides();
+      const postIndex = guides.findIndex((item) => item.id === postId);
+      const guide = guides[postIndex];
+
+      if (!guide) {
+        document.querySelector("#notFound").hidden = false;
+      } else {
+        guide.views = (Number(guide.views) || 0) + 1;
+        localStorage.setItem(storageKey, JSON.stringify(guides));
+
+        document.title = `${guide.title} - 삣삐이 온다`;
+        setText("#postCategory", guide.category || "게시글");
+        setText("#postTitle", guide.title || "제목 없음");
+        setText("#postSummary", guide.summary || "요약이 없습니다.");
+        setText("#postGame", guide.game || "미지정");
+        setText("#postDate", guide.createdAt || "알 수 없음");
+        setText("#postVotes", formatNumber(guide.votes));
+        setText("#postViews", formatNumber(guide.views));
+        setText("#sideCategory", guide.category || "게시판");
+        setText("#sideViews", `조회 ${formatNumber(guide.views)}`);
+        renderPostBody(guide);
+
+        const tagBox = document.querySelector("#postTags");
+        const tags = Array.isArray(guide.tags) ? guide.tags : [];
+        if (!tags.length) {
+          const empty = document.createElement("span");
+          empty.textContent = "태그 없음";
+          tagBox.append(empty);
+        }
+        tags.forEach((tag) => {
+          const node = document.createElement("span");
+          node.textContent = `#${tag}`;
+          tagBox.append(node);
+        });
+
+        if (guide.attachment) {
+          document.querySelector("#attachmentSection").hidden = false;
+          setText("#postAttachment", guide.attachment);
+        }
+
+        bindSiblingPost("#prevPost", "이전 글", guides[postIndex - 1]);
+        bindSiblingPost("#nextPost", "다음 글", guides[postIndex + 1]);
+        renderCompactList(guides, guide.id);
+        document.querySelector("#postCard").hidden = false;
+      }
+    </script>
+  </body>
+</html>
