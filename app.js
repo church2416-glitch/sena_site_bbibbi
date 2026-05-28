@@ -169,11 +169,16 @@ const loginError = document.querySelector("#loginError");
 const signupError = document.querySelector("#signupError");
 const profileError = document.querySelector("#profileError");
 const providerMessage = document.querySelector("#providerMessage");
+const sideBoardLinks = [...document.querySelectorAll("[data-board-link]")];
 
 const boardInfo = {
   전체: {
     title: "전체 게시판",
     desc: "지금 올라온 공략과 사람들이 주목하는 게시글들",
+  },
+  베스트: {
+    title: "베스트",
+    desc: "추천과 조회 흐름이 좋은 게시글",
   },
   "자유 게시판": {
     title: "자유 게시판",
@@ -207,9 +212,18 @@ const boardInfo = {
     title: "유머 게시판",
     desc: "공성전하다 터진 순간과 짤로 남기고 싶은 장면",
   },
+  "데미지 고급": {
+    title: "데미지 고급",
+    desc: "딜 계산, 장비 효율, 세팅 심화 공략",
+  },
+  "아이템 고급": {
+    title: "아이템 고급",
+    desc: "장비, 장신구, 세공, 재화 운용 심화 공략",
+  },
 };
 
-let activeCategory = "전체";
+const initialBoard = new URLSearchParams(location.search).get("board");
+let activeCategory = boardInfo[initialBoard] ? initialBoard : "전체";
 let guides = loadGuides();
 let voted = new Set(JSON.parse(localStorage.getItem(votedKey) || "[]"));
 let currentUser = { loggedIn: false, role: "guest" };
@@ -495,14 +509,20 @@ function formatFeedDate(value) {
 function getFilteredGuides() {
   const query = searchInput.value.trim().toLowerCase();
 
-  return guides.filter((guide) => {
+  const filteredGuides = guides.filter((guide) => {
     const haystack = [guide.title, guide.game, guide.summary, guide.category, guide.tags.join(" ")]
       .join(" ")
       .toLowerCase();
     const matchesQuery = !query || haystack.includes(query);
-    const matchesCategory = activeCategory === "전체" || guide.category === activeCategory;
+    const matchesCategory = activeCategory === "전체" || activeCategory === "베스트" || guide.category === activeCategory;
     return matchesQuery && matchesCategory;
   });
+
+  if (activeCategory === "베스트") {
+    return filteredGuides.sort((a, b) => (b.votes || 0) - (a.votes || 0) || (b.views || 0) - (a.views || 0));
+  }
+
+  return filteredGuides;
 }
 
 function renderGuides() {
@@ -513,6 +533,12 @@ function renderGuides() {
   boardTitle.textContent = currentBoard.title;
   boardDesc.textContent = currentBoard.desc;
   boardCount.textContent = `${visibleGuides.length}개`;
+  sideBoardLinks.forEach((link) => {
+    link.classList.toggle("active", link.dataset.boardLink === activeCategory);
+  });
+  categoryButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.filter === activeCategory);
+  });
 
   if (!visibleGuides.length) {
     const empty = document.createElement("p");
@@ -728,9 +754,25 @@ searchInput.addEventListener("input", renderGuides);
 categoryButtons.forEach((button) => {
   button.addEventListener("click", () => {
     activeCategory = button.dataset.filter;
-    categoryButtons.forEach((item) => item.classList.toggle("active", item === button));
+    history.pushState(null, "", `?board=${encodeURIComponent(activeCategory)}`);
     renderGuides();
   });
+});
+
+sideBoardLinks.forEach((link) => {
+  link.addEventListener("click", (event) => {
+    event.preventDefault();
+    activeCategory = link.dataset.boardLink;
+    history.pushState(null, "", `?board=${encodeURIComponent(activeCategory)}`);
+    renderGuides();
+    document.querySelector("#guides")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+});
+
+window.addEventListener("popstate", () => {
+  const board = new URLSearchParams(location.search).get("board");
+  activeCategory = boardInfo[board] ? board : "전체";
+  renderGuides();
 });
 
 providerLoginOpenButton?.addEventListener("click", openLoginModal);

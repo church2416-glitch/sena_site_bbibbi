@@ -16,15 +16,15 @@
         </a>
 
         <nav class="side-nav">
-          <a class="active" href="#"><span>⌂</span>홈</a>
-          <a href="#guides"><span>▦</span>전체 게시판</a>
-          <a href="#ranking"><span>★</span>베스트</a>
-          <a href="guild-war.html"><span>✹</span>자유 게시판</a>
-          <a href="#guides"><span>✦</span>PVE 공략</a>
+          <a href="index.html"><span>⌂</span>홈</a>
+          <a href="index.html?board=전체" data-board-link="전체"><span>▦</span>전체 게시판</a>
+          <a href="index.html?board=베스트" data-board-link="베스트"><span>★</span>베스트</a>
+          <a href="index.html?board=자유 게시판" data-board-link="자유 게시판"><span>✹</span>자유 게시판</a>
+          <a href="index.html?board=PVE 공략" data-board-link="PVE 공략"><span>✦</span>PVE 공략</a>
           <a href="upload.html" target="_blank" rel="noopener"><span>✦</span>공략 업로드</a>
           <a id="adminDashboardLink" href="admin.html" hidden><span>▣</span>관리자 DB</a>
-          <a href="#"><span>⌬</span>데미지 고급</a>
-          <a href="#"><span>☽</span>아이템 고급</a>
+          <a href="index.html?board=데미지 고급" data-board-link="데미지 고급"><span>⌬</span>데미지 고급</a>
+          <a href="index.html?board=아이템 고급" data-board-link="아이템 고급"><span>☽</span>아이템 고급</a>
         </nav>
 
         <section class="score-card">
@@ -94,6 +94,8 @@
           <button type="button" data-filter="기술">기술</button>
           <button type="button" data-filter="잡담">잡담</button>
           <button type="button" data-filter="유머">유머</button>
+          <button type="button" data-filter="데미지 고급">데미지 고급</button>
+          <button type="button" data-filter="아이템 고급">아이템 고급</button>
         </div>
 
         <section class="feed-card" id="guides">
