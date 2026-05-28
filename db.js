@@ -26,6 +26,7 @@ export function initDb({ adminUser, adminPassword }) {
       username TEXT NOT NULL UNIQUE,
       password_hash TEXT,
       role TEXT NOT NULL DEFAULT 'user',
+      permissions_json TEXT NOT NULL DEFAULT '{}',
       display_name TEXT,
       provider TEXT NOT NULL DEFAULT 'local',
       provider_id TEXT,
@@ -176,6 +177,7 @@ function migrateUsersTable() {
   addColumn("provider_id", "TEXT");
   addColumn("email", "TEXT");
   addColumn("avatar_url", "TEXT");
+  addColumn("permissions_json", "TEXT NOT NULL DEFAULT '{}'");
 }
 
 function migratePostsTable() {

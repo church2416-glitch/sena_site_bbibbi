@@ -64,6 +64,86 @@ const roleLevels = {
   admin: 3,
   superadmin: 4,
 };
+const permissionKeys = [
+  "canReadPosts",
+  "canWritePosts",
+  "canComment",
+  "canVote",
+  "canUploadMedia",
+  "canEditOwnPosts",
+  "canManageOwnComments",
+  "canManageGuild",
+  "canAccessAdminDb",
+  "canManageUsers",
+  "canManageContent",
+];
+const rolePermissionPresets = {
+  blocked: {
+    canReadPosts: false,
+    canWritePosts: false,
+    canComment: false,
+    canVote: false,
+    canUploadMedia: false,
+    canEditOwnPosts: false,
+    canManageOwnComments: false,
+    canManageGuild: false,
+    canAccessAdminDb: false,
+    canManageUsers: false,
+    canManageContent: false,
+  },
+  user: {
+    canReadPosts: true,
+    canWritePosts: true,
+    canComment: true,
+    canVote: true,
+    canUploadMedia: true,
+    canEditOwnPosts: true,
+    canManageOwnComments: true,
+    canManageGuild: false,
+    canAccessAdminDb: false,
+    canManageUsers: false,
+    canManageContent: false,
+  },
+  elite: {
+    canReadPosts: true,
+    canWritePosts: true,
+    canComment: true,
+    canVote: true,
+    canUploadMedia: true,
+    canEditOwnPosts: true,
+    canManageOwnComments: true,
+    canManageGuild: false,
+    canAccessAdminDb: false,
+    canManageUsers: false,
+    canManageContent: false,
+  },
+  admin: {
+    canReadPosts: true,
+    canWritePosts: true,
+    canComment: true,
+    canVote: true,
+    canUploadMedia: true,
+    canEditOwnPosts: true,
+    canManageOwnComments: true,
+    canManageGuild: true,
+    canAccessAdminDb: false,
+    canManageUsers: false,
+    canManageContent: true,
+  },
+  superadmin: {
+    canReadPosts: true,
+    canWritePosts: true,
+    canComment: true,
+    canVote: true,
+    canUploadMedia: true,
+    canEditOwnPosts: true,
+    canManageOwnComments: true,
+    canManageGuild: true,
+    canAccessAdminDb: true,
+    canManageUsers: true,
+    canManageContent: true,
+  },
+};
 const notificationStreams = new Map();
 const uploadPostMedia = multer({
   storage: multer.diskStorage({
@@ -149,30 +229,65 @@ function hasRole(userOrRole, minimumRole) {
   return roleLevel(role) >= roleLevel(minimumRole);
 }
 
-function roleFlags(role) {
+function parsePermissions(value) {
+  if (!value) return {};
+  if (typeof value === "object" && !Array.isArray(value)) return value;
+  try {
+    const parsed = JSON.parse(String(value));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function sanitizePermissions(value) {
+  const parsed = parsePermissions(value);
+  return Object.fromEntries(
+    permissionKeys
+      .filter((key) => typeof parsed[key] === "boolean")
+      .map((key) => [key, parsed[key]]),
+  );
+}
+
+function roleFlags(userOrRole, permissionsInput) {
+  const role = typeof userOrRole === "string" ? userOrRole : userOrRole?.role;
   const normalized = normalizeRole(role);
+  const permissions = sanitizePermissions(
+    permissionsInput ?? (typeof userOrRole === "string" ? null : userOrRole?.permissions_json || userOrRole?.permissions),
+  );
+  const flags = {
+    ...(rolePermissionPresets[normalized] || rolePermissionPresets.user),
+    ...permissions,
+  };
+  if (normalized === "superadmin") {
+    Object.assign(flags, rolePermissionPresets.superadmin);
+  }
+  if (normalized === "blocked") {
+    Object.assign(flags, rolePermissionPresets.blocked);
+  }
   return {
     role: normalized,
+    permissions,
+    ...flags,
     isSuperAdmin: normalized === "superadmin",
-    isAdmin: hasRole(normalized, "admin"),
-    canAccessAdminDb: normalized === "superadmin",
-    canManageGuild: hasRole(normalized, "admin"),
-    canReadPosts: hasRole(normalized, "user"),
-    canWritePosts: hasRole(normalized, "user"),
+    isAdmin: hasRole(normalized, "admin") || Boolean(flags.canManageGuild || flags.canManageContent || flags.canManageUsers || flags.canAccessAdminDb),
     isVerified: hasRole(normalized, "elite"),
   };
+}
+
+function hasPermission(user, key) {
+  return Boolean(roleFlags(user)[key]);
 }
 
 function getPublicUser(req) {
   const session = readSession(req);
   if (!session) return { loggedIn: false, role: "guest" };
   const user = findUserByUsername(session.username);
-  const role = normalizeRole(user?.role || session.role);
   return {
     loggedIn: true,
     username: session.username,
     displayName: user?.display_name || session.username,
-    ...roleFlags(role),
+    ...roleFlags(user || session.role),
   };
 }
 
@@ -188,13 +303,13 @@ function requireMemberForPrivatePages(req, res, next) {
   if (requestPath === "/admin.html") {
     if (!session) return res.redirect("/?login=required");
     const user = findUserByUsername(session.username);
-    if (!user || !hasRole(user.role, "superadmin")) return res.status(403).send("최고관리자 권한이 필요합니다.");
+    if (!user || !hasPermission(user, "canAccessAdminDb")) return res.status(403).send("최고관리자 권한이 필요합니다.");
     return next();
   }
   if (requestPath === "/guild-war-admin.html") {
     if (!session) return res.redirect("/?login=required");
     const user = findUserByUsername(session.username);
-    if (!user || !hasRole(user.role, "admin")) return res.status(403).send("관리자 권한이 필요합니다.");
+    if (!user || !hasPermission(user, "canManageGuild")) return res.status(403).send("족보 관리 권한이 필요합니다.");
     return next();
   }
   if (session) return next();
@@ -207,7 +322,7 @@ function serializeUser(user) {
     loggedIn: true,
     username: user.username,
     displayName: user.display_name || user.username,
-    ...roleFlags(user.role),
+    ...roleFlags(user),
   };
 }
 
@@ -288,10 +403,31 @@ function requireRole(minimumRole, message = "권한이 필요합니다.") {
 }
 
 const requireSuperAdmin = requireRole("superadmin", "최고관리자 권한이 필요합니다.");
-const requireGuildManager = requireRole("admin", "관리자 권한이 필요합니다.");
+
+function requirePermission(key, message = "권한이 필요합니다.") {
+  return (req, res, next) => {
+    const session = readSession(req);
+    if (!session) {
+      return res.status(401).json({ error: "로그인이 필요합니다." });
+    }
+
+    const user = findUserByUsername(session.username);
+    if (!user || !hasPermission(user, key)) {
+      return res.status(403).json({ error: message });
+    }
+
+    req.session = session;
+    req.user = user;
+    next();
+  };
+}
+
+const requireGuildManager = requirePermission("canManageGuild", "족보 관리 권한이 필요합니다.");
+const requireUserManager = requirePermission("canManageUsers", "사용자 관리 권한이 필요합니다.");
+const requireContentManager = requirePermission("canManageContent", "콘텐츠 관리 권한이 필요합니다.");
 
 function requireAdmin(req, res, next) {
-  return requireSuperAdmin(req, res, next);
+  return requirePermission("canAccessAdminDb", "최고관리자 권한이 필요합니다.")(req, res, next);
 }
 
 function requireContentAccess(req, res, next) {
@@ -301,7 +437,7 @@ function requireContentAccess(req, res, next) {
   }
 
   const user = findUserByUsername(session.username);
-  if (!user || !hasRole(user.role, "user")) {
+  if (!user || !hasPermission(user, "canReadPosts")) {
     return res.status(403).json({ error: "게시글 열람 권한이 없습니다." });
   }
 
@@ -325,6 +461,13 @@ function maybeUploadPostMedia(req, res, next) {
     }
     return next(err);
   });
+}
+
+function requireMediaUploadPermission(req, res, next) {
+  if (req.is("multipart/form-data") && !hasPermission(req.user, "canUploadMedia")) {
+    return res.status(403).json({ error: "미디어 업로드 권한이 없습니다." });
+  }
+  next();
 }
 
 function safeJsonParse(value, fallback) {
@@ -477,7 +620,8 @@ function serializeComment(row) {
 
 function canManagePost(user, post) {
   if (!user || !post) return false;
-  return post.author_id === user.id || hasRole(user.role, "admin");
+  if (hasPermission(user, "canManageContent")) return true;
+  return post.author_id === user.id && hasPermission(user, "canEditOwnPosts");
 }
 
 function serializeNotification(row) {
@@ -587,6 +731,16 @@ function normalizePostMedia(media = {}) {
     youtube: String(media.youtube || "").trim().slice(0, 240),
     youtubeEmbed: String(media.youtubeEmbed || "").trim().slice(0, 240),
   };
+}
+
+function postMediaHasPayload(media = {}) {
+  return Boolean(
+    (Array.isArray(media.images) && media.images.length) ||
+    (Array.isArray(media.videos) && media.videos.length) ||
+    media.videoFile ||
+    media.youtube ||
+    media.youtubeEmbed,
+  );
 }
 
 function normalizeTagsInput(value) {
@@ -971,7 +1125,7 @@ app.get("/api/me/activity", requireMember, (req, res) => {
       displayName: user.display_name || user.username,
       email: user.email || "",
       provider: user.provider || "local",
-      ...roleFlags(user.role),
+      ...roleFlags(user),
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     },
@@ -1065,7 +1219,7 @@ app.get("/api/posts", requireContentAccess, (req, res) => {
   res.json(selectPostRows().map((row) => withUserVoteState(serializePost(row), req.user.id)));
 });
 
-app.post("/api/posts", requireContentAccess, maybeUploadPostMedia, (req, res) => {
+app.post("/api/posts", requireContentAccess, requirePermission("canWritePosts", "게시글 작성 권한이 없습니다."), requireMediaUploadPermission, maybeUploadPostMedia, (req, res) => {
   const title = String(req.body?.title || "").trim();
   const category = String(req.body?.category || "").trim();
   const game = String(req.body?.game || "").trim();
@@ -1092,6 +1246,10 @@ app.post("/api/posts", requireContentAccess, maybeUploadPostMedia, (req, res) =>
   let postMedia;
   try {
     postMedia = isMultipart ? buildUploadedPostMedia(id, req.body || {}, req.files || {}) : media;
+    if (!hasPermission(req.user, "canUploadMedia") && postMediaHasPayload(postMedia)) {
+      cleanupUploadedFiles(req.files || {});
+      return res.status(403).json({ error: "미디어 업로드 권한이 없습니다." });
+    }
     if (!isMultipart) postMedia.videoFile = savePostVideoFile(id, postMedia.videoFile);
   } catch (err) {
     cleanupUploadedFiles(req.files || {});
@@ -1137,7 +1295,7 @@ app.get("/api/posts/:id", requireContentAccess, (req, res) => {
   });
 });
 
-app.patch("/api/posts/:id", requireContentAccess, maybeUploadPostMedia, (req, res) => {
+app.patch("/api/posts/:id", requireContentAccess, requireMediaUploadPermission, maybeUploadPostMedia, (req, res) => {
   const id = String(req.params.id || "");
   const post = db.prepare("SELECT * FROM posts WHERE id = ? AND status = 'published'").get(id);
   if (!post) {
@@ -1186,6 +1344,9 @@ app.patch("/api/posts/:id", requireContentAccess, maybeUploadPostMedia, (req, re
       };
     } else if (req.body?.media && typeof req.body.media === "object") {
       media = normalizePostMedia(req.body.media);
+      if (!hasPermission(req.user, "canUploadMedia") && postMediaHasPayload(media)) {
+        return res.status(403).json({ error: "미디어 업로드 권한이 없습니다." });
+      }
       media.videoFile = savePostVideoFile(id, media.videoFile);
     }
   } catch (err) {
@@ -1235,6 +1396,10 @@ app.delete("/api/posts/:id", requireContentAccess, (req, res) => {
 });
 
 app.post("/api/posts/:id/vote", requireContentAccess, (req, res) => {
+  if (!hasPermission(req.user, "canVote")) {
+    return res.status(403).json({ error: "추천 권한이 없습니다." });
+  }
+
   const id = String(req.params.id || "");
   const post = db.prepare("SELECT id, author_id, title FROM posts WHERE id = ? AND status = 'published'").get(id);
   if (!post) {
@@ -1284,6 +1449,10 @@ app.get("/api/posts/:id/comments", requireContentAccess, (req, res) => {
 });
 
 app.post("/api/posts/:id/comments", requireContentAccess, (req, res) => {
+  if (!hasPermission(req.user, "canComment")) {
+    return res.status(403).json({ error: "댓글 작성 권한이 없습니다." });
+  }
+
   const id = String(req.params.id || "");
   const content = String(req.body?.content || "").trim();
   const parentId = req.body?.parentId ? Number(req.body.parentId) : null;
@@ -1343,6 +1512,10 @@ app.post("/api/posts/:id/comments", requireContentAccess, (req, res) => {
 });
 
 app.post("/api/comments/:id/vote", requireContentAccess, (req, res) => {
+  if (!hasPermission(req.user, "canVote")) {
+    return res.status(403).json({ error: "추천 권한이 없습니다." });
+  }
+
   const id = Number(req.params.id);
   const comment = db
     .prepare(
@@ -1679,7 +1852,7 @@ app.get("/api/admin/dashboard", requireAdmin, (req, res) => {
   const recentUsers = db
     .prepare(
       `
-        SELECT id, username, display_name, email, provider, role, created_at
+        SELECT id, username, display_name, email, provider, role, permissions_json, created_at
         FROM users
         ORDER BY datetime(created_at) DESC
         LIMIT 8
@@ -1711,12 +1884,12 @@ app.get("/api/admin/dashboard", requireAdmin, (req, res) => {
   res.json({
     counts,
     daily: dailyRows,
-    recentUsers,
+    recentUsers: recentUsers.map((user) => ({ ...user, ...roleFlags(user) })),
     recentPosts: recentPosts.map(serializePost),
   });
 });
 
-app.get("/api/admin/users", requireAdmin, (req, res) => {
+app.get("/api/admin/users", requireUserManager, (req, res) => {
   const users = db
     .prepare(
       `
@@ -1727,6 +1900,7 @@ app.get("/api/admin/users", requireAdmin, (req, res) => {
           users.email,
           users.provider,
           users.role,
+          users.permissions_json,
           users.created_at,
           COUNT(posts.id) AS post_count
         FROM users
@@ -1736,17 +1910,21 @@ app.get("/api/admin/users", requireAdmin, (req, res) => {
       `,
     )
     .all();
-  res.json(users);
+  res.json(users.map((user) => ({ ...user, ...roleFlags(user) })));
 });
 
-app.patch("/api/admin/users/:id", requireAdmin, (req, res) => {
+app.patch("/api/admin/users/:id", requireUserManager, (req, res) => {
   const id = Number(req.params.id);
   const role = String(req.body?.role || "").trim();
   const displayName = String(req.body?.displayName || "").trim();
+  const permissions = sanitizePermissions(req.body?.permissions);
   const allowedRoles = new Set(["blocked", "user", "elite", "admin", "superadmin"]);
 
   if (!allowedRoles.has(role)) {
     return res.status(400).json({ error: "권한 값이 올바르지 않습니다." });
+  }
+  if (!roleFlags(req.user).isSuperAdmin && (normalizeRole(role) === "superadmin" || permissions.canAccessAdminDb || permissions.canManageUsers)) {
+    return res.status(403).json({ error: "최고관리자 권한 설정은 최고관리자만 변경할 수 있습니다." });
   }
   if (displayName && [...displayName].length > 16) {
     return res.status(400).json({ error: "닉네임은 16자 이하로 입력해주세요." });
@@ -1756,18 +1934,19 @@ app.patch("/api/admin/users/:id", requireAdmin, (req, res) => {
     `
       UPDATE users
       SET role = ?,
+          permissions_json = ?,
           display_name = COALESCE(NULLIF(?, ''), display_name),
           updated_at = datetime('now')
       WHERE id = ?
     `,
-  ).run(normalizeRole(role), displayName, id);
+  ).run(normalizeRole(role), JSON.stringify(permissions), displayName, id);
 
-  const user = db.prepare("SELECT id, username, display_name, email, provider, role, created_at FROM users WHERE id = ?").get(id);
+  const user = db.prepare("SELECT id, username, display_name, email, provider, role, permissions_json, created_at FROM users WHERE id = ?").get(id);
   if (!user) return res.status(404).json({ error: "회원을 찾을 수 없습니다." });
-  res.json(user);
+  res.json({ ...user, ...roleFlags(user) });
 });
 
-app.delete("/api/admin/users/:id", requireAdmin, (req, res) => {
+app.delete("/api/admin/users/:id", requireUserManager, (req, res) => {
   const id = Number(req.params.id);
   const actor = findUserByUsername(req.session.username);
   if (actor?.id === id) {
@@ -1779,11 +1958,11 @@ app.delete("/api/admin/users/:id", requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/api/admin/posts", requireAdmin, (req, res) => {
+app.get("/api/admin/posts", requireContentManager, (req, res) => {
   res.json(selectPostRows("1 = 1").map(serializePost));
 });
 
-app.patch("/api/admin/posts/:id", requireAdmin, (req, res) => {
+app.patch("/api/admin/posts/:id", requireContentManager, (req, res) => {
   const id = String(req.params.id || "");
   const status = String(req.body?.status || "").trim();
   const allowedStatuses = new Set(["published", "hidden", "deleted"]);
@@ -1797,7 +1976,7 @@ app.patch("/api/admin/posts/:id", requireAdmin, (req, res) => {
   res.json(serializePost(post));
 });
 
-app.delete("/api/admin/posts/:id", requireAdmin, (req, res) => {
+app.delete("/api/admin/posts/:id", requireContentManager, (req, res) => {
   const id = String(req.params.id || "");
   const result = db.prepare("DELETE FROM posts WHERE id = ?").run(id);
   if (!result.changes) return res.status(404).json({ error: "게시글을 찾을 수 없습니다." });

@@ -41,6 +41,86 @@ const viewTitles = {
   contents: "콘텐츠 관리",
   database: "데이터베이스",
 };
+const roleDefaults = {
+  blocked: {
+    canReadPosts: false,
+    canWritePosts: false,
+    canComment: false,
+    canVote: false,
+    canUploadMedia: false,
+    canEditOwnPosts: false,
+    canManageOwnComments: false,
+    canManageGuild: false,
+    canAccessAdminDb: false,
+    canManageUsers: false,
+    canManageContent: false,
+  },
+  user: {
+    canReadPosts: true,
+    canWritePosts: true,
+    canComment: true,
+    canVote: true,
+    canUploadMedia: true,
+    canEditOwnPosts: true,
+    canManageOwnComments: true,
+    canManageGuild: false,
+    canAccessAdminDb: false,
+    canManageUsers: false,
+    canManageContent: false,
+  },
+  elite: {
+    canReadPosts: true,
+    canWritePosts: true,
+    canComment: true,
+    canVote: true,
+    canUploadMedia: true,
+    canEditOwnPosts: true,
+    canManageOwnComments: true,
+    canManageGuild: false,
+    canAccessAdminDb: false,
+    canManageUsers: false,
+    canManageContent: false,
+  },
+  admin: {
+    canReadPosts: true,
+    canWritePosts: true,
+    canComment: true,
+    canVote: true,
+    canUploadMedia: true,
+    canEditOwnPosts: true,
+    canManageOwnComments: true,
+    canManageGuild: true,
+    canAccessAdminDb: false,
+    canManageUsers: false,
+    canManageContent: true,
+  },
+  superadmin: {
+    canReadPosts: true,
+    canWritePosts: true,
+    canComment: true,
+    canVote: true,
+    canUploadMedia: true,
+    canEditOwnPosts: true,
+    canManageOwnComments: true,
+    canManageGuild: true,
+    canAccessAdminDb: true,
+    canManageUsers: true,
+    canManageContent: true,
+  },
+};
+const permissionOptions = [
+  ["canReadPosts", "게시글 열람"],
+  ["canWritePosts", "게시글 작성"],
+  ["canComment", "댓글 작성"],
+  ["canVote", "추천"],
+  ["canUploadMedia", "미디어 업로드"],
+  ["canEditOwnPosts", "본인 글 수정/삭제"],
+  ["canManageOwnComments", "본인 댓글 관리"],
+  ["canManageGuild", "족보 작성/관리"],
+  ["canManageContent", "콘텐츠 관리"],
+  ["canManageUsers", "사용자 관리"],
+  ["canAccessAdminDb", "관리자 DB 접근"],
+];
 
 function formatNumber(value) {
   return numberFormat.format(Number(value) || 0);
@@ -201,9 +281,11 @@ function renderUsers(users) {
     const meta = document.createElement("small");
     const actions = document.createElement("div");
     const role = document.createElement("select");
+    const permissions = document.createElement("div");
     const save = document.createElement("button");
     const remove = document.createElement("button");
 
+    row.className = "admin-user-row";
     avatar.className = "admin-row-avatar";
     avatar.textContent = (user.display_name || user.username || "?").slice(0, 1).toUpperCase();
     name.textContent = user.display_name || user.username;
@@ -211,6 +293,7 @@ function renderUsers(users) {
       .filter(Boolean)
       .join(" · ");
     actions.className = "admin-row-actions";
+    permissions.className = "admin-permission-grid";
 
     [
       ["superadmin", "최고관리자"],
@@ -226,18 +309,42 @@ function renderUsers(users) {
       role.append(option);
     });
 
+    permissionOptions.forEach(([key, label]) => {
+      const item = document.createElement("label");
+      const input = document.createElement("input");
+      const text = document.createElement("span");
+      input.type = "checkbox";
+      input.dataset.permission = key;
+      input.checked = Boolean(user[key]);
+      text.textContent = label;
+      item.append(input, text);
+      permissions.append(item);
+    });
+    role.addEventListener("change", () => {
+      const defaults = roleDefaults[role.value] || roleDefaults.user;
+      permissions.querySelectorAll("[data-permission]").forEach((input) => {
+        input.checked = Boolean(defaults[input.dataset.permission]);
+      });
+    });
+
     save.type = "button";
     save.textContent = "저장";
-    save.addEventListener("click", () => updateUserRole(user.id, role.value));
+    save.addEventListener("click", () => updateUserRole(user.id, role.value, readPermissionForm(permissions)));
     remove.type = "button";
     remove.textContent = "삭제";
     remove.addEventListener("click", () => deleteUser(user.id, user.display_name || user.username));
 
     body.append(name, meta);
     actions.append(role, save, remove);
-    row.append(avatar, body, actions);
+    row.append(avatar, body, actions, permissions);
     recentUsers.append(row);
   });
+}
+
+function readPermissionForm(container) {
+  return Object.fromEntries(
+    [...container.querySelectorAll("[data-permission]")].map((input) => [input.dataset.permission, input.checked]),
+  );
 }
 
 function renderPosts(posts) {
@@ -297,11 +404,11 @@ async function loadManagementLists() {
   if (postsResponse.ok) renderPosts(await postsResponse.json());
 }
 
-async function updateUserRole(id, role) {
+async function updateUserRole(id, role, permissions = {}) {
   const response = await fetch(`/api/admin/users/${encodeURIComponent(id)}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ role }),
+    body: JSON.stringify({ role, permissions }),
   });
   if (!response.ok) alert((await response.json().catch(() => ({}))).error || "회원 저장 실패");
   await loadDashboard();

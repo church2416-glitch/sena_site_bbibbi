@@ -2773,6 +2773,41 @@ p {
   grid-template-columns: 42px minmax(0, 1fr) minmax(190px, auto);
 }
 
+.admin-management-list article.admin-user-row {
+  grid-template-columns: 42px minmax(180px, 1fr) minmax(190px, auto);
+  align-items: start;
+}
+
+.admin-user-row .admin-permission-grid {
+  grid-column: 2 / -1;
+}
+
+.admin-permission-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #e6e6e6;
+  background: #fafafa;
+}
+
+.admin-permission-grid label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  color: #444;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-permission-grid input {
+  width: 14px;
+  height: 14px;
+  accent-color: #ff342f;
+}
+
 .admin-row-actions {
   display: flex;
   align-items: center;
