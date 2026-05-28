@@ -113,6 +113,10 @@ function renderDatabaseTable(counts) {
     users: counts.users,
     posts: counts.posts,
     post_media: counts.post_media,
+    post_votes: counts.post_votes,
+    post_comments: counts.post_comments,
+    comment_votes: counts.comment_votes,
+    notifications: counts.notifications,
     guild_war_sheets: counts.guild_war_sheets,
     app_settings: counts.app_settings,
     audit_logs: counts.audit_logs,
@@ -208,11 +212,17 @@ function renderUsers(users) {
       .join(" · ");
     actions.className = "admin-row-actions";
 
-    ["user", "verified", "admin"].forEach((value) => {
+    [
+      ["superadmin", "최고관리자"],
+      ["admin", "관리자"],
+      ["elite", "정예"],
+      ["user", "일반"],
+      ["blocked", "열람 차단"],
+    ].forEach(([value, label]) => {
       const option = document.createElement("option");
       option.value = value;
-      option.textContent = value;
-      option.selected = user.role === value;
+      option.textContent = label;
+      option.selected = user.role === value || (user.role === "verified" && value === "elite");
       role.append(option);
     });
 

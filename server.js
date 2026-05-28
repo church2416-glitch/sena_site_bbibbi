@@ -56,6 +56,15 @@ const maxPostImageSize = 8 * 1024 * 1024;
 const maxPostVideoSize = 500 * 1024 * 1024;
 const uploadRoot = path.join(__dirname, "uploads");
 const uploadTmpRoot = path.join(uploadRoot, "tmp");
+const roleLevels = {
+  blocked: 0,
+  user: 1,
+  verified: 2,
+  elite: 2,
+  admin: 3,
+  superadmin: 4,
+};
+const notificationStreams = new Map();
 const uploadPostMedia = multer({
   storage: multer.diskStorage({
     destination(req, file, cb) {
@@ -127,18 +136,43 @@ function readSession(req) {
   }
 }
 
+function normalizeRole(role) {
+  return role === "verified" ? "elite" : role || "user";
+}
+
+function roleLevel(role) {
+  return roleLevels[normalizeRole(role)] ?? roleLevels.user;
+}
+
+function hasRole(userOrRole, minimumRole) {
+  const role = typeof userOrRole === "string" ? userOrRole : userOrRole?.role;
+  return roleLevel(role) >= roleLevel(minimumRole);
+}
+
+function roleFlags(role) {
+  const normalized = normalizeRole(role);
+  return {
+    role: normalized,
+    isSuperAdmin: normalized === "superadmin",
+    isAdmin: hasRole(normalized, "admin"),
+    canAccessAdminDb: normalized === "superadmin",
+    canManageGuild: hasRole(normalized, "admin"),
+    canReadPosts: hasRole(normalized, "user"),
+    canWritePosts: hasRole(normalized, "user"),
+    isVerified: hasRole(normalized, "elite"),
+  };
+}
+
 function getPublicUser(req) {
   const session = readSession(req);
   if (!session) return { loggedIn: false, role: "guest" };
   const user = findUserByUsername(session.username);
-  const role = user?.role || session.role;
+  const role = normalizeRole(user?.role || session.role);
   return {
     loggedIn: true,
     username: session.username,
     displayName: user?.display_name || session.username,
-    role,
-    isAdmin: role === "admin",
-    isVerified: role === "verified" || role === "admin",
+    ...roleFlags(role),
   };
 }
 
@@ -153,7 +187,14 @@ function requireMemberForPrivatePages(req, res, next) {
   const session = readSession(req);
   if (requestPath === "/admin.html") {
     if (!session) return res.redirect("/?login=required");
-    if (session.role !== "admin") return res.status(403).send("관리자 권한이 필요합니다.");
+    const user = findUserByUsername(session.username);
+    if (!user || !hasRole(user.role, "superadmin")) return res.status(403).send("최고관리자 권한이 필요합니다.");
+    return next();
+  }
+  if (requestPath === "/guild-war-admin.html") {
+    if (!session) return res.redirect("/?login=required");
+    const user = findUserByUsername(session.username);
+    if (!user || !hasRole(user.role, "admin")) return res.status(403).send("관리자 권한이 필요합니다.");
     return next();
   }
   if (session) return next();
@@ -166,9 +207,7 @@ function serializeUser(user) {
     loggedIn: true,
     username: user.username,
     displayName: user.display_name || user.username,
-    role: user.role,
-    isAdmin: user.role === "admin",
-    isVerified: user.role === "verified" || user.role === "admin",
+    ...roleFlags(user.role),
   };
 }
 
@@ -205,7 +244,7 @@ function setAuthCookie(res, username) {
   });
 }
 
-function requireAdmin(req, res, next) {
+function requireLegacyAdmin(req, res, next) {
   const session = readSession(req);
   if (!session || session.role !== "admin") {
     return res.status(403).json({ error: "관리자 권한이 필요합니다." });
@@ -223,6 +262,47 @@ function requireMember(req, res, next) {
   const user = findUserByUsername(session.username);
   if (!user) {
     return res.status(401).json({ error: "회원 PVP 공략를 찾을 수 없습니다." });
+  }
+
+  req.session = session;
+  req.user = user;
+  next();
+}
+
+function requireRole(minimumRole, message = "권한이 필요합니다.") {
+  return (req, res, next) => {
+    const session = readSession(req);
+    if (!session) {
+      return res.status(401).json({ error: "로그인이 필요합니다." });
+    }
+
+    const user = findUserByUsername(session.username);
+    if (!user || !hasRole(user.role, minimumRole)) {
+      return res.status(403).json({ error: message });
+    }
+
+    req.session = session;
+    req.user = user;
+    next();
+  };
+}
+
+const requireSuperAdmin = requireRole("superadmin", "최고관리자 권한이 필요합니다.");
+const requireGuildManager = requireRole("admin", "관리자 권한이 필요합니다.");
+
+function requireAdmin(req, res, next) {
+  return requireSuperAdmin(req, res, next);
+}
+
+function requireContentAccess(req, res, next) {
+  const session = readSession(req);
+  if (!session) {
+    return res.status(401).json({ error: "로그인이 필요합니다." });
+  }
+
+  const user = findUserByUsername(session.username);
+  if (!user || !hasRole(user.role, "user")) {
+    return res.status(403).json({ error: "게시글 열람 권한이 없습니다." });
   }
 
   req.session = session;
@@ -428,7 +508,7 @@ function withUserCommentVoteState(comment, userId) {
 
 function createNotification({ recipientId, actorId, type, targetType, targetId, postId, commentId, message }) {
   if (!recipientId || recipientId === actorId) return;
-  db.prepare(
+  const result = db.prepare(
     `
       INSERT INTO notifications (
         recipient_id, actor_id, type, target_type, target_id,
@@ -437,6 +517,41 @@ function createNotification({ recipientId, actorId, type, targetType, targetId, 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `,
   ).run(recipientId, actorId || null, type, targetType, String(targetId), postId || null, commentId || null, message);
+  pushNotification(recipientId, result.lastInsertRowid);
+}
+
+function getUnreadNotificationCount(userId) {
+  return Number(
+    db.prepare("SELECT COUNT(*) AS count FROM notifications WHERE recipient_id = ? AND read_at IS NULL").get(userId)?.count,
+  ) || 0;
+}
+
+function pushNotification(userId, notificationId) {
+  const clients = notificationStreams.get(userId);
+  if (!clients?.size) return;
+  const row = db
+    .prepare(
+      `
+        SELECT
+          notifications.*,
+          users.display_name AS actor_name,
+          users.username AS actor_username,
+          posts.title AS post_title
+        FROM notifications
+        LEFT JOIN users ON users.id = notifications.actor_id
+        LEFT JOIN posts ON posts.id = notifications.post_id
+        WHERE notifications.id = ?
+      `,
+    )
+    .get(notificationId);
+  const payload = JSON.stringify({
+    unreadCount: getUnreadNotificationCount(userId),
+    notification: row ? serializeNotification(row) : null,
+  });
+  for (const client of clients) {
+    client.write(`event: notification\n`);
+    client.write(`data: ${payload}\n\n`);
+  }
 }
 
 function normalizePostMedia(media = {}) {
@@ -840,9 +955,7 @@ app.get("/api/me/activity", requireMember, (req, res) => {
     .slice(0, 12)
     .map(serializeComment);
   const notifications = selectNotificationRows(user.id).map(serializeNotification);
-  const unreadNotificationCount = db
-    .prepare("SELECT COUNT(*) AS count FROM notifications WHERE recipient_id = ? AND read_at IS NULL")
-    .get(user.id);
+  const unreadNotificationCount = getUnreadNotificationCount(user.id);
 
   res.json({
     user: {
@@ -850,11 +963,9 @@ app.get("/api/me/activity", requireMember, (req, res) => {
       displayName: user.display_name || user.username,
       email: user.email || "",
       provider: user.provider || "local",
-      role: user.role,
+      ...roleFlags(user.role),
       createdAt: user.created_at,
       updatedAt: user.updated_at,
-      isVerified: user.role === "verified" || user.role === "admin",
-      isAdmin: user.role === "admin",
     },
     stats: {
       postCount: Number(stats.postCount) || 0,
@@ -866,18 +977,42 @@ app.get("/api/me/activity", requireMember, (req, res) => {
     likedPosts,
     comments,
     notifications,
-    unreadNotificationCount: Number(unreadNotificationCount.count) || 0,
+    unreadNotificationCount,
   });
 });
 
 app.get("/api/me/notifications", requireMember, (req, res) => {
   const notifications = selectNotificationRows(req.user.id).map(serializeNotification);
-  const unread = db
-    .prepare("SELECT COUNT(*) AS count FROM notifications WHERE recipient_id = ? AND read_at IS NULL")
-    .get(req.user.id);
   res.json({
-    unreadCount: Number(unread.count) || 0,
+    unreadCount: getUnreadNotificationCount(req.user.id),
     notifications,
+  });
+});
+
+app.get("/api/me/notifications/stream", requireMember, (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders?.();
+
+  const userId = req.user.id;
+  if (!notificationStreams.has(userId)) notificationStreams.set(userId, new Set());
+  notificationStreams.get(userId).add(res);
+
+  res.write(`event: ready\n`);
+  res.write(`data: ${JSON.stringify({ unreadCount: getUnreadNotificationCount(userId) })}\n\n`);
+
+  const heartbeat = setInterval(() => {
+    res.write(`event: ping\n`);
+    res.write(`data: {}\n\n`);
+  }, 25000);
+
+  req.on("close", () => {
+    clearInterval(heartbeat);
+    const clients = notificationStreams.get(userId);
+    if (!clients) return;
+    clients.delete(res);
+    if (!clients.size) notificationStreams.delete(userId);
   });
 });
 
@@ -906,11 +1041,11 @@ app.patch("/api/me/notifications/read", requireMember, (req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/api/posts", requireMember, (req, res) => {
+app.get("/api/posts", requireContentAccess, (req, res) => {
   res.json(selectPostRows().map((row) => withUserVoteState(serializePost(row), req.user.id)));
 });
 
-app.post("/api/posts", requireMember, maybeUploadPostMedia, (req, res) => {
+app.post("/api/posts", requireContentAccess, maybeUploadPostMedia, (req, res) => {
   const title = String(req.body?.title || "").trim();
   const category = String(req.body?.category || "").trim();
   const game = String(req.body?.game || "").trim();
@@ -960,7 +1095,7 @@ app.post("/api/posts", requireMember, maybeUploadPostMedia, (req, res) => {
   res.status(201).json(withUserVoteState(serializePost(post), req.user.id));
 });
 
-app.get("/api/posts/:id", requireMember, (req, res) => {
+app.get("/api/posts/:id", requireContentAccess, (req, res) => {
   const id = String(req.params.id || "");
   db.prepare("UPDATE posts SET views = views + 1 WHERE id = ? AND status = 'published'").run(id);
   const post = selectPostRows("posts.id = ? AND posts.status = 'published'", [id])[0];
@@ -979,7 +1114,7 @@ app.get("/api/posts/:id", requireMember, (req, res) => {
   });
 });
 
-app.post("/api/posts/:id/vote", requireMember, (req, res) => {
+app.post("/api/posts/:id/vote", requireContentAccess, (req, res) => {
   const id = String(req.params.id || "");
   const post = db.prepare("SELECT id, author_id, title FROM posts WHERE id = ? AND status = 'published'").get(id);
   if (!post) {
@@ -1015,7 +1150,7 @@ app.post("/api/posts/:id/vote", requireMember, (req, res) => {
   res.json({ voted, post: serializePost(updatedPost) });
 });
 
-app.get("/api/posts/:id/comments", requireMember, (req, res) => {
+app.get("/api/posts/:id/comments", requireContentAccess, (req, res) => {
   const id = String(req.params.id || "");
   const post = db.prepare("SELECT id FROM posts WHERE id = ? AND status = 'published'").get(id);
   if (!post) {
@@ -1028,7 +1163,7 @@ app.get("/api/posts/:id/comments", requireMember, (req, res) => {
   );
 });
 
-app.post("/api/posts/:id/comments", requireMember, (req, res) => {
+app.post("/api/posts/:id/comments", requireContentAccess, (req, res) => {
   const id = String(req.params.id || "");
   const content = String(req.body?.content || "").trim();
   const post = db.prepare("SELECT id, author_id, title FROM posts WHERE id = ? AND status = 'published'").get(id);
@@ -1066,7 +1201,7 @@ app.post("/api/posts/:id/comments", requireMember, (req, res) => {
   });
 });
 
-app.post("/api/comments/:id/vote", requireMember, (req, res) => {
+app.post("/api/comments/:id/vote", requireContentAccess, (req, res) => {
   const id = Number(req.params.id);
   const comment = db
     .prepare(
@@ -1344,7 +1479,7 @@ app.get("/auth/google/callback", async (req, res) => {
 });
 
 app.get("/api/admin/db-status", requireAdmin, (req, res) => {
-  const tables = ["users", "posts", "post_media", "guild_war_sheets", "app_settings", "audit_logs"];
+  const tables = ["users", "posts", "post_media", "post_votes", "post_comments", "comment_votes", "notifications", "guild_war_sheets", "app_settings", "audit_logs"];
   const counts = Object.fromEntries(
     tables.map((table) => [table, db.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get().count]),
   );
@@ -1355,7 +1490,7 @@ app.get("/api/guild-war/season", (req, res) => {
   res.json({ ok: true, settings: getGuildSeasonSettings() });
 });
 
-app.patch("/api/admin/guild-war/season", requireAdmin, (req, res) => {
+app.patch("/api/admin/guild-war/season", requireGuildManager, (req, res) => {
   const totalRound = Math.max(1, Math.min(365, Number(req.body.totalRound) || defaultGuildSeasonSettings.totalRound));
   const round = Math.max(0, Math.min(totalRound, Number(req.body.round) || 0));
   const seasonNote = String(req.body.seasonNote || defaultGuildSeasonSettings.seasonNote).trim().slice(0, 60);
@@ -1375,8 +1510,8 @@ app.patch("/api/admin/guild-war/season", requireAdmin, (req, res) => {
 app.get("/api/admin/dashboard", requireAdmin, (req, res) => {
   const counts = {
     users: db.prepare("SELECT COUNT(*) AS count FROM users").get().count,
-    admins: db.prepare("SELECT COUNT(*) AS count FROM users WHERE role = 'admin'").get().count,
-    verified: db.prepare("SELECT COUNT(*) AS count FROM users WHERE role = 'verified'").get().count,
+    admins: db.prepare("SELECT COUNT(*) AS count FROM users WHERE role IN ('superadmin', 'admin')").get().count,
+    verified: db.prepare("SELECT COUNT(*) AS count FROM users WHERE role IN ('elite', 'verified')").get().count,
     posts: db.prepare("SELECT COUNT(*) AS count FROM posts").get().count,
     publishedPosts: db.prepare("SELECT COUNT(*) AS count FROM posts WHERE status = 'published'").get().count,
     guildSheets: db.prepare("SELECT COUNT(*) AS count FROM guild_war_sheets").get().count,
@@ -1467,7 +1602,7 @@ app.patch("/api/admin/users/:id", requireAdmin, (req, res) => {
   const id = Number(req.params.id);
   const role = String(req.body?.role || "").trim();
   const displayName = String(req.body?.displayName || "").trim();
-  const allowedRoles = new Set(["user", "verified", "admin"]);
+  const allowedRoles = new Set(["blocked", "user", "elite", "admin", "superadmin"]);
 
   if (!allowedRoles.has(role)) {
     return res.status(400).json({ error: "권한 값이 올바르지 않습니다." });
@@ -1484,7 +1619,7 @@ app.patch("/api/admin/users/:id", requireAdmin, (req, res) => {
           updated_at = datetime('now')
       WHERE id = ?
     `,
-  ).run(role, displayName, id);
+  ).run(normalizeRole(role), displayName, id);
 
   const user = db.prepare("SELECT id, username, display_name, email, provider, role, created_at FROM users WHERE id = ?").get(id);
   if (!user) return res.status(404).json({ error: "회원을 찾을 수 없습니다." });

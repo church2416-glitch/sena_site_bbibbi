@@ -254,6 +254,7 @@ let activeCategory = boardInfo[initialBoard] ? initialBoard : "전체";
 let guides = loadGuides();
 let voted = new Set(JSON.parse(localStorage.getItem(votedKey) || "[]"));
 let currentUser = { loggedIn: false, role: "guest" };
+let notificationStream = null;
 
 const seedNotices = [
   {
@@ -335,8 +336,8 @@ async function fetchCurrentUser() {
 
 function renderAuthState(user) {
   currentUser = user || { loggedIn: false, role: "guest" };
-  const isAdmin = Boolean(user?.isAdmin);
-  const roleLabel = isAdmin ? "관리자" : user?.isVerified ? "인증 회원" : "일반 회원";
+  const isAdmin = Boolean(user?.canAccessAdminDb || user?.isSuperAdmin);
+  const roleLabel = getAccountRoleLabel(user);
   const displayName = user?.displayName || user?.username || "user";
   document.body.classList.toggle("is-guest-locked", !user?.loggedIn);
   if (loginStateText) {
@@ -356,7 +357,12 @@ function renderAuthState(user) {
   }
   document.body.classList.toggle("is-admin", isAdmin);
   document.body.classList.toggle("is-verified", Boolean(user?.isVerified));
-  if (user?.loggedIn) loadNotificationBadge();
+  if (user?.loggedIn) {
+    loadNotificationBadge();
+    connectNotificationStream();
+  } else {
+    closeNotificationStream();
+  }
 
   if (!user?.loggedIn && new URLSearchParams(location.search).get("login") === "required") {
     openLoginModal();
@@ -481,8 +487,10 @@ function setAccountText(node, value) {
 }
 
 function getAccountRoleLabel(user) {
+  if (user?.isSuperAdmin || user?.role === "superadmin") return "최고관리자";
   if (user?.isAdmin || user?.role === "admin") return "관리자";
-  if (user?.isVerified || user?.role === "verified") return "인증 회원";
+  if (user?.isVerified || user?.role === "elite" || user?.role === "verified") return "정예 회원";
+  if (user?.role === "blocked") return "열람 제한";
   return "일반 회원";
 }
 
@@ -571,6 +579,32 @@ async function loadNotificationBadge() {
   }
 }
 
+function closeNotificationStream() {
+  if (!notificationStream) return;
+  notificationStream.close();
+  notificationStream = null;
+}
+
+function connectNotificationStream() {
+  if (!window.EventSource || notificationStream || !currentUser?.loggedIn) return;
+  notificationStream = new EventSource("/api/me/notifications/stream");
+  notificationStream.addEventListener("ready", (event) => {
+    const data = JSON.parse(event.data || "{}");
+    setNotificationBadge(data.unreadCount);
+  });
+  notificationStream.addEventListener("notification", (event) => {
+    const data = JSON.parse(event.data || "{}");
+    setNotificationBadge(data.unreadCount);
+    if (!profileModal?.hidden && data.notification) {
+      loadAccountDashboard();
+    }
+  });
+  notificationStream.onerror = () => {
+    closeNotificationStream();
+    window.setTimeout(connectNotificationStream, 5000);
+  };
+}
+
 async function markNotificationsRead() {
   await fetch("/api/me/notifications/read", {
     method: "PATCH",
@@ -614,8 +648,8 @@ async function loadAccountDashboard() {
     setAccountText(accountProvider, getProviderLabel(user.provider));
     setAccountText(accountRole, getAccountRoleLabel(user));
     setAccountText(accountCreatedAt, formatFeedDate(user.createdAt));
-    setAccountText(accountPostPermission, user.isVerified || user.isAdmin ? "ON" : "대기");
-    setAccountText(accountAdminPermission, user.isAdmin ? "ON" : "OFF");
+    setAccountText(accountPostPermission, user.canWritePosts ? "ON" : "차단");
+    setAccountText(accountAdminPermission, user.canAccessAdminDb ? "ON" : user.canManageGuild ? "족보" : "OFF");
     setNotificationBadge(activity.unreadNotificationCount);
     renderNotificationList(notifications);
 

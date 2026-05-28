@@ -211,12 +211,22 @@ export function verifyPassword(password, storedHash) {
 
 export function ensureAdminUser(username, password) {
   const existing = db.prepare("SELECT id FROM users WHERE username = ?").get(username);
-  if (existing) return;
+  if (existing) {
+    db.prepare(
+      `
+        UPDATE users
+        SET role = CASE WHEN role = 'superadmin' THEN role ELSE 'superadmin' END,
+            updated_at = datetime('now')
+        WHERE id = ?
+      `,
+    ).run(existing.id);
+    return;
+  }
 
   db.prepare(
     `
       INSERT INTO users (username, password_hash, role, display_name)
-      VALUES (?, ?, 'admin', ?)
+      VALUES (?, ?, 'superadmin', ?)
     `,
   ).run(username, hashPassword(password), username);
 }
@@ -256,7 +266,7 @@ export function upsertOAuthUser({ provider, providerId, username, displayName, e
       `
         UPDATE users
         SET username = ?,
-            role = CASE WHEN role = 'admin' THEN role ELSE 'verified' END,
+            role = CASE WHEN role IN ('superadmin', 'admin') THEN role ELSE role END,
             display_name = COALESCE(NULLIF(display_name, ''), ?),
             email = ?,
             avatar_url = ?,
@@ -270,7 +280,7 @@ export function upsertOAuthUser({ provider, providerId, username, displayName, e
   const result = db.prepare(
     `
       INSERT INTO users (username, password_hash, role, display_name, provider, provider_id, email, avatar_url)
-      VALUES (?, NULL, 'verified', ?, ?, ?, ?, ?)
+      VALUES (?, NULL, 'user', ?, ?, ?, ?, ?)
     `,
   ).run(username, displayName, provider, providerId, email, avatarUrl);
 
