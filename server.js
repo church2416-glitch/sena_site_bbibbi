@@ -58,6 +58,7 @@ const defaultImportantNoticeSettings = {
   eyebrow: "삐삐 공지사항",
   content: "",
   imageUrl: "",
+  imageUrls: [],
   actionLabel: "",
   actionUrl: "",
   updatedAt: "",
@@ -193,7 +194,7 @@ const uploadNoticeImage = multer({
   }),
   limits: {
     fileSize: maxPostImageSize,
-    files: 1,
+    files: 6,
   },
   fileFilter(req, file, cb) {
     if (file.mimetype.startsWith("image/")) return cb(null, true);
@@ -616,12 +617,20 @@ function getImportantNoticeSettings() {
 }
 
 function normalizeImportantNoticeSettings(value = {}) {
+  const imageUrls = Array.isArray(value.imageUrls)
+    ? value.imageUrls
+      .map((url) => String(url || "").trim().slice(0, 500))
+      .filter(Boolean)
+      .slice(0, 6)
+    : [];
+  const legacyImageUrl = String(value.imageUrl || "").trim().slice(0, 500);
   return {
     enabled: Boolean(value.enabled),
     title: String(value.title || defaultImportantNoticeSettings.title).trim().slice(0, 80),
     eyebrow: String(value.eyebrow || defaultImportantNoticeSettings.eyebrow).trim().slice(0, 40),
     content: String(value.content || "").trim().slice(0, 1800),
-    imageUrl: String(value.imageUrl || "").trim().slice(0, 500),
+    imageUrl: imageUrls[0] || legacyImageUrl,
+    imageUrls: imageUrls.length ? imageUrls : legacyImageUrl ? [legacyImageUrl] : [],
     actionLabel: String(value.actionLabel || "").trim().slice(0, 30),
     actionUrl: String(value.actionUrl || "").trim().slice(0, 500),
     updatedAt: new Date().toISOString(),
@@ -1881,20 +1890,21 @@ app.patch("/api/admin/important-notice", requireContentManager, (req, res) => {
 });
 
 app.post("/api/admin/important-notice/image", requireContentManager, (req, res) => {
-  uploadNoticeImage.single("image")(req, res, (err) => {
+  uploadNoticeImage.array("images", 6)(req, res, (err) => {
     if (err) {
       if (err.code === "LIMIT_FILE_SIZE") {
         return res.status(413).json({ error: "이미지는 8MB 이하로 업로드해주세요." });
       }
       return res.status(400).json({ error: "이미지 파일만 업로드할 수 있습니다." });
     }
-    if (!req.file) {
+    const files = req.files || [];
+    if (!files.length) {
       return res.status(400).json({ error: "업로드할 이미지가 없습니다." });
     }
     res.status(201).json({
       ok: true,
-      imageUrl: `/uploads/notices/${req.file.filename}`,
-      fileName: req.file.originalname,
+      imageUrls: files.map((file) => `/uploads/notices/${file.filename}`),
+      fileNames: files.map((file) => file.originalname),
     });
   });
 });

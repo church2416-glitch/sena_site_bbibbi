@@ -205,7 +205,7 @@ const boardSparkline = document.querySelector("#boardSparkline");
 const importantNoticeModal = document.querySelector("#importantNoticeModal");
 const importantNoticeEyebrowText = document.querySelector("#importantNoticeEyebrowText");
 const importantNoticeTitleText = document.querySelector("#importantNoticeTitleText");
-const importantNoticeImage = document.querySelector("#importantNoticeImage");
+const importantNoticeImages = document.querySelector("#importantNoticeImages");
 const importantNoticeBody = document.querySelector("#importantNoticeBody");
 const importantNoticeCloseButton = document.querySelector("#importantNoticeCloseButton");
 const importantNoticeConfirmButton = document.querySelector("#importantNoticeConfirmButton");
@@ -1141,9 +1141,19 @@ function showImportantNotice(notice) {
         importantNoticeBody.append(p);
       });
   }
-  if (importantNoticeImage) {
-    importantNoticeImage.hidden = !notice.imageUrl;
-    importantNoticeImage.src = notice.imageUrl || "";
+  if (importantNoticeImages) {
+    importantNoticeImages.innerHTML = "";
+    const imageUrls = (Array.isArray(notice.imageUrls) && notice.imageUrls.length ? notice.imageUrls : [notice.imageUrl])
+      .map((url) => String(url || "").trim())
+      .filter(Boolean)
+      .slice(0, 6);
+    importantNoticeImages.hidden = !imageUrls.length;
+    imageUrls.forEach((url) => {
+      const image = document.createElement("img");
+      image.src = url;
+      image.alt = "";
+      importantNoticeImages.append(image);
+    });
   }
   if (importantNoticeActionLink) {
     importantNoticeActionLink.hidden = !(notice.actionLabel && notice.actionUrl);

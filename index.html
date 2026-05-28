@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>삣삐이 온다</title>
-    <link rel="stylesheet" href="styles.css?v=notice-upload-20260529" />
+    <link rel="stylesheet" href="styles.css?v=notice-gallery-20260529" />
   </head>
   <body>
     <div class="app-shell">
@@ -163,8 +163,10 @@
           </div>
           <button id="importantNoticeCloseButton" type="button" aria-label="닫기">×</button>
         </header>
-        <img id="importantNoticeImage" alt="" hidden />
-        <div class="important-notice-body" id="importantNoticeBody"></div>
+        <div class="important-notice-scroll">
+          <div class="important-notice-images" id="importantNoticeImages" hidden></div>
+          <div class="important-notice-body" id="importantNoticeBody"></div>
+        </div>
         <footer>
           <button id="importantNoticeHideTodayButton" type="button">오늘 하루 보지 않기</button>
           <a id="importantNoticeActionLink" href="#" hidden>자세히 보기</a>
@@ -360,6 +362,6 @@
     </div>
 
     <script src="theme.js"></script>
-    <script src="app.js?v=notice-upload-20260529"></script>
+    <script src="app.js?v=notice-gallery-20260529"></script>
   </body>
 </html>

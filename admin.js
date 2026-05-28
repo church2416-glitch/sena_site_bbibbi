@@ -281,7 +281,7 @@ function renderImportantNoticeSettings(notice) {
   importantNoticeEnabled.checked = Boolean(notice.enabled);
   importantNoticeEyebrow.value = notice.eyebrow || "";
   importantNoticeTitle.value = notice.title || "";
-  importantNoticeImageUrl.value = notice.imageUrl || "";
+  importantNoticeImageUrl.value = (notice.imageUrls?.length ? notice.imageUrls : [notice.imageUrl].filter(Boolean)).join("\n");
   importantNoticeActionLabel.value = notice.actionLabel || "";
   importantNoticeActionUrl.value = notice.actionUrl || "";
   importantNoticeContent.value = notice.content || "";
@@ -297,11 +297,16 @@ async function loadImportantNoticeSettings() {
 }
 
 async function uploadImportantNoticeImage() {
-  const file = importantNoticeImageFile?.files?.[0];
-  if (!file) return importantNoticeImageUrl.value.trim();
+  const files = [...(importantNoticeImageFile?.files || [])].slice(0, 6);
+  const existingUrls = importantNoticeImageUrl.value
+    .split(/\n+/)
+    .map((url) => url.trim())
+    .filter(Boolean)
+    .slice(0, 6);
+  if (!files.length) return existingUrls;
   setText(importantNoticeSaveState, "이미지 업로드 중");
   const formData = new FormData();
-  formData.append("image", file);
+  files.forEach((file) => formData.append("images", file));
   const response = await fetch("/api/admin/important-notice/image", {
     method: "POST",
     body: formData,
@@ -310,17 +315,18 @@ async function uploadImportantNoticeImage() {
   if (!response.ok) {
     throw new Error(data.error || "이미지 업로드 실패");
   }
-  importantNoticeImageUrl.value = data.imageUrl || "";
+  const nextUrls = [...existingUrls, ...(data.imageUrls || [])].slice(0, 6);
+  importantNoticeImageUrl.value = nextUrls.join("\n");
   importantNoticeImageFile.value = "";
-  if (importantNoticeImageName) importantNoticeImageName.textContent = data.fileName || "업로드 완료";
-  return importantNoticeImageUrl.value.trim();
+  if (importantNoticeImageName) importantNoticeImageName.textContent = `${data.imageUrls?.length || files.length}장 업로드 완료`;
+  return nextUrls;
 }
 
 async function saveImportantNoticeSettings(event) {
   event.preventDefault();
-  let imageUrl;
+  let imageUrls;
   try {
-    imageUrl = await uploadImportantNoticeImage();
+    imageUrls = await uploadImportantNoticeImage();
   } catch (err) {
     setText(importantNoticeSaveState, err.message || "업로드 실패");
     return;
@@ -333,7 +339,8 @@ async function saveImportantNoticeSettings(event) {
       enabled: importantNoticeEnabled.checked,
       eyebrow: importantNoticeEyebrow.value.trim(),
       title: importantNoticeTitle.value.trim(),
-      imageUrl,
+      imageUrl: imageUrls[0] || "",
+      imageUrls,
       actionLabel: importantNoticeActionLabel.value.trim(),
       actionUrl: importantNoticeActionUrl.value.trim(),
       content: importantNoticeContent.value.trim(),
@@ -574,8 +581,11 @@ refreshDatabaseButton?.addEventListener("click", loadDashboard);
 guildSeasonForm?.addEventListener("submit", saveGuildSeasonSettings);
 importantNoticeForm?.addEventListener("submit", saveImportantNoticeSettings);
 importantNoticeImageFile?.addEventListener("change", () => {
-  const file = importantNoticeImageFile.files?.[0];
-  if (importantNoticeImageName) importantNoticeImageName.textContent = file ? `${file.name} · ${formatNumber(file.size / 1024)}KB` : "선택된 이미지 없음";
+  const files = [...(importantNoticeImageFile.files || [])];
+  const totalKb = files.reduce((sum, file) => sum + file.size / 1024, 0);
+  if (importantNoticeImageName) {
+    importantNoticeImageName.textContent = files.length ? `${files.length}장 · ${formatNumber(totalKb)}KB` : "선택된 이미지 없음";
+  }
 });
 
 adminLogoutButton?.addEventListener("click", async () => {

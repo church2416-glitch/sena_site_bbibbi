@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>관리자 데이터베이스 - 삐삐 길드</title>
-    <link rel="stylesheet" href="styles.css?v=notice-upload-20260529" />
+    <link rel="stylesheet" href="styles.css?v=notice-gallery-20260529" />
   </head>
   <body class="admin-dashboard-page">
     <aside class="admin-sidebar" aria-label="관리자 메뉴">
@@ -142,13 +142,13 @@
             <label class="admin-notice-upload-field">
               이미지
               <span>
-                <input id="importantNoticeImageFile" name="image" type="file" accept="image/*" />
+                <input id="importantNoticeImageFile" name="images" type="file" accept="image/*" multiple />
                 <em id="importantNoticeImageName">선택된 이미지 없음</em>
               </span>
             </label>
             <label>
               이미지 URL
-              <input id="importantNoticeImageUrl" name="imageUrl" maxlength="500" placeholder="직접 업로드하면 자동 입력됩니다." />
+              <textarea id="importantNoticeImageUrl" name="imageUrl" maxlength="3000" placeholder="직접 업로드하면 자동 입력됩니다. 여러 URL은 줄바꿈으로 입력하세요."></textarea>
             </label>
             <label>
               버튼 문구
@@ -222,7 +222,7 @@
       </section>
     </main>
 
-    <script src="admin.js?v=notice-upload-20260529"></script>
+    <script src="admin.js?v=notice-gallery-20260529"></script>
     <script src="notification-client.js"></script>
   </body>
 </html>
