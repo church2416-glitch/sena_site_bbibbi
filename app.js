@@ -170,6 +170,11 @@ const signupError = document.querySelector("#signupError");
 const profileError = document.querySelector("#profileError");
 const providerMessage = document.querySelector("#providerMessage");
 const sideBoardLinks = [...document.querySelectorAll("[data-board-link]")];
+const boardPulseScore = document.querySelector("#boardPulseScore");
+const boardVoteTotal = document.querySelector("#boardVoteTotal");
+const boardViewTotal = document.querySelector("#boardViewTotal");
+const boardPulseText = document.querySelector("#boardPulseText");
+const boardSparkline = document.querySelector("#boardSparkline");
 
 const boardInfo = {
   전체: {
@@ -539,6 +544,7 @@ function renderGuides() {
   categoryButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.filter === activeCategory);
   });
+  renderBoardPulse(visibleGuides);
 
   if (!visibleGuides.length) {
     const empty = document.createElement("p");
@@ -595,6 +601,38 @@ function renderGuides() {
   });
 
   renderSideLists();
+}
+
+function renderBoardPulse(items) {
+  const postCount = items.length;
+  const voteTotal = items.reduce((sum, guide) => sum + (Number(guide.votes) || 0), 0);
+  const viewTotal = items.reduce((sum, guide) => sum + (Number(guide.views) || 0), 0);
+
+  if (boardPulseScore) {
+    boardPulseScore.innerHTML = `${formatNumber(postCount)}<small>글</small>`;
+  }
+  if (boardVoteTotal) boardVoteTotal.textContent = formatNumber(voteTotal);
+  if (boardViewTotal) boardViewTotal.textContent = formatNumber(viewTotal);
+  if (boardPulseText) {
+    boardPulseText.textContent = postCount
+      ? `${activeCategory} 기준 추천 ${formatNumber(voteTotal)}개, 조회 ${formatNumber(viewTotal)}회`
+      : `${activeCategory}에 아직 게시글이 없습니다.`;
+  }
+
+  if (!boardSparkline) return;
+  boardSparkline.innerHTML = "";
+  const bars = items.slice(0, 11);
+  const fallback = [18, 34, 48, 30, 62, 42, 76, 36, 52, 44, 68];
+  const maxScore = Math.max(1, ...bars.map((guide) => (Number(guide.views) || 0) + (Number(guide.votes) || 0) * 4));
+  const heights = bars.length
+    ? bars.map((guide) => Math.max(14, (((Number(guide.views) || 0) + (Number(guide.votes) || 0) * 4) / maxScore) * 100))
+    : fallback;
+
+  heights.forEach((height) => {
+    const bar = document.createElement("i");
+    bar.style.height = `${height}%`;
+    boardSparkline.append(bar);
+  });
 }
 
 function renderSideLists() {
