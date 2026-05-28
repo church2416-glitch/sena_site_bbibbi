@@ -1178,6 +1178,36 @@ p {
   font-weight: 900;
 }
 
+.media-preview .upload-progress-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-color: rgba(89, 224, 202, 0.5);
+  color: #dffefa;
+  background: rgba(53, 198, 178, 0.14);
+}
+
+.upload-progress-chip::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(223, 254, 250, 0.35);
+  border-top-color: #5ce6d6;
+  border-radius: 50%;
+  animation: upload-spin 0.8s linear infinite;
+}
+
+@keyframes upload-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.submit-button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
 .submit-button {
   justify-self: end;
   min-width: 118px;
