@@ -1,7 +1,7 @@
 import express from "express";
 import cookieParser from "cookie-parser";
 import crypto from "node:crypto";
-import "dotenv/config";
+import dotenv from "dotenv";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createLocalUser, db, findUserByUsername, initDb, upsertOAuthUser, verifyPassword } from "./db.js";
@@ -10,6 +10,7 @@ const app = express();
 const port = 3000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, ".env") });
 const loungeBaseUrl = "https://comm-api.game.naver.com/nng_main/v1/community/lounge/sena_rebirth/feed";
 const boardIds = {
   notices: 11,
