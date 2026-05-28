@@ -164,6 +164,7 @@ const signupButton = document.querySelector("#signupButton");
 const signupCloseButton = document.querySelector("#signupCloseButton");
 const signupToLoginButton = document.querySelector("#signupToLoginButton");
 const profileButton = document.querySelector("#profileButton");
+const notificationBadge = document.querySelector("#notificationBadge");
 const logoutButton = document.querySelector("#logoutButton");
 const loginStateText = document.querySelector("#loginStateText");
 const roleText = document.querySelector("#roleText");
@@ -186,6 +187,8 @@ const accountCreatedAt = document.querySelector("#accountCreatedAt");
 const accountPostList = document.querySelector("#accountPostList");
 const accountLikedList = document.querySelector("#accountLikedList");
 const accountCommentList = document.querySelector("#accountCommentList");
+const notificationList = document.querySelector("#notificationList");
+const notificationReadButton = document.querySelector("#notificationReadButton");
 const accountPostPermission = document.querySelector("#accountPostPermission");
 const accountAdminPermission = document.querySelector("#accountAdminPermission");
 const sideBoardLinks = [...document.querySelectorAll("[data-board-link]")];
@@ -346,12 +349,14 @@ function renderAuthState(user) {
   if (adminDashboardLink) adminDashboardLink.hidden = !isAdmin;
   if (kakaoLoginButton) kakaoLoginButton.hidden = Boolean(user?.loggedIn);
   if (profileButton) profileButton.hidden = !user?.loggedIn;
+  if (!user?.loggedIn) setNotificationBadge(0);
   if (logoutButton) logoutButton.hidden = !user?.loggedIn;
   if (roleText) {
     roleText.textContent = user?.loggedIn ? roleLabel : "회원가입";
   }
   document.body.classList.toggle("is-admin", isAdmin);
   document.body.classList.toggle("is-verified", Boolean(user?.isVerified));
+  if (user?.loggedIn) loadNotificationBadge();
 
   if (!user?.loggedIn && new URLSearchParams(location.search).get("login") === "required") {
     openLoginModal();
@@ -521,6 +526,61 @@ function renderAccountPostList(container, items, emptyText, metaBuilder, hrefBui
   });
 }
 
+function setNotificationBadge(count) {
+  if (!notificationBadge) return;
+  const number = Number(count) || 0;
+  notificationBadge.hidden = number <= 0;
+  notificationBadge.textContent = number > 99 ? "99+" : String(number);
+}
+
+function renderNotificationList(notifications = []) {
+  if (!notificationList) return;
+  notificationList.innerHTML = "";
+
+  if (!notifications.length) {
+    const empty = document.createElement("p");
+    empty.className = "account-empty";
+    empty.textContent = "알림이 없습니다.";
+    notificationList.append(empty);
+    return;
+  }
+
+  notifications.forEach((notification) => {
+    const link = document.createElement("a");
+    const title = document.createElement("strong");
+    const meta = document.createElement("small");
+
+    link.className = "account-history-item notification-item";
+    link.classList.toggle("unread", !notification.readAt);
+    link.href = `post.html?id=${encodeURIComponent(notification.postId || notification.targetId)}`;
+    title.textContent = notification.message || "새 알림이 있습니다.";
+    meta.textContent = [notification.postTitle, formatFeedDate(notification.createdAt)].filter(Boolean).join(" · ");
+    link.append(title, meta);
+    notificationList.append(link);
+  });
+}
+
+async function loadNotificationBadge() {
+  try {
+    const response = await fetch("/api/me/notifications");
+    if (!response.ok) throw new Error("notifications failed");
+    const data = await response.json();
+    setNotificationBadge(data.unreadCount);
+  } catch {
+    setNotificationBadge(0);
+  }
+}
+
+async function markNotificationsRead() {
+  await fetch("/api/me/notifications/read", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  });
+  setNotificationBadge(0);
+  await loadAccountDashboard();
+}
+
 async function loadAccountDashboard() {
   if (!profileModal || profileModal.hidden || !currentUser?.loggedIn) return;
 
@@ -539,6 +599,7 @@ async function loadAccountDashboard() {
     const recentPosts = Array.isArray(activity.recentPosts) ? activity.recentPosts : [];
     const likedPosts = Array.isArray(activity.likedPosts) ? activity.likedPosts : guides.filter(isVotedGuide).slice(0, 8);
     const comments = Array.isArray(activity.comments) ? activity.comments : [];
+    const notifications = Array.isArray(activity.notifications) ? activity.notifications : [];
     const displayName = user.displayName || user.username || currentUser.displayName || currentUser.username || "-";
 
     setAccountText(accountName, displayName);
@@ -555,6 +616,8 @@ async function loadAccountDashboard() {
     setAccountText(accountCreatedAt, formatFeedDate(user.createdAt));
     setAccountText(accountPostPermission, user.isVerified || user.isAdmin ? "ON" : "대기");
     setAccountText(accountAdminPermission, user.isAdmin ? "ON" : "OFF");
+    setNotificationBadge(activity.unreadNotificationCount);
+    renderNotificationList(notifications);
 
     renderAccountPostList(
       accountPostList,
@@ -984,6 +1047,7 @@ loginForm?.addEventListener("submit", submitLogin);
 profileButton?.addEventListener("click", openProfileModal);
 profileCloseButton?.addEventListener("click", closeProfileModal);
 profileForm?.addEventListener("submit", submitProfile);
+notificationReadButton?.addEventListener("click", markNotificationsRead);
 logoutButton?.addEventListener("click", logout);
 signupButton?.addEventListener("click", () => {
   openSignupModal();

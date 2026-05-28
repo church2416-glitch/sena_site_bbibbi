@@ -83,11 +83,40 @@ export function initDb({ adminUser, adminPassword }) {
       post_id TEXT NOT NULL,
       user_id INTEGER,
       content TEXT NOT NULL,
+      votes INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'published',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS comment_votes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      comment_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (comment_id, user_id),
+      FOREIGN KEY (comment_id) REFERENCES post_comments(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      recipient_id INTEGER NOT NULL,
+      actor_id INTEGER,
+      type TEXT NOT NULL,
+      target_type TEXT NOT NULL,
+      target_id TEXT NOT NULL,
+      post_id TEXT,
+      comment_id INTEGER,
+      message TEXT NOT NULL,
+      read_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE SET NULL,
+      FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+      FOREIGN KEY (comment_id) REFERENCES post_comments(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS guild_war_sheets (
@@ -124,11 +153,14 @@ export function initDb({ adminUser, adminPassword }) {
     CREATE INDEX IF NOT EXISTS idx_post_votes_user ON post_votes(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_post_comments_post ON post_comments(post_id, created_at ASC);
     CREATE INDEX IF NOT EXISTS idx_post_comments_user ON post_comments(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_comment_votes_user ON comment_votes(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_id, read_at, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_guild_sheets_type ON guild_war_sheets(sheet_type, updated_at DESC);
   `);
 
   migrateUsersTable();
   migratePostsTable();
+  migrateCommentsTable();
   ensureAdminUser(adminUser, adminPassword);
 }
 
@@ -153,6 +185,15 @@ function migratePostsTable() {
   addColumn("attachment", "TEXT");
   addColumn("media_json", "TEXT NOT NULL DEFAULT '{}'");
   addColumn("comments", "INTEGER NOT NULL DEFAULT 0");
+}
+
+function migrateCommentsTable() {
+  const columns = db.prepare("PRAGMA table_info(post_comments)").all().map((column) => column.name);
+  const addColumn = (name, definition) => {
+    if (!columns.includes(name)) db.prepare(`ALTER TABLE post_comments ADD COLUMN ${name} ${definition}`).run();
+  };
+
+  addColumn("votes", "INTEGER NOT NULL DEFAULT 0");
 }
 
 export function hashPassword(password) {

@@ -353,6 +353,29 @@ button {
   box-shadow: none;
 }
 
+.profile-info-button {
+  position: relative;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border: 2px solid #080911;
+  border-radius: 999px;
+  color: #07110f;
+  background: #6fe0cd;
+  font-size: 10px;
+  font-weight: 1000;
+  line-height: 1;
+}
+
 .login-card a,
 .score-card p,
 .section-title p,
@@ -927,6 +950,33 @@ textarea:focus {
   color: #aaa1c9;
   font-size: 12px;
   font-weight: 800;
+}
+
+.account-link-button {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.2);
+  border-radius: 8px;
+  color: #d9d1ff;
+  background: rgba(7, 8, 15, 0.68);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.notification-item.unread {
+  border-color: rgba(111, 224, 205, 0.46);
+  background: rgba(111, 224, 205, 0.08);
+}
+
+.notification-item.unread strong::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: #6fe0cd;
+  box-shadow: 0 0 16px rgba(111, 224, 205, 0.7);
 }
 
 .account-permission-list {
@@ -1846,6 +1896,24 @@ p {
 .comment-item p {
   margin: 0;
   white-space: pre-wrap;
+}
+
+.comment-vote-button {
+  justify-self: start;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.22);
+  border-radius: 8px;
+  color: #d9d1ff;
+  background: rgba(14, 16, 27, 0.82);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.comment-vote-button.active {
+  color: #07110f;
+  border-color: rgba(111, 224, 205, 0.55);
+  background: #6fe0cd;
 }
 
 .post-nav {

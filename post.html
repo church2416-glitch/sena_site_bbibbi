@@ -298,13 +298,19 @@
           const author = document.createElement("strong");
           const date = document.createElement("time");
           const content = document.createElement("p");
+          const voteButton = document.createElement("button");
 
           item.className = "comment-item";
           author.textContent = comment.author || "익명";
           date.textContent = comment.createdAt || "";
           content.textContent = comment.content || "";
+          voteButton.className = "comment-vote-button";
+          voteButton.classList.toggle("active", Boolean(comment.voted));
+          voteButton.type = "button";
+          voteButton.textContent = `추천 ${formatNumber(comment.votes)}`;
+          voteButton.addEventListener("click", () => toggleCommentVote(comment.id, voteButton));
           head.append(author, date);
-          item.append(head, content);
+          item.append(head, content, voteButton);
           list.append(item);
         });
       }
@@ -323,6 +329,15 @@
         postVoted = Boolean(result.voted);
         currentPost = result.post || currentPost;
         renderVoteState(currentPost);
+      }
+
+      async function toggleCommentVote(commentId, button) {
+        const response = await fetch(`/api/comments/${encodeURIComponent(commentId)}/vote`, { method: "POST" });
+        if (!response.ok) return;
+        const result = await response.json();
+        const comment = result.comment || {};
+        button.classList.toggle("active", Boolean(result.voted));
+        button.textContent = `추천 ${formatNumber(comment.votes)}`;
       }
 
       async function submitComment(event) {

@@ -383,6 +383,7 @@ function serializeComment(row) {
     id: row.id,
     postId: row.post_id,
     content: row.content || "",
+    votes: row.votes || 0,
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -393,12 +394,49 @@ function serializeComment(row) {
   };
 }
 
+function serializeNotification(row) {
+  return {
+    id: row.id,
+    type: row.type,
+    targetType: row.target_type,
+    targetId: row.target_id,
+    postId: row.post_id || "",
+    commentId: row.comment_id || null,
+    message: row.message || "",
+    readAt: row.read_at || "",
+    createdAt: row.created_at,
+    actor: row.actor_name || row.actor_username || "익명",
+    postTitle: row.post_title || "",
+  };
+}
+
 function withUserVoteState(post, userId) {
   if (!userId) return post;
   return {
     ...post,
     voted: Boolean(db.prepare("SELECT 1 FROM post_votes WHERE post_id = ? AND user_id = ?").get(post.id, userId)),
   };
+}
+
+function withUserCommentVoteState(comment, userId) {
+  if (!userId) return comment;
+  return {
+    ...comment,
+    voted: Boolean(db.prepare("SELECT 1 FROM comment_votes WHERE comment_id = ? AND user_id = ?").get(comment.id, userId)),
+  };
+}
+
+function createNotification({ recipientId, actorId, type, targetType, targetId, postId, commentId, message }) {
+  if (!recipientId || recipientId === actorId) return;
+  db.prepare(
+    `
+      INSERT INTO notifications (
+        recipient_id, actor_id, type, target_type, target_id,
+        post_id, comment_id, message
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+  ).run(recipientId, actorId || null, type, targetType, String(targetId), postId || null, commentId || null, message);
 }
 
 function normalizePostMedia(media = {}) {
@@ -569,6 +607,26 @@ function selectCommentRows(where = "post_comments.status = 'published'", params 
       `,
     )
     .all(...params);
+}
+
+function selectNotificationRows(userId) {
+  return db
+    .prepare(
+      `
+        SELECT
+          notifications.*,
+          users.display_name AS actor_name,
+          users.username AS actor_username,
+          posts.title AS post_title
+        FROM notifications
+        LEFT JOIN users ON users.id = notifications.actor_id
+        LEFT JOIN posts ON posts.id = notifications.post_id
+        WHERE notifications.recipient_id = ?
+        ORDER BY datetime(notifications.created_at) DESC
+        LIMIT 30
+      `,
+    )
+    .all(userId);
 }
 
 async function fetchLoungeBoard(boardId) {
@@ -781,6 +839,10 @@ app.get("/api/me/activity", requireMember, (req, res) => {
     .reverse()
     .slice(0, 12)
     .map(serializeComment);
+  const notifications = selectNotificationRows(user.id).map(serializeNotification);
+  const unreadNotificationCount = db
+    .prepare("SELECT COUNT(*) AS count FROM notifications WHERE recipient_id = ? AND read_at IS NULL")
+    .get(user.id);
 
   res.json({
     user: {
@@ -803,7 +865,45 @@ app.get("/api/me/activity", requireMember, (req, res) => {
     recentPosts,
     likedPosts,
     comments,
+    notifications,
+    unreadNotificationCount: Number(unreadNotificationCount.count) || 0,
   });
+});
+
+app.get("/api/me/notifications", requireMember, (req, res) => {
+  const notifications = selectNotificationRows(req.user.id).map(serializeNotification);
+  const unread = db
+    .prepare("SELECT COUNT(*) AS count FROM notifications WHERE recipient_id = ? AND read_at IS NULL")
+    .get(req.user.id);
+  res.json({
+    unreadCount: Number(unread.count) || 0,
+    notifications,
+  });
+});
+
+app.patch("/api/me/notifications/read", requireMember, (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(Number).filter(Number.isFinite) : [];
+  if (ids.length) {
+    const placeholders = ids.map(() => "?").join(", ");
+    db.prepare(
+      `
+        UPDATE notifications
+        SET read_at = COALESCE(read_at, datetime('now'))
+        WHERE recipient_id = ?
+          AND id IN (${placeholders})
+      `,
+    ).run(req.user.id, ...ids);
+  } else {
+    db.prepare(
+      `
+        UPDATE notifications
+        SET read_at = COALESCE(read_at, datetime('now'))
+        WHERE recipient_id = ?
+      `,
+    ).run(req.user.id);
+  }
+
+  res.json({ ok: true });
 });
 
 app.get("/api/posts", requireMember, (req, res) => {
@@ -881,7 +981,7 @@ app.get("/api/posts/:id", requireMember, (req, res) => {
 
 app.post("/api/posts/:id/vote", requireMember, (req, res) => {
   const id = String(req.params.id || "");
-  const post = db.prepare("SELECT id FROM posts WHERE id = ? AND status = 'published'").get(id);
+  const post = db.prepare("SELECT id, author_id, title FROM posts WHERE id = ? AND status = 'published'").get(id);
   if (!post) {
     return res.status(404).json({ error: "게시글을 찾을 수 없습니다." });
   }
@@ -900,6 +1000,17 @@ app.post("/api/posts/:id/vote", requireMember, (req, res) => {
   });
 
   const voted = toggleVote();
+  if (voted) {
+    createNotification({
+      recipientId: post.author_id,
+      actorId: req.user.id,
+      type: "post_vote",
+      targetType: "post",
+      targetId: id,
+      postId: id,
+      message: `${req.user.display_name || req.user.username}님이 내 게시글을 추천했습니다.`,
+    });
+  }
   const updatedPost = selectPostRows("posts.id = ?", [id])[0];
   res.json({ voted, post: serializePost(updatedPost) });
 });
@@ -911,13 +1022,16 @@ app.get("/api/posts/:id/comments", requireMember, (req, res) => {
     return res.status(404).json({ error: "게시글을 찾을 수 없습니다." });
   }
 
-  res.json(selectCommentRows("post_comments.post_id = ? AND post_comments.status = 'published'", [id]).map(serializeComment));
+  res.json(
+    selectCommentRows("post_comments.post_id = ? AND post_comments.status = 'published'", [id])
+      .map((row) => withUserCommentVoteState(serializeComment(row), req.user.id)),
+  );
 });
 
 app.post("/api/posts/:id/comments", requireMember, (req, res) => {
   const id = String(req.params.id || "");
   const content = String(req.body?.content || "").trim();
-  const post = db.prepare("SELECT id FROM posts WHERE id = ? AND status = 'published'").get(id);
+  const post = db.prepare("SELECT id, author_id, title FROM posts WHERE id = ? AND status = 'published'").get(id);
   if (!post) {
     return res.status(404).json({ error: "게시글을 찾을 수 없습니다." });
   }
@@ -934,9 +1048,71 @@ app.post("/api/posts/:id/comments", requireMember, (req, res) => {
   });
 
   const commentId = createComment();
+  createNotification({
+    recipientId: post.author_id,
+    actorId: req.user.id,
+    type: "post_comment",
+    targetType: "post",
+    targetId: id,
+    postId: id,
+    commentId,
+    message: `${req.user.display_name || req.user.username}님이 내 게시글에 댓글을 남겼습니다.`,
+  });
   const comment = selectCommentRows("post_comments.id = ?", [commentId])[0];
   const updatedPost = selectPostRows("posts.id = ?", [id])[0];
-  res.status(201).json({ comment: serializeComment(comment), post: serializePost(updatedPost) });
+  res.status(201).json({
+    comment: withUserCommentVoteState(serializeComment(comment), req.user.id),
+    post: serializePost(updatedPost),
+  });
+});
+
+app.post("/api/comments/:id/vote", requireMember, (req, res) => {
+  const id = Number(req.params.id);
+  const comment = db
+    .prepare(
+      `
+        SELECT post_comments.*, posts.title AS post_title
+        FROM post_comments
+        JOIN posts ON posts.id = post_comments.post_id
+        WHERE post_comments.id = ?
+          AND post_comments.status = 'published'
+          AND posts.status = 'published'
+      `,
+    )
+    .get(id);
+  if (!comment) {
+    return res.status(404).json({ error: "댓글을 찾을 수 없습니다." });
+  }
+
+  const toggleVote = db.transaction(() => {
+    const existing = db.prepare("SELECT id FROM comment_votes WHERE comment_id = ? AND user_id = ?").get(id, req.user.id);
+    if (existing) {
+      db.prepare("DELETE FROM comment_votes WHERE id = ?").run(existing.id);
+      db.prepare("UPDATE post_comments SET votes = MAX(votes - 1, 0), updated_at = datetime('now') WHERE id = ?").run(id);
+      return false;
+    }
+
+    db.prepare("INSERT INTO comment_votes (comment_id, user_id) VALUES (?, ?)").run(id, req.user.id);
+    db.prepare("UPDATE post_comments SET votes = votes + 1, updated_at = datetime('now') WHERE id = ?").run(id);
+    return true;
+  });
+
+  const voted = toggleVote();
+  if (voted) {
+    createNotification({
+      recipientId: comment.user_id,
+      actorId: req.user.id,
+      type: "comment_vote",
+      targetType: "comment",
+      targetId: id,
+      postId: comment.post_id,
+      commentId: id,
+      message: `${req.user.display_name || req.user.username}님이 내 댓글을 추천했습니다.`,
+    });
+  }
+
+  const updatedComment = selectCommentRows("post_comments.id = ?", [id])[0];
+  res.json({ voted, comment: withUserCommentVoteState(serializeComment(updatedComment), req.user.id) });
 });
 
 app.get("/auth/kakao", (req, res) => {
