@@ -377,9 +377,12 @@ function renderAuthState(user) {
   const displayName = user?.displayName || user?.username || "user";
   document.body.classList.toggle("is-guest-locked", !user?.loggedIn);
   if (loginStateText) {
-    loginStateText.innerHTML = user?.loggedIn
-      ? `${roleLabel}<br />${displayName}`
-      : "로그인하고<br />댓글과 공략글을";
+    loginStateText.replaceChildren();
+    if (user?.loggedIn) {
+      loginStateText.append(document.createTextNode(roleLabel), document.createElement("br"), document.createTextNode(displayName));
+    } else {
+      loginStateText.append(document.createTextNode("로그인하고"), document.createElement("br"), document.createTextNode("댓글과 공략글을"));
+    }
   }
   if (providerLoginOpenButton) providerLoginOpenButton.hidden = Boolean(user?.loggedIn);
   if (mobileLoginButton) mobileLoginButton.hidden = Boolean(user?.loggedIn);

@@ -21,6 +21,7 @@ const port = 3000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, ".env") });
+app.set("trust proxy", 1);
 const loungeBaseUrl = "https://comm-api.game.naver.com/nng_main/v1/community/lounge/sena_rebirth/feed";
 const boardIds = {
   notices: 11,
@@ -67,6 +68,11 @@ const maxPostImageSize = 8 * 1024 * 1024;
 const maxPostVideoSize = 500 * 1024 * 1024;
 const uploadRoot = path.join(__dirname, "uploads");
 const uploadTmpRoot = path.join(uploadRoot, "tmp");
+const allowedImageMimeTypes = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
+const allowedVideoMimeTypes = new Set(["video/mp4", "video/webm", "video/ogg", "video/quicktime"]);
+const authRateWindowMs = 10 * 60 * 1000;
+const authRateLimits = new Map();
+const cookieSecure = siteUrl.startsWith("https://") && process.env.COOKIE_SECURE !== "false";
 const roleLevels = {
   blocked: 0,
   user: 1,
@@ -104,12 +110,12 @@ const rolePermissionPresets = {
   },
   user: {
     canReadPosts: true,
-    canWritePosts: true,
-    canComment: true,
-    canVote: true,
-    canUploadMedia: true,
-    canEditOwnPosts: true,
-    canManageOwnComments: true,
+    canWritePosts: false,
+    canComment: false,
+    canVote: false,
+    canUploadMedia: false,
+    canEditOwnPosts: false,
+    canManageOwnComments: false,
     canManageGuild: false,
     canAccessAdminDb: false,
     canManageUsers: false,
@@ -172,8 +178,8 @@ const uploadPostMedia = multer({
     files: 9,
   },
   fileFilter(req, file, cb) {
-    if (file.fieldname === "images" && file.mimetype.startsWith("image/")) return cb(null, true);
-    if (file.fieldname === "videos" && file.mimetype.startsWith("video/")) return cb(null, true);
+    if (file.fieldname === "images" && allowedImageMimeTypes.has(file.mimetype)) return cb(null, true);
+    if (file.fieldname === "videos" && allowedVideoMimeTypes.has(file.mimetype)) return cb(null, true);
     return cb(new Error("unsupported_media_type"));
   },
 }).fields([
@@ -197,20 +203,23 @@ const uploadNoticeImage = multer({
     files: 6,
   },
   fileFilter(req, file, cb) {
-    if (file.mimetype.startsWith("image/")) return cb(null, true);
+    if (allowedImageMimeTypes.has(file.mimetype)) return cb(null, true);
     return cb(new Error("unsupported_notice_image"));
   },
 });
 
 initDb({ adminUser, adminPassword });
 
-app.use(express.json({ limit: "120mb" }));
+app.use(express.json({ limit: "2mb" }));
 app.use(cookieParser(sessionSecret));
+app.use(requireCsrf);
 app.use("/uploads", express.static(uploadRoot, {
   acceptRanges: true,
+  dotfiles: "deny",
   immutable: false,
   maxAge: "1h",
   setHeaders(res, filePath) {
+    res.setHeader("X-Content-Type-Options", "nosniff");
     if (/\.(mp4|webm|ogv|mov)$/i.test(filePath)) {
       res.setHeader("Accept-Ranges", "bytes");
       res.setHeader("Cache-Control", "public, max-age=3600");
@@ -386,10 +395,39 @@ function setAuthCookie(res, username) {
   res.cookie(authCookieName, signSession(username), {
     httpOnly: true,
     sameSite: "lax",
-    secure: false,
+    secure: cookieSecure,
     maxAge: 1000 * 60 * 60 * 24 * 7,
   });
 }
+
+function getRateKey(req, scope) {
+  const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+  return `${scope}:${forwarded || req.ip || req.socket?.remoteAddress || "unknown"}`;
+}
+
+function checkRateLimit(req, res, scope, limit, windowMs = authRateWindowMs) {
+  const key = getRateKey(req, scope);
+  const now = Date.now();
+  const bucket = authRateLimits.get(key);
+  if (!bucket || bucket.resetAt <= now) {
+    authRateLimits.set(key, { count: 1, resetAt: now + windowMs });
+    return false;
+  }
+  bucket.count += 1;
+  if (bucket.count <= limit) return false;
+
+  const retryAfter = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+  res.setHeader("Retry-After", String(retryAfter));
+  res.status(429).json({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." });
+  return true;
+}
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, bucket] of authRateLimits.entries()) {
+    if (bucket.resetAt <= now) authRateLimits.delete(key);
+  }
+}, 5 * 60 * 1000).unref();
 
 function requireLegacyAdmin(req, res, next) {
   const session = readSession(req);
@@ -498,6 +536,26 @@ function maybeUploadPostMedia(req, res, next) {
 function requireMediaUploadPermission(req, res, next) {
   if (req.is("multipart/form-data") && !hasPermission(req.user, "canUploadMedia")) {
     return res.status(403).json({ error: "미디어 업로드 권한이 없습니다." });
+  }
+  next();
+}
+
+function requireCsrf(req, res, next) {
+  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
+  const origin = req.headers.origin;
+  const referer = req.headers.referer;
+  const allowedOrigin = new URL(siteUrl).origin;
+  if (origin && origin !== allowedOrigin) {
+    return res.status(403).json({ error: "허용되지 않은 요청 출처입니다." });
+  }
+  if (!origin && referer) {
+    try {
+      if (new URL(referer).origin !== allowedOrigin) {
+        return res.status(403).json({ error: "허용되지 않은 요청 출처입니다." });
+      }
+    } catch {
+      return res.status(403).json({ error: "허용되지 않은 요청 출처입니다." });
+    }
   }
   next();
 }
@@ -619,11 +677,11 @@ function getImportantNoticeSettings() {
 function normalizeImportantNoticeSettings(value = {}) {
   const imageUrls = Array.isArray(value.imageUrls)
     ? value.imageUrls
-      .map((url) => String(url || "").trim().slice(0, 500))
+      .map((url) => normalizeSafeUrl(url, { allowRelative: true, allowImagesOnly: true }).slice(0, 500))
       .filter(Boolean)
       .slice(0, 6)
     : [];
-  const legacyImageUrl = String(value.imageUrl || "").trim().slice(0, 500);
+  const legacyImageUrl = normalizeSafeUrl(value.imageUrl, { allowRelative: true, allowImagesOnly: true }).slice(0, 500);
   return {
     enabled: Boolean(value.enabled),
     title: String(value.title || defaultImportantNoticeSettings.title).trim().slice(0, 80),
@@ -632,9 +690,52 @@ function normalizeImportantNoticeSettings(value = {}) {
     imageUrl: imageUrls[0] || legacyImageUrl,
     imageUrls: imageUrls.length ? imageUrls : legacyImageUrl ? [legacyImageUrl] : [],
     actionLabel: String(value.actionLabel || "").trim().slice(0, 30),
-    actionUrl: String(value.actionUrl || "").trim().slice(0, 500),
+    actionUrl: normalizeSafeUrl(value.actionUrl, { allowRelative: true }).slice(0, 500),
     updatedAt: new Date().toISOString(),
   };
+}
+
+function normalizeSafeUrl(value, { allowRelative = false, allowImagesOnly = false } = {}) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (allowRelative && raw.startsWith("/")) {
+    if (raw.startsWith("//") || raw.includes("\\")) return "";
+    if (allowImagesOnly && !/^\/uploads\/[a-zA-Z0-9/_-]+\.(jpe?g|png|gif|webp)$/i.test(raw)) return "";
+    return raw.slice(0, 500);
+  }
+
+  try {
+    const url = new URL(raw);
+    if (!["https:", "http:"].includes(url.protocol)) return "";
+    if (allowImagesOnly && !/\.(jpe?g|png|gif|webp)$/i.test(url.pathname)) return "";
+    return url.toString().slice(0, 500);
+  } catch {
+    return "";
+  }
+}
+
+function normalizeYoutubeEmbedUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    const url = new URL(raw);
+    const host = url.hostname.replace(/^www\./, "");
+    let videoId = "";
+    if (host === "youtube.com" || host === "m.youtube.com") {
+      if (url.pathname.startsWith("/embed/")) videoId = url.pathname.split("/")[2] || "";
+      else videoId = url.searchParams.get("v") || "";
+    } else if (host === "youtu.be") {
+      videoId = url.pathname.split("/").filter(Boolean)[0] || "";
+    }
+    if (!/^[a-zA-Z0-9_-]{6,20}$/.test(videoId)) return "";
+    return `https://www.youtube.com/embed/${videoId}`;
+  } catch {
+    return "";
+  }
+}
+
+function isSafeDisplayText(value) {
+  return !/[<>\u0000-\u001f\u007f]/.test(String(value || ""));
 }
 
 function serializePost(row) {
@@ -648,13 +749,49 @@ function serializePost(row) {
     body: row.body || "",
     tags: safeJsonParse(row.tags_json, []),
     attachment: row.attachment || "",
-    media: safeJsonParse(row.media_json, {}),
+    media: sanitizeStoredMedia(safeJsonParse(row.media_json, {})),
     votes: row.votes || 0,
     views: row.views || 0,
     status: row.status,
     createdAt: row.created_at,
     author: row.author_name || row.author_username || "익명",
     authorUsername: row.author_username || "",
+  };
+}
+
+function sanitizeStoredMedia(media = {}) {
+  const images = Array.isArray(media.images)
+    ? media.images
+      .filter((image) => {
+        const src = String(image?.src || "");
+        return /^\/uploads\/[a-zA-Z0-9/_-]+\.(jpe?g|png|gif|webp)$/i.test(src) || isAllowedDataUrl(src, "image") || normalizeSafeUrl(src, { allowImagesOnly: true });
+      })
+      .slice(0, 6)
+      .map((image) => ({
+        name: String(image.name || "첨부 이미지").slice(0, 80),
+        type: normalizeAllowedMime(image.type, "image"),
+        src: String(image.src || "").slice(0, 500000),
+      }))
+    : [];
+  const rawVideos = Array.isArray(media.videos) ? media.videos : media.videoFile ? [media.videoFile] : [];
+  const videos = rawVideos
+    .filter((video) => {
+      const src = String(video?.src || "");
+      return /^\/uploads\/[a-zA-Z0-9/_-]+\.(mp4|webm|ogv|mov)$/i.test(src) || isAllowedDataUrl(src, "video");
+    })
+    .slice(0, 3)
+    .map((video) => ({
+      name: String(video.name || "첨부 동영상").slice(0, 80),
+      type: normalizeAllowedMime(video.type, "video") || "video/mp4",
+      size: Number(video.size) || 0,
+      src: String(video.src || "").slice(0, 500000),
+    }));
+  return {
+    images,
+    videos,
+    videoFile: videos[0] || null,
+    youtube: String(media.youtube || "").trim().slice(0, 240),
+    youtubeEmbed: normalizeYoutubeEmbedUrl(media.youtubeEmbed || media.youtube),
   };
 }
 
@@ -764,19 +901,19 @@ function pushNotification(userId, notificationId) {
 function normalizePostMedia(media = {}) {
   const images = Array.isArray(media.images)
     ? media.images
-      .filter((image) => typeof image?.src === "string" && image.src.startsWith("data:image/"))
+      .filter((image) => typeof image?.src === "string" && isAllowedDataUrl(image.src, "image"))
       .slice(0, 6)
       .map((image) => ({
         name: String(image.name || "첨부 이미지").slice(0, 80),
-        type: String(image.type || "").slice(0, 80),
+        type: normalizeAllowedMime(image.type, "image"),
         src: image.src,
       }))
     : [];
   const videoFile = media.videoFile && typeof media.videoFile === "object" ? media.videoFile : null;
-  const normalizedVideo = videoFile?.src && String(videoFile.src).startsWith("data:video/")
+  const normalizedVideo = videoFile?.src && isAllowedDataUrl(videoFile.src, "video")
     ? {
       name: String(videoFile.name || "첨부 동영상").slice(0, 80),
-      type: String(videoFile.type || "video/mp4").slice(0, 80),
+      type: normalizeAllowedMime(videoFile.type, "video") || mimeFromDataUrl(videoFile.src) || "video/mp4",
       size: Number(videoFile.size) || 0,
       src: videoFile.src,
     }
@@ -786,7 +923,7 @@ function normalizePostMedia(media = {}) {
     images,
     videoFile: normalizedVideo,
     youtube: String(media.youtube || "").trim().slice(0, 240),
-    youtubeEmbed: String(media.youtubeEmbed || "").trim().slice(0, 240),
+    youtubeEmbed: normalizeYoutubeEmbedUrl(media.youtubeEmbed || media.youtube),
   };
 }
 
@@ -825,7 +962,45 @@ function extensionFromMime(mimeType = "") {
     "video/ogg": "ogv",
     "video/quicktime": "mov",
   };
-  return map[cleanType] || "mp4";
+  return map[cleanType] || "";
+}
+
+function normalizeAllowedMime(mimeType = "", kind) {
+  const cleanType = String(mimeType).split(";")[0].trim().toLowerCase();
+  const allowed = kind === "image" ? allowedImageMimeTypes : allowedVideoMimeTypes;
+  return allowed.has(cleanType) ? cleanType : "";
+}
+
+function mimeFromDataUrl(value = "") {
+  return String(value).match(/^data:([^;,]+)[;,]/)?.[1]?.toLowerCase() || "";
+}
+
+function isAllowedDataUrl(value = "", kind) {
+  const mimeType = mimeFromDataUrl(value);
+  const allowed = kind === "image" ? allowedImageMimeTypes : allowedVideoMimeTypes;
+  return allowed.has(mimeType) && String(value).startsWith(`data:${mimeType};base64,`);
+}
+
+function hasMagicBytes(buffer, kind, mimeType) {
+  if (!Buffer.isBuffer(buffer) || buffer.length < 4) return false;
+  const mime = normalizeAllowedMime(mimeType, kind);
+  if (!mime) return false;
+  if (mime === "image/jpeg") return buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  if (mime === "image/png") return buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  if (mime === "image/gif") return buffer.subarray(0, 4).toString("ascii") === "GIF8";
+  if (mime === "image/webp") return buffer.subarray(0, 4).toString("ascii") === "RIFF" && buffer.subarray(8, 12).toString("ascii") === "WEBP";
+  if (mime === "video/webm") return buffer.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
+  if (mime === "video/ogg") return buffer.subarray(0, 4).toString("ascii") === "OggS";
+  if (mime === "video/mp4" || mime === "video/quicktime") return buffer.subarray(4, 8).toString("ascii") === "ftyp";
+  return false;
+}
+
+function assertUploadedFile(file, kind) {
+  if (!file?.path) throw Object.assign(new Error("invalid_upload"), { status: 400 });
+  const mimeType = normalizeAllowedMime(file.mimetype, kind);
+  if (!mimeType) throw Object.assign(new Error("unsupported_upload_type"), { status: 400 });
+  const header = fs.readFileSync(file.path).subarray(0, 32);
+  if (!hasMagicBytes(header, kind, mimeType)) throw Object.assign(new Error("invalid_upload_signature"), { status: 400 });
 }
 
 function savePostVideoFile(postId, videoFile) {
@@ -836,10 +1011,16 @@ function savePostVideoFile(postId, videoFile) {
   const match = String(videoFile.src).match(/^data:(video\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
   if (!match) return null;
 
-  const type = String(videoFile.type || match[1] || "video/mp4").slice(0, 80);
+  const type = normalizeAllowedMime(videoFile.type || match[1], "video");
+  if (!type) return null;
   const buffer = Buffer.from(match[2], "base64");
   if (buffer.length > maxPostVideoSize) {
     const error = new Error("video_too_large");
+    error.status = 400;
+    throw error;
+  }
+  if (!hasMagicBytes(buffer.subarray(0, 32), "video", type)) {
+    const error = new Error("invalid_video_signature");
     error.status = 400;
     throw error;
   }
@@ -887,6 +1068,7 @@ function cleanupUploadedFiles(files = {}) {
 
 function buildUploadedPostMedia(postId, body, files = {}) {
   const images = (files.images || []).map((file, index) => {
+    assertUploadedFile(file, "image");
     if (file.size > maxPostImageSize) {
       const error = new Error("image_too_large");
       error.status = 400;
@@ -894,13 +1076,16 @@ function buildUploadedPostMedia(postId, body, files = {}) {
     }
     return moveUploadedFile(postId, file, index);
   });
-  const videos = (files.videos || []).map((file, index) => moveUploadedFile(postId, file, index));
+  const videos = (files.videos || []).map((file, index) => {
+    assertUploadedFile(file, "video");
+    return moveUploadedFile(postId, file, index);
+  });
   return {
     images,
     videoFile: videos[0] || null,
     videos,
     youtube: String(body.youtube || "").trim().slice(0, 240),
-    youtubeEmbed: String(body.youtubeEmbed || "").trim().slice(0, 240),
+    youtubeEmbed: normalizeYoutubeEmbedUrl(body.youtubeEmbed || body.youtube),
   };
 }
 
@@ -1053,6 +1238,7 @@ app.get("/api/me", (req, res) => {
 });
 
 app.post("/api/login", (req, res) => {
+  if (checkRateLimit(req, res, "login", 8)) return;
   const { username, password } = req.body || {};
   const user = findUserByUsername(username);
 
@@ -1065,6 +1251,7 @@ app.post("/api/login", (req, res) => {
 });
 
 app.post("/api/register", (req, res) => {
+  if (checkRateLimit(req, res, "register", 5, 30 * 60 * 1000)) return;
   const { username, password, passwordConfirm, displayName, email } = req.body || {};
   const normalizedUsername = String(username || "").trim();
   const normalizedDisplayName = String(displayName || "").trim();
@@ -1084,6 +1271,9 @@ app.post("/api/register", (req, res) => {
 
   if (normalizedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
     return res.status(400).json({ error: "이메일 형식이 올바르지 않습니다." });
+  }
+  if (normalizedDisplayName && (!isSafeDisplayText(normalizedDisplayName) || [...normalizedDisplayName].length > 16)) {
+    return res.status(400).json({ error: "닉네임은 특수 HTML 문자 없이 16자 이하로 입력해주세요." });
   }
 
   if (findUserByUsername(normalizedUsername)) {
@@ -1111,20 +1301,18 @@ app.post("/api/logout", (req, res) => {
   res.json({ loggedIn: false, role: "guest" });
 });
 
-app.patch("/api/me/display-name", (req, res) => {
-  const session = readSession(req);
-  if (!session) {
-    return res.status(401).json({ error: "로그인이 필요합니다." });
-  }
-
+app.patch("/api/me/display-name", requireMember, (req, res) => {
   const displayName = String(req.body?.displayName || "").trim();
   const displayNameLength = [...displayName].length;
 
   if (displayNameLength < 2 || displayNameLength > 16) {
     return res.status(400).json({ error: "닉네임은 2~16자로 입력해주세요." });
   }
+  if (!isSafeDisplayText(displayName)) {
+    return res.status(400).json({ error: "닉네임에는 HTML 특수 문자를 사용할 수 없습니다." });
+  }
 
-  const user = updateUserDisplayName(session.username, displayName);
+  const user = updateUserDisplayName(req.user.username, displayName);
   res.json(serializeUser(user));
 });
 
@@ -1298,6 +1486,9 @@ app.post("/api/posts", requireContentAccess, requirePermission("canWritePosts", 
   if (!summary || summary.length > 220) {
     return res.status(400).json({ error: "요약은 1~220자로 입력해주세요." });
   }
+  if (category.length > 30 || game.length > 40 || body.length > 20000 || attachment.length > 120) {
+    return res.status(400).json({ error: "입력값 길이가 허용 범위를 넘었습니다." });
+  }
 
   const id = crypto.randomUUID();
   let postMedia;
@@ -1311,7 +1502,12 @@ app.post("/api/posts", requireContentAccess, requirePermission("canWritePosts", 
   } catch (err) {
     cleanupUploadedFiles(req.files || {});
     if (err.status === 400) {
-      return res.status(400).json({ error: err.message === "image_too_large" ? "이미지는 8MB 이하로 업로드해주세요." : "동영상은 500MB 이하로 업로드해주세요." });
+      const message = err.message === "image_too_large"
+        ? "이미지는 8MB 이하로 업로드해주세요."
+        : err.message === "video_too_large"
+          ? "동영상은 500MB 이하로 업로드해주세요."
+          : "업로드 파일 형식이 올바르지 않습니다.";
+      return res.status(400).json({ error: message });
     }
     throw err;
   }
@@ -1379,6 +1575,9 @@ app.patch("/api/posts/:id", requireContentAccess, requireMediaUploadPermission, 
   if (!summary || summary.length > 220) {
     return res.status(400).json({ error: "요약은 1~220자로 입력해주세요." });
   }
+  if (category.length > 30 || game.length > 40 || body.length > 20000) {
+    return res.status(400).json({ error: "입력값 길이가 허용 범위를 넘었습니다." });
+  }
 
   const existingMedia = safeJsonParse(post.media_json, {});
   let media = existingMedia;
@@ -1409,7 +1608,12 @@ app.patch("/api/posts/:id", requireContentAccess, requireMediaUploadPermission, 
   } catch (err) {
     cleanupUploadedFiles(req.files || {});
     if (err.status === 400) {
-      return res.status(400).json({ error: err.message === "image_too_large" ? "이미지는 8MB 이하로 업로드해주세요." : "동영상은 500MB 이하로 업로드해주세요." });
+      const message = err.message === "image_too_large"
+        ? "이미지는 8MB 이하로 업로드해주세요."
+        : err.message === "video_too_large"
+          ? "동영상은 500MB 이하로 업로드해주세요."
+          : "업로드 파일 형식이 올바르지 않습니다.";
+      return res.status(400).json({ error: message });
     }
     throw err;
   }
@@ -1901,6 +2105,12 @@ app.post("/api/admin/important-notice/image", requireContentManager, (req, res) 
     if (!files.length) {
       return res.status(400).json({ error: "업로드할 이미지가 없습니다." });
     }
+    try {
+      files.forEach((file) => assertUploadedFile(file, "image"));
+    } catch {
+      cleanupUploadedFiles({ images: files });
+      return res.status(400).json({ error: "업로드 이미지 형식이 올바르지 않습니다." });
+    }
     res.status(201).json({
       ok: true,
       imageUrls: files.map((file) => `/uploads/notices/${file.filename}`),
@@ -2007,15 +2217,31 @@ app.patch("/api/admin/users/:id", requireUserManager, (req, res) => {
   const displayName = String(req.body?.displayName || "").trim();
   const permissions = sanitizePermissions(req.body?.permissions);
   const allowedRoles = new Set(["blocked", "user", "elite", "admin", "superadmin"]);
+  const targetUser = db.prepare("SELECT id, role FROM users WHERE id = ?").get(id);
 
   if (!allowedRoles.has(role)) {
     return res.status(400).json({ error: "권한 값이 올바르지 않습니다." });
   }
+  if (!targetUser) {
+    return res.status(404).json({ error: "회원을 찾을 수 없습니다." });
+  }
+  if (!roleFlags(req.user).isSuperAdmin && normalizeRole(targetUser.role) !== "user" && normalizeRole(targetUser.role) !== "elite") {
+    return res.status(403).json({ error: "관리자 계정 변경은 최고관리자만 가능합니다." });
+  }
   if (!roleFlags(req.user).isSuperAdmin && (normalizeRole(role) === "superadmin" || permissions.canAccessAdminDb || permissions.canManageUsers)) {
     return res.status(403).json({ error: "최고관리자 권한 설정은 최고관리자만 변경할 수 있습니다." });
   }
+  if (normalizeRole(targetUser.role) === "superadmin" && normalizeRole(role) !== "superadmin") {
+    const superadminCount = db.prepare("SELECT COUNT(*) AS count FROM users WHERE role = 'superadmin'").get().count;
+    if (superadminCount <= 1) {
+      return res.status(400).json({ error: "마지막 최고관리자는 강등할 수 없습니다." });
+    }
+  }
   if (displayName && [...displayName].length > 16) {
     return res.status(400).json({ error: "닉네임은 16자 이하로 입력해주세요." });
+  }
+  if (displayName && !isSafeDisplayText(displayName)) {
+    return res.status(400).json({ error: "닉네임에는 HTML 특수 문자를 사용할 수 없습니다." });
   }
 
   db.prepare(
@@ -2039,6 +2265,17 @@ app.delete("/api/admin/users/:id", requireUserManager, (req, res) => {
   const actor = findUserByUsername(req.session.username);
   if (actor?.id === id) {
     return res.status(400).json({ error: "본인 계정은 삭제할 수 없습니다." });
+  }
+  const targetUser = db.prepare("SELECT id, role FROM users WHERE id = ?").get(id);
+  if (!targetUser) return res.status(404).json({ error: "회원을 찾을 수 없습니다." });
+  if (!roleFlags(req.user).isSuperAdmin && normalizeRole(targetUser.role) !== "user" && normalizeRole(targetUser.role) !== "elite") {
+    return res.status(403).json({ error: "관리자 계정 삭제는 최고관리자만 가능합니다." });
+  }
+  if (normalizeRole(targetUser.role) === "superadmin") {
+    const superadminCount = db.prepare("SELECT COUNT(*) AS count FROM users WHERE role = 'superadmin'").get().count;
+    if (superadminCount <= 1) {
+      return res.status(400).json({ error: "마지막 최고관리자는 삭제할 수 없습니다." });
+    }
   }
 
   const result = db.prepare("DELETE FROM users WHERE id = ?").run(id);
