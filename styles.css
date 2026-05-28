@@ -3772,27 +3772,152 @@ p {
 }
 
 @media (max-width: 620px) {
+  .app-shell {
+    gap: 12px;
+    padding: 10px;
+  }
+
+  .brand {
+    gap: 4px;
+  }
+
   .brand strong {
-    font-size: 22px;
+    font-size: 28px;
+    line-height: 1.05;
+  }
+
+  .brand small {
+    font-size: 10px;
+  }
+
+  .side-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    overflow: visible;
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(5, 6, 11, 0.42);
+  }
+
+  .side-nav a {
+    min-height: 34px;
+    padding: 0 9px;
+    font-size: 12px;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+  .search-box input {
+    min-height: 40px;
+    font-size: 16px;
+  }
+
+  .top-actions {
+    display: grid;
+    grid-template-columns: 1fr 42px 42px 42px;
+    gap: 9px;
+  }
+
+  .write-button,
+  .mobile-login-button {
+    min-height: 42px;
+    font-size: 14px;
+  }
+
+  .top-actions .icon-button,
+  .top-actions .avatar {
+    width: 42px;
+    height: 42px;
   }
 
   .hero,
   .hero-copy {
-    min-height: 340px;
+    min-height: 210px;
   }
 
   .hero-copy {
-    padding: 30px 22px;
+    padding: 22px 20px;
+  }
+
+  .hero-copy h1 {
+    max-width: 260px;
+    font-size: 34px;
+    line-height: 1.08;
+  }
+
+  .hero-copy span {
+    font-size: 14px;
+  }
+
+  .hero-copy a {
+    min-height: 38px;
+    padding: 0 13px;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .category-strip {
+    gap: 7px;
+    margin-inline: -10px;
+    padding: 8px 10px;
+  }
+
+  .category-strip button {
+    min-height: 38px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+
+  .feed-card,
+  .composer-card {
+    padding: 14px;
+  }
+
+  .section-title {
+    gap: 10px;
+  }
+
+  .section-title h2 {
+    font-size: 17px;
+  }
+
+  .section-title p {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  #boardCount {
+    padding: 8px 12px;
+    font-size: 14px;
   }
 
   .guide-row {
-    grid-template-columns: 1fr;
-    gap: 9px;
-    padding: 14px 0;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px 10px;
+    min-height: 76px;
+    padding: 12px 0;
   }
 
   .guide-stats {
+    grid-column: 2;
     justify-items: start;
+    width: 100%;
+    text-align: left;
+  }
+
+  .guide-main h3 {
+    font-size: 15px;
+  }
+
+  .guide-main p,
+  .meta,
+  .guide-stats {
+    font-size: 12px;
   }
 
   .form-grid {
@@ -3826,6 +3951,183 @@ p {
 
   .compact-post-list small {
     white-space: normal;
+  }
+}
+
+@media (max-width: 620px) {
+  .guild-shell {
+    gap: 12px;
+    width: min(100%, calc(100% - 20px));
+    padding: 16px 0;
+  }
+
+  .guild-header {
+    gap: 12px;
+  }
+
+  .guild-links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .guild-links a {
+    display: grid;
+    place-items: center;
+    min-height: 42px;
+  }
+
+  .guild-season-card,
+  .guild-board {
+    padding: 16px;
+  }
+
+  .guild-season-card {
+    gap: 12px;
+  }
+
+  .viewer-badge {
+    justify-self: center;
+  }
+
+  .guild-season-card h1 {
+    font-size: 32px;
+  }
+
+  .season-row span,
+  .season-row strong {
+    font-size: 15px;
+  }
+
+  .progress-track {
+    height: 12px;
+  }
+
+  .guild-board-head h2 {
+    font-size: 22px;
+  }
+
+  .guild-public-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .guild-public-actions button {
+    min-height: 42px;
+  }
+
+  .sheet-tabs {
+    overflow-x: auto;
+    margin-bottom: 10px;
+  }
+
+  .sheet-tabs button {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 0 18px;
+    font-size: 16px;
+  }
+
+  .attack-target-select {
+    max-width: none;
+  }
+
+  .attack-target-select select {
+    min-height: 44px;
+    font-size: 15px;
+  }
+
+  .boss-tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    margin-inline: -4px;
+    padding: 4px;
+  }
+
+  .boss-tabs button {
+    flex: 0 0 168px;
+    min-height: 58px;
+    text-align: left;
+  }
+
+  .battle-stage,
+  .team-stage {
+    min-height: 210px;
+  }
+
+  .hero-token {
+    width: 58px;
+  }
+
+  .hero-token i {
+    width: 42px;
+    height: 42px;
+  }
+
+  .top-left {
+    top: 48px;
+    left: 28px;
+  }
+
+  .top-right {
+    top: 60px;
+    right: 28px;
+  }
+
+  .mid-left {
+    top: 126px;
+    left: 52px;
+  }
+
+  .bottom {
+    bottom: 18px;
+  }
+
+  .formation-row {
+    grid-template-columns: 1fr;
+  }
+
+  .formation-card {
+    min-height: 58px;
+    padding: 10px 12px;
+  }
+
+  .attack-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .table-row {
+    grid-template-columns: 1fr 1fr;
+    min-height: 0;
+    padding: 12px;
+  }
+
+  .table-row b {
+    grid-column: 1 / -1;
+    font-size: 15px;
+  }
+
+  .table-row span {
+    min-height: 34px;
+    font-size: 12px;
+  }
+
+  .table-row small {
+    font-size: 12px;
+  }
+
+  .skill-memo-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .skill-order,
+  .strategy-memo {
+    padding: 12px;
+  }
+
+  .order-card-list {
+    gap: 8px;
   }
 }
 
