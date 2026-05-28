@@ -2054,6 +2054,37 @@ p {
   color: #d92828;
 }
 
+.admin-settings-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) minmax(120px, 0.6fr) minmax(120px, 0.6fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.admin-settings-form label {
+  display: grid;
+  gap: 7px;
+  color: #555;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-settings-form input {
+  min-height: 38px;
+  border-color: #d8d8d8;
+  color: #222;
+  background: #fff;
+}
+
+.admin-settings-form button {
+  min-height: 38px;
+  padding: 0 18px;
+  border: 1px solid #222;
+  color: #fff;
+  background: #333;
+  font-weight: 900;
+}
+
 .admin-empty-row {
   margin: 0;
   padding: 28px 0;
@@ -3487,7 +3518,8 @@ p {
   }
 
   .admin-metrics,
-  .admin-grid {
+  .admin-grid,
+  .admin-settings-form {
     grid-template-columns: 1fr;
   }
 

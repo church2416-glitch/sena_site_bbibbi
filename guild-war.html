@@ -21,7 +21,7 @@
       </header>
 
       <section class="guild-season-card">
-        <span class="viewer-badge">사용자 공개 화면</span>
+        <span class="viewer-badge">길드전 시즌</span>
         <div>
           <h1>삣삐</h1>
           <p id="previewSeasonNote"></p>
@@ -139,6 +139,25 @@
         GuildWar.renderPublic(guildState[activeMode], activeMode, activePlanIndex);
       }
 
+      async function loadSeasonSettings() {
+        try {
+          const response = await fetch("/api/guild-war/season");
+          if (!response.ok) return;
+          const { settings } = await response.json();
+          ["attack", "defense"].forEach((mode) => {
+            guildState[mode] = {
+              ...guildState[mode],
+              seasonNote: settings.seasonNote || guildState[mode].seasonNote,
+              round: settings.round,
+              totalRound: settings.totalRound,
+            };
+          });
+          renderPublicPage();
+        } catch (error) {
+          console.warn("길드전 시즌 설정을 불러오지 못했습니다.", error);
+        }
+      }
+
       document.querySelector("#copySummary").addEventListener("click", async () => {
         const copied = await GuildWar.copySummary(GuildWar.getActivePlanTarget(guildState[activeMode], activeMode, activePlanIndex), activeMode);
         document.querySelector("#copyState").textContent = copied ? "복사 완료" : "복사 권한 없음";
@@ -164,6 +183,7 @@
       });
 
       renderPublicPage();
+      loadSeasonSettings();
     </script>
   </body>
 </html>

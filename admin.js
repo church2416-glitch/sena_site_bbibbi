@@ -27,6 +27,11 @@ const clearMemoButton = document.querySelector("#clearMemoButton");
 const adminLogoutButton = document.querySelector("#adminLogoutButton");
 const refreshUsersButton = document.querySelector("#refreshUsersButton");
 const refreshDatabaseButton = document.querySelector("#refreshDatabaseButton");
+const guildSeasonForm = document.querySelector("#guildSeasonForm");
+const guildSeasonNote = document.querySelector("#guildSeasonNote");
+const guildSeasonRound = document.querySelector("#guildSeasonRound");
+const guildSeasonTotalRound = document.querySelector("#guildSeasonTotalRound");
+const guildSeasonSaveState = document.querySelector("#guildSeasonSaveState");
 
 const viewTitles = {
   dashboard: "대시보드",
@@ -126,6 +131,45 @@ function renderDatabaseTable(counts) {
     tr.append(name, value);
     databaseTable.append(tr);
   });
+}
+
+function renderGuildSeasonSettings(settings) {
+  if (!guildSeasonForm || !settings) return;
+  guildSeasonNote.value = settings.seasonNote || "";
+  guildSeasonRound.value = Number(settings.round) || 0;
+  guildSeasonTotalRound.value = Number(settings.totalRound) || 18;
+  setText(guildSeasonSaveState, "불러옴");
+}
+
+async function loadGuildSeasonSettings() {
+  if (!guildSeasonForm) return;
+  const response = await fetch("/api/guild-war/season");
+  if (!response.ok) return;
+  const data = await response.json();
+  renderGuildSeasonSettings(data.settings);
+}
+
+async function saveGuildSeasonSettings(event) {
+  event.preventDefault();
+  setText(guildSeasonSaveState, "저장 중");
+  const response = await fetch("/api/admin/guild-war/season", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      seasonNote: guildSeasonNote.value.trim(),
+      round: Number(guildSeasonRound.value),
+      totalRound: Number(guildSeasonTotalRound.value),
+    }),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    setText(guildSeasonSaveState, data.error || "실패");
+    return;
+  }
+  renderGuildSeasonSettings(data.settings);
+  setText(guildSeasonSaveState, "저장됨");
+  const dbResponse = await fetch("/api/admin/db-status");
+  if (dbResponse.ok) renderDatabaseTable((await dbResponse.json()).counts || {});
 }
 
 function renderUsers(users) {
@@ -293,6 +337,7 @@ async function loadDashboard() {
   renderChart(dashboard.daily || []);
   renderDailyTable(dashboard.daily || []);
   renderDatabaseTable(dbStatus.counts || {});
+  await loadGuildSeasonSettings();
   await loadManagementLists();
 }
 
@@ -316,6 +361,7 @@ clearMemoButton?.addEventListener("click", () => {
 
 refreshUsersButton?.addEventListener("click", loadManagementLists);
 refreshDatabaseButton?.addEventListener("click", loadDashboard);
+guildSeasonForm?.addEventListener("submit", saveGuildSeasonSettings);
 
 adminLogoutButton?.addEventListener("click", async () => {
   await fetch("/api/logout", { method: "POST" });

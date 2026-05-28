@@ -42,6 +42,11 @@ const naverRedirectUri = process.env.NAVER_REDIRECT_URI || `${siteUrl}/auth/nave
 const googleClientId = process.env.GOOGLE_CLIENT_ID || "";
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
 const googleRedirectUri = process.env.GOOGLE_REDIRECT_URI || `${siteUrl}/auth/google/callback`;
+const defaultGuildSeasonSettings = {
+  seasonNote: "세븐나이츠 리버스 길드전",
+  round: 0,
+  totalRound: 18,
+};
 
 initDb({ adminUser, adminPassword });
 
@@ -187,6 +192,35 @@ function safeJsonParse(value, fallback) {
   } catch {
     return fallback;
   }
+}
+
+function readSetting(key, fallback) {
+  const row = db.prepare("SELECT value_json FROM app_settings WHERE key = ?").get(key);
+  if (!row) return fallback;
+  return { ...fallback, ...safeJsonParse(row.value_json, {}) };
+}
+
+function writeSetting(key, value) {
+  db.prepare(
+    `
+      INSERT INTO app_settings (key, value_json, updated_at)
+      VALUES (?, ?, datetime('now'))
+      ON CONFLICT(key) DO UPDATE SET
+        value_json = excluded.value_json,
+        updated_at = datetime('now')
+    `,
+  ).run(key, JSON.stringify(value));
+}
+
+function getGuildSeasonSettings() {
+  const settings = readSetting("guildWarSeason", defaultGuildSeasonSettings);
+  const totalRound = Math.max(1, Math.min(365, Number(settings.totalRound) || defaultGuildSeasonSettings.totalRound));
+  const round = Math.max(0, Math.min(totalRound, Number(settings.round) || 0));
+  return {
+    seasonNote: String(settings.seasonNote || defaultGuildSeasonSettings.seasonNote).slice(0, 60),
+    round,
+    totalRound,
+  };
 }
 
 function serializePost(row) {
@@ -683,6 +717,19 @@ app.get("/api/admin/db-status", requireAdmin, (req, res) => {
     tables.map((table) => [table, db.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get().count]),
   );
   res.json({ ok: true, counts });
+});
+
+app.get("/api/guild-war/season", (req, res) => {
+  res.json({ ok: true, settings: getGuildSeasonSettings() });
+});
+
+app.patch("/api/admin/guild-war/season", requireAdmin, (req, res) => {
+  const totalRound = Math.max(1, Math.min(365, Number(req.body.totalRound) || defaultGuildSeasonSettings.totalRound));
+  const round = Math.max(0, Math.min(totalRound, Number(req.body.round) || 0));
+  const seasonNote = String(req.body.seasonNote || defaultGuildSeasonSettings.seasonNote).trim().slice(0, 60);
+  const settings = { seasonNote, round, totalRound };
+  writeSetting("guildWarSeason", settings);
+  res.json({ ok: true, settings });
 });
 
 app.get("/api/admin/dashboard", requireAdmin, (req, res) => {

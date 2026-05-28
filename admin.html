@@ -118,6 +118,31 @@
         <section class="admin-panel admin-wide-panel">
           <div class="admin-panel-head">
             <div>
+              <h1>길드전 시즌 설정</h1>
+              <small>공개 길드전 족보 상단의 시즌 일수를 DB에서 관리합니다.</small>
+            </div>
+            <span class="admin-count" id="guildSeasonSaveState">대기</span>
+          </div>
+          <form class="admin-settings-form" id="guildSeasonForm">
+            <label>
+              시즌 문구
+              <input id="guildSeasonNote" name="seasonNote" maxlength="60" placeholder="세븐나이츠 리버스 길드전" />
+            </label>
+            <label>
+              현재 일수
+              <input id="guildSeasonRound" name="round" type="number" min="0" max="365" step="1" />
+            </label>
+            <label>
+              전체 일수
+              <input id="guildSeasonTotalRound" name="totalRound" type="number" min="1" max="365" step="1" />
+            </label>
+            <button type="submit">저장</button>
+          </form>
+        </section>
+
+        <section class="admin-panel admin-wide-panel">
+          <div class="admin-panel-head">
+            <div>
               <h1>데이터베이스</h1>
               <small>SQLite 테이블 카운트와 최근 7일 저장 현황</small>
             </div>
