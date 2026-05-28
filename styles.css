@@ -1791,6 +1791,7 @@ p {
 .post-vote-button {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   min-height: 28px;
   padding: 0;
   color: #ffffff;
@@ -1811,9 +1812,67 @@ p {
   color: #ffe879;
 }
 
+.post-vote-button img {
+  width: 18px;
+  height: 18px;
+  filter: drop-shadow(0 0 8px rgba(255, 232, 121, 0.26));
+}
+
+.post-vote-button::before {
+  display: none;
+}
+
 .post-section {
   padding: 24px 30px;
   border-top: 1px solid rgba(148, 116, 255, 0.1);
+}
+
+.post-owner-actions,
+.post-edit-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.post-owner-actions button,
+.post-edit-actions button,
+.comment-reply-button {
+  min-height: 30px;
+  padding: 0 11px;
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.28);
+  border-radius: 8px;
+  color: #d9d1ff;
+  background: rgba(14, 16, 27, 0.82);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.post-owner-actions button:last-child {
+  color: #ffd0d0;
+  border-color: rgba(255, 113, 68, 0.34);
+}
+
+.post-edit-panel {
+  display: grid;
+  gap: 12px;
+  padding: 18px 22px 22px;
+  border-top: 1px solid rgba(148, 116, 255, 0.1);
+  background: rgba(7, 8, 15, 0.36);
+}
+
+.post-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.post-edit-panel label {
+  display: grid;
+  gap: 7px;
+  color: #aaa1c9;
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .post-article-section {
@@ -1969,6 +2028,12 @@ p {
   background: rgba(7, 8, 15, 0.62);
 }
 
+.comment-reply {
+  margin-left: 28px;
+  border-color: rgba(111, 224, 205, 0.28);
+  background: rgba(111, 224, 205, 0.05);
+}
+
 .comment-item > div {
   display: flex;
   align-items: center;
@@ -2009,6 +2074,10 @@ p {
   color: #07110f;
   border-color: rgba(111, 224, 205, 0.55);
   background: #6fe0cd;
+}
+
+.comment-actions {
+  justify-content: flex-start !important;
 }
 
 .post-nav {
@@ -4668,6 +4737,14 @@ p {
   .account-tabs,
   .account-permission-list {
     grid-template-columns: 1fr;
+  }
+
+  .post-edit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .comment-reply {
+    margin-left: 12px;
   }
 
   .account-volume-control {

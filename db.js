@@ -82,12 +82,14 @@ export function initDb({ adminUser, adminPassword }) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       post_id TEXT NOT NULL,
       user_id INTEGER,
+      parent_comment_id INTEGER,
       content TEXT NOT NULL,
       votes INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'published',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+      FOREIGN KEY (parent_comment_id) REFERENCES post_comments(id) ON DELETE CASCADE,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     );
 
@@ -194,6 +196,7 @@ function migrateCommentsTable() {
   };
 
   addColumn("votes", "INTEGER NOT NULL DEFAULT 0");
+  addColumn("parent_comment_id", "INTEGER");
 }
 
 export function hashPassword(password) {

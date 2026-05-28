@@ -19,7 +19,27 @@
           <span class="status" id="postCategory"></span>
           <h1 id="postTitle"></h1>
           <p id="postSummary"></p>
+          <div class="post-owner-actions" id="postOwnerActions" hidden>
+            <button id="postEditButton" type="button">수정</button>
+            <button id="postDeleteButton" type="button">삭제</button>
+          </div>
         </div>
+
+        <form class="post-edit-panel" id="postEditForm" hidden>
+          <div class="post-edit-grid">
+            <label>제목 <input name="title" maxlength="70" required /></label>
+            <label>게시판 <input name="category" maxlength="30" required /></label>
+            <label>게임 <input name="game" maxlength="40" /></label>
+            <label>태그 <input name="tags" maxlength="80" placeholder="쉼표로 구분" /></label>
+          </div>
+          <label>요약 <textarea name="summary" rows="3" maxlength="220" required></textarea></label>
+          <label>본문 <textarea name="body" rows="8"></textarea></label>
+          <p class="auth-error" id="postEditError" hidden></p>
+          <div class="post-edit-actions">
+            <button type="button" id="postEditCancelButton">취소</button>
+            <button type="submit">저장</button>
+          </div>
+        </form>
 
         <div class="post-body-layout">
           <div class="post-main-flow">
@@ -27,7 +47,7 @@
               <div><dt>공성전</dt><dd id="postGame"></dd></div>
               <div><dt>작성자</dt><dd id="postAuthor"></dd></div>
               <div><dt>작성일</dt><dd id="postDate"></dd></div>
-              <div><dt>추천</dt><dd><button class="post-vote-button" id="postVoteButton" type="button"><span id="postVotes"></span></button></dd></div>
+              <div><dt>추천</dt><dd><button class="post-vote-button" id="postVoteButton" type="button"><img src="assets/common/recommend-icon.svg" alt="" /><span id="postVotes"></span></button></dd></div>
               <div><dt>조회</dt><dd id="postViews"></dd></div>
             </dl>
 
@@ -108,6 +128,8 @@
       const postId = params.get("id");
       let currentPost = null;
       let postVoted = false;
+      let currentUser = null;
+      let replyTargetId = null;
 
       function formatNumber(value) {
         const number = Number(value) || 0;
@@ -134,6 +156,76 @@
         if (!button) return;
         button.classList.toggle("active", postVoted || Boolean(guide.voted));
         button.title = postVoted || guide.voted ? "추천 취소" : "추천";
+      }
+
+      async function loadCurrentUser() {
+        currentUser = await fetch("/api/me").then((response) => response.json()).catch(() => ({ loggedIn: false }));
+      }
+
+      function canManageCurrentPost(guide = currentPost) {
+        if (!guide || !currentUser?.loggedIn) return false;
+        return Boolean(guide.canEdit || currentUser.isAdmin || currentUser.isSuperAdmin || guide.authorUsername === currentUser.username);
+      }
+
+      function syncPostOwnerActions() {
+        const actions = document.querySelector("#postOwnerActions");
+        if (actions) actions.hidden = !canManageCurrentPost();
+      }
+
+      function openPostEditor() {
+        if (!currentPost) return;
+        const form = document.querySelector("#postEditForm");
+        form.hidden = false;
+        form.elements.title.value = currentPost.title || "";
+        form.elements.category.value = currentPost.category || "";
+        form.elements.game.value = currentPost.game || "";
+        form.elements.summary.value = currentPost.summary || "";
+        form.elements.body.value = currentPost.body || "";
+        form.elements.tags.value = Array.isArray(currentPost.tags) ? currentPost.tags.join(", ") : "";
+        document.querySelector("#postEditError").hidden = true;
+        form.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      function closePostEditor() {
+        document.querySelector("#postEditForm").hidden = true;
+      }
+
+      async function submitPostEdit(event) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const error = document.querySelector("#postEditError");
+        const response = await fetch(`/api/posts/${encodeURIComponent(currentPost.id)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: form.elements.title.value,
+            category: form.elements.category.value,
+            game: form.elements.game.value,
+            summary: form.elements.summary.value,
+            body: form.elements.body.value,
+            tags: form.elements.tags.value,
+          }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({ error: "게시글 수정 실패" }));
+          error.textContent = data.error || "게시글 수정 실패";
+          error.hidden = false;
+          return;
+        }
+
+        const data = await response.json();
+        currentPost = data.post || currentPost;
+        hydratePost(currentPost);
+        closePostEditor();
+      }
+
+      async function deletePost() {
+        if (!currentPost || !confirm("게시글을 삭제할까요?")) return;
+        const response = await fetch(`/api/posts/${encodeURIComponent(currentPost.id)}`, { method: "DELETE" });
+        if (response.ok) {
+          location.href = "index.html";
+        }
       }
 
       async function loadPostData() {
@@ -298,9 +390,11 @@
           const author = document.createElement("strong");
           const date = document.createElement("time");
           const content = document.createElement("p");
+          const actions = document.createElement("div");
           const voteButton = document.createElement("button");
+          const replyButton = document.createElement("button");
 
-          item.className = "comment-item";
+          item.className = comment.parentId ? "comment-item comment-reply" : "comment-item";
           author.textContent = comment.author || "익명";
           date.textContent = comment.createdAt || "";
           content.textContent = comment.content || "";
@@ -309,10 +403,23 @@
           voteButton.type = "button";
           voteButton.textContent = `추천 ${formatNumber(comment.votes)}`;
           voteButton.addEventListener("click", () => toggleCommentVote(comment.id, voteButton));
+          replyButton.className = "comment-reply-button";
+          replyButton.type = "button";
+          replyButton.textContent = "답글";
+          replyButton.addEventListener("click", () => setReplyTarget(comment));
           head.append(author, date);
-          item.append(head, content, voteButton);
+          actions.className = "comment-actions";
+          actions.append(voteButton, replyButton);
+          item.append(head, content, actions);
           list.append(item);
         });
+      }
+
+      function setReplyTarget(comment) {
+        replyTargetId = comment.id;
+        const input = document.querySelector("#commentInput");
+        input.placeholder = `${comment.author || "댓글"}님에게 답글`;
+        input.focus();
       }
 
       async function loadComments() {
@@ -350,7 +457,7 @@
         const response = await fetch(`/api/posts/${encodeURIComponent(postId)}/comments`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content }),
+          body: JSON.stringify({ content, parentId: replyTargetId }),
         });
 
         if (!response.ok) {
@@ -363,19 +470,14 @@
         const result = await response.json();
         currentPost = result.post || currentPost;
         input.value = "";
+        replyTargetId = null;
+        input.placeholder = "댓글을 입력하세요.";
         error.hidden = true;
         renderVoteState(currentPost);
         await loadComments();
       }
 
-      loadPostData().then(({ post: guide, posts: guides, prevPost, nextPost }) => {
-        if (!guide) {
-          document.querySelector("#notFound").hidden = false;
-          return;
-        }
-
-        currentPost = guide;
-        postVoted = Boolean(guide.voted);
+      function hydratePost(guide) {
         document.title = `${guide.title} - 삐삐 길드`;
         setText("#postCategory", guide.category || "게시글");
         setText("#postTitle", guide.title || "제목 없음");
@@ -391,6 +493,7 @@
         renderPostBody(guide);
 
         const tagBox = document.querySelector("#postTags");
+        tagBox.innerHTML = "";
         const tags = Array.isArray(guide.tags) ? guide.tags : [];
         if (!tags.length) {
           const empty = document.createElement("span");
@@ -407,12 +510,28 @@
           document.querySelector("#attachmentSection").hidden = false;
           setText("#postAttachment", guide.attachment);
         }
+        syncPostOwnerActions();
+      }
+
+      Promise.all([loadCurrentUser(), loadPostData()]).then(([, { post: guide, posts: guides, prevPost, nextPost }]) => {
+        if (!guide) {
+          document.querySelector("#notFound").hidden = false;
+          return;
+        }
+
+        currentPost = guide;
+        postVoted = Boolean(guide.voted);
+        hydratePost(guide);
 
         bindSiblingPost("#prevPost", "이전 글", prevPost);
         bindSiblingPost("#nextPost", "다음 글", nextPost);
         renderCompactList(guides, guide.id);
         document.querySelector("#postCard").hidden = false;
         document.querySelector("#postVoteButton")?.addEventListener("click", togglePostVote);
+        document.querySelector("#postEditButton")?.addEventListener("click", openPostEditor);
+        document.querySelector("#postDeleteButton")?.addEventListener("click", deletePost);
+        document.querySelector("#postEditForm")?.addEventListener("submit", submitPostEdit);
+        document.querySelector("#postEditCancelButton")?.addEventListener("click", closePostEditor);
         document.querySelector("#commentForm")?.addEventListener("submit", submitComment);
         loadComments();
       });

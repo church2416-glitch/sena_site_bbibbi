@@ -462,6 +462,7 @@ function serializeComment(row) {
   return {
     id: row.id,
     postId: row.post_id,
+    parentId: row.parent_comment_id || null,
     content: row.content || "",
     votes: row.votes || 0,
     status: row.status,
@@ -472,6 +473,11 @@ function serializeComment(row) {
     postTitle: row.post_title || "",
     postCategory: row.post_category || "",
   };
+}
+
+function canManagePost(user, post) {
+  if (!user || !post) return false;
+  return post.author_id === user.id || hasRole(user.role, "admin");
 }
 
 function serializeNotification(row) {
@@ -718,7 +724,9 @@ function selectCommentRows(where = "post_comments.status = 'published'", params 
         LEFT JOIN users ON users.id = post_comments.user_id
         LEFT JOIN posts ON posts.id = post_comments.post_id
         WHERE ${where}
-        ORDER BY datetime(post_comments.created_at) ASC
+        ORDER BY COALESCE(post_comments.parent_comment_id, post_comments.id) ASC,
+          post_comments.parent_comment_id IS NOT NULL ASC,
+          datetime(post_comments.created_at) ASC
       `,
     )
     .all(...params);
@@ -1118,12 +1126,79 @@ app.get("/api/posts/:id", requireContentAccess, (req, res) => {
   const posts = selectPostRows().map((row) => withUserVoteState(serializePost(row), req.user.id));
   const index = posts.findIndex((item) => item.id === id);
   res.json({
-    post: withUserVoteState(serializePost(post), req.user.id),
+    post: {
+      ...withUserVoteState(serializePost(post), req.user.id),
+      canEdit: canManagePost(req.user, post),
+    },
     posts,
     voted: Boolean(db.prepare("SELECT 1 FROM post_votes WHERE post_id = ? AND user_id = ?").get(id, req.user.id)),
     prevPost: index >= 0 ? posts[index - 1] || null : null,
     nextPost: index >= 0 ? posts[index + 1] || null : null,
   });
+});
+
+app.patch("/api/posts/:id", requireContentAccess, (req, res) => {
+  const id = String(req.params.id || "");
+  const post = db.prepare("SELECT * FROM posts WHERE id = ? AND status = 'published'").get(id);
+  if (!post) {
+    return res.status(404).json({ error: "게시글을 찾을 수 없습니다." });
+  }
+  if (!canManagePost(req.user, post)) {
+    return res.status(403).json({ error: "게시글 수정 권한이 없습니다." });
+  }
+
+  const title = String(req.body?.title || "").trim();
+  const category = String(req.body?.category || "").trim();
+  const game = String(req.body?.game || "").trim();
+  const summary = String(req.body?.summary || "").trim();
+  const body = String(req.body?.body || "").trim();
+  const tags = normalizeTagsInput(req.body?.tags);
+
+  if (!title || title.length > 70) {
+    return res.status(400).json({ error: "제목은 1~70자로 입력해주세요." });
+  }
+  if (!category) {
+    return res.status(400).json({ error: "게시판을 선택해주세요." });
+  }
+  if (!summary || summary.length > 220) {
+    return res.status(400).json({ error: "요약은 1~220자로 입력해주세요." });
+  }
+
+  db.prepare(
+    `
+      UPDATE posts
+      SET category = ?,
+          game = ?,
+          title = ?,
+          summary = ?,
+          body = ?,
+          tags_json = ?,
+          updated_at = datetime('now')
+      WHERE id = ?
+    `,
+  ).run(category, game, title, summary, body, JSON.stringify(tags), id);
+
+  const updatedPost = selectPostRows("posts.id = ?", [id])[0];
+  res.json({
+    post: {
+      ...withUserVoteState(serializePost(updatedPost), req.user.id),
+      canEdit: true,
+    },
+  });
+});
+
+app.delete("/api/posts/:id", requireContentAccess, (req, res) => {
+  const id = String(req.params.id || "");
+  const post = db.prepare("SELECT * FROM posts WHERE id = ? AND status = 'published'").get(id);
+  if (!post) {
+    return res.status(404).json({ error: "게시글을 찾을 수 없습니다." });
+  }
+  if (!canManagePost(req.user, post)) {
+    return res.status(403).json({ error: "게시글 삭제 권한이 없습니다." });
+  }
+
+  db.prepare("UPDATE posts SET status = 'deleted', updated_at = datetime('now') WHERE id = ?").run(id);
+  res.json({ ok: true });
 });
 
 app.post("/api/posts/:id/vote", requireContentAccess, (req, res) => {
@@ -1178,6 +1253,7 @@ app.get("/api/posts/:id/comments", requireContentAccess, (req, res) => {
 app.post("/api/posts/:id/comments", requireContentAccess, (req, res) => {
   const id = String(req.params.id || "");
   const content = String(req.body?.content || "").trim();
+  const parentId = req.body?.parentId ? Number(req.body.parentId) : null;
   const post = db.prepare("SELECT id, author_id, title FROM posts WHERE id = ? AND status = 'published'").get(id);
   if (!post) {
     return res.status(404).json({ error: "게시글을 찾을 수 없습니다." });
@@ -1186,10 +1262,18 @@ app.post("/api/posts/:id/comments", requireContentAccess, (req, res) => {
     return res.status(400).json({ error: "댓글은 1~1000자로 입력해주세요." });
   }
 
+  let parentComment = null;
+  if (parentId) {
+    parentComment = db.prepare("SELECT id, user_id FROM post_comments WHERE id = ? AND post_id = ? AND status = 'published'").get(parentId, id);
+    if (!parentComment) {
+      return res.status(400).json({ error: "답글을 달 댓글을 찾을 수 없습니다." });
+    }
+  }
+
   const createComment = db.transaction(() => {
     const result = db
-      .prepare("INSERT INTO post_comments (post_id, user_id, content) VALUES (?, ?, ?)")
-      .run(id, req.user.id, content);
+      .prepare("INSERT INTO post_comments (post_id, user_id, parent_comment_id, content) VALUES (?, ?, ?, ?)")
+      .run(id, req.user.id, parentId || null, content);
     db.prepare("UPDATE posts SET comments = comments + 1, updated_at = datetime('now') WHERE id = ?").run(id);
     return result.lastInsertRowid;
   });
@@ -1198,13 +1282,25 @@ app.post("/api/posts/:id/comments", requireContentAccess, (req, res) => {
   createNotification({
     recipientId: post.author_id,
     actorId: req.user.id,
-    type: "post_comment",
-    targetType: "post",
-    targetId: id,
+    type: parentId ? "comment_reply" : "post_comment",
+    targetType: parentId ? "comment" : "post",
+    targetId: parentId || id,
     postId: id,
     commentId,
     message: `${req.user.display_name || req.user.username}님이 내 게시글에 댓글을 남겼습니다.`,
   });
+  if (parentComment?.user_id && parentComment.user_id !== post.author_id) {
+    createNotification({
+      recipientId: parentComment.user_id,
+      actorId: req.user.id,
+      type: "comment_reply",
+      targetType: "comment",
+      targetId: parentId,
+      postId: id,
+      commentId,
+      message: `${req.user.display_name || req.user.username}님이 댓글에 답글을 남겼습니다.`,
+    });
+  }
   const comment = selectCommentRows("post_comments.id = ?", [commentId])[0];
   const updatedPost = selectPostRows("posts.id = ?", [id])[0];
   res.status(201).json({
