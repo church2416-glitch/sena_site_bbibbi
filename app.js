@@ -189,6 +189,7 @@ const accountLikedList = document.querySelector("#accountLikedList");
 const accountCommentList = document.querySelector("#accountCommentList");
 const notificationList = document.querySelector("#notificationList");
 const notificationReadButton = document.querySelector("#notificationReadButton");
+const notificationSoundButton = document.querySelector("#notificationSoundButton");
 const accountPostPermission = document.querySelector("#accountPostPermission");
 const accountAdminPermission = document.querySelector("#accountAdminPermission");
 const sideBoardLinks = [...document.querySelectorAll("[data-board-link]")];
@@ -255,6 +256,8 @@ let guides = loadGuides();
 let voted = new Set(JSON.parse(localStorage.getItem(votedKey) || "[]"));
 let currentUser = { loggedIn: false, role: "guest" };
 let notificationStream = null;
+let notificationSoundEnabled = localStorage.getItem("bbibbi-notification-sound") !== "off";
+let notificationAudioContext = null;
 
 const seedNotices = [
   {
@@ -541,6 +544,53 @@ function setNotificationBadge(count) {
   notificationBadge.textContent = number > 99 ? "99+" : String(number);
 }
 
+function syncNotificationSoundButton() {
+  if (!notificationSoundButton) return;
+  notificationSoundButton.textContent = notificationSoundEnabled ? "ON" : "OFF";
+  notificationSoundButton.classList.toggle("active", notificationSoundEnabled);
+}
+
+function getNotificationAudioContext() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+  if (!notificationAudioContext) notificationAudioContext = new AudioContextClass();
+  return notificationAudioContext;
+}
+
+async function unlockNotificationSound() {
+  const context = getNotificationAudioContext();
+  if (context?.state === "suspended") await context.resume().catch(() => {});
+}
+
+function playNotificationSound() {
+  if (!notificationSoundEnabled) return;
+  const context = getNotificationAudioContext();
+  if (!context || context.state !== "running") return;
+
+  const start = context.currentTime;
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(880, start);
+  oscillator.frequency.exponentialRampToValueAtTime(1320, start + 0.08);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(0.12, start + 0.015);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.22);
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+  oscillator.start(start);
+  oscillator.stop(start + 0.24);
+}
+
+function toggleNotificationSound() {
+  notificationSoundEnabled = !notificationSoundEnabled;
+  localStorage.setItem("bbibbi-notification-sound", notificationSoundEnabled ? "on" : "off");
+  syncNotificationSoundButton();
+  unlockNotificationSound().then(() => {
+    if (notificationSoundEnabled) playNotificationSound();
+  });
+}
+
 function renderNotificationList(notifications = []) {
   if (!notificationList) return;
   notificationList.innerHTML = "";
@@ -595,6 +645,7 @@ function connectNotificationStream() {
   notificationStream.addEventListener("notification", (event) => {
     const data = JSON.parse(event.data || "{}");
     setNotificationBadge(data.unreadCount);
+    if (data.notification) playNotificationSound();
     if (!profileModal?.hidden && data.notification) {
       loadAccountDashboard();
     }
@@ -1082,6 +1133,7 @@ profileButton?.addEventListener("click", openProfileModal);
 profileCloseButton?.addEventListener("click", closeProfileModal);
 profileForm?.addEventListener("submit", submitProfile);
 notificationReadButton?.addEventListener("click", markNotificationsRead);
+notificationSoundButton?.addEventListener("click", toggleNotificationSound);
 logoutButton?.addEventListener("click", logout);
 signupButton?.addEventListener("click", () => {
   openSignupModal();
@@ -1096,6 +1148,9 @@ signupToLoginButton?.addEventListener("click", () => {
   openLoginModal();
 });
 signupForm?.addEventListener("submit", submitSignup);
+syncNotificationSoundButton();
+document.addEventListener("pointerdown", unlockNotificationSound, { once: true });
+document.addEventListener("keydown", unlockNotificationSound, { once: true });
 document.querySelectorAll("[data-provider-soon]").forEach((button) => {
   button.addEventListener("click", () => showProviderSoon(button.dataset.providerSoon));
 });
