@@ -165,15 +165,18 @@ button {
 
 .site-footer {
   grid-column: 1 / -1;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: center;
   gap: 14px;
-  flex-wrap: wrap;
   padding: 24px 10px 2px;
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;
+}
+
+.site-footer > span {
+  justify-self: end;
 }
 
 .site-footer nav {
@@ -205,6 +208,14 @@ button {
 .site-footer small {
   color: #8f89a8;
   font-size: 10px;
+}
+
+.site-footer .footer-contact {
+  justify-self: start;
+  color: #ffffff;
+  border-color: transparent;
+  background: transparent;
+  font-weight: 1000;
 }
 
 .sidebar,
@@ -4339,6 +4350,17 @@ p {
   .app-shell {
     grid-template-columns: 1fr;
     padding: 12px;
+  }
+
+  .site-footer {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .site-footer > span,
+  .site-footer .footer-contact {
+    justify-self: center;
   }
 
   body.wide-layout .app-shell {
