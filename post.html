@@ -34,6 +34,23 @@
           </div>
           <label>요약 <textarea name="summary" rows="3" maxlength="220" required></textarea></label>
           <label>본문 <textarea name="body" rows="8"></textarea></label>
+          <section class="editor-box post-edit-media-box" aria-label="미디어 추가">
+            <div class="editor-toolbar">
+              <label class="tool-file">
+                이미지 추가
+                <input id="postEditImageInput" type="file" accept="image/*" multiple />
+              </label>
+              <label class="tool-file">
+                동영상 추가
+                <input id="postEditVideoInput" type="file" accept="video/*" multiple />
+              </label>
+              <button type="button" id="postEditYoutubeButton">유튜브</button>
+            </div>
+            <div class="youtube-field" id="postEditYoutubeField" hidden>
+              <input id="postEditYoutubeInput" type="url" placeholder="유튜브 링크를 붙여넣어 주세요." />
+            </div>
+            <div class="media-preview" id="postEditMediaPreview" aria-live="polite"></div>
+          </section>
           <p class="auth-error" id="postEditError" hidden></p>
           <div class="post-edit-actions">
             <button type="button" id="postEditCancelButton">취소</button>
@@ -130,6 +147,10 @@
       let postVoted = false;
       let currentUser = null;
       let replyTargetId = null;
+      let editImageFiles = [];
+      let editVideoFiles = [];
+      const maxImageSize = 8 * 1024 * 1024;
+      const maxVideoSize = 500 * 1024 * 1024;
 
       function formatNumber(value) {
         const number = Number(value) || 0;
@@ -172,6 +193,49 @@
         if (actions) actions.hidden = !canManageCurrentPost();
       }
 
+      function getYoutubeEmbed(url) {
+        const value = String(url || "").trim();
+        const match = value.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{6,})/);
+        return match ? `https://www.youtube.com/embed/${match[1]}` : "";
+      }
+
+      function renderEditMediaPreview() {
+        const preview = document.querySelector("#postEditMediaPreview");
+        if (!preview) return;
+        preview.innerHTML = "";
+        const media = currentPost?.media || {};
+        const existingImages = Array.isArray(media.images) ? media.images.length : 0;
+        const existingVideos = Array.isArray(media.videos) ? media.videos.length : media.videoFile ? 1 : 0;
+        if (existingImages) {
+          const item = document.createElement("span");
+          item.textContent = `기존 이미지 ${existingImages}개`;
+          preview.append(item);
+        }
+        if (existingVideos) {
+          const item = document.createElement("span");
+          item.textContent = `기존 동영상 ${existingVideos}개`;
+          preview.append(item);
+        }
+        editImageFiles.forEach((file) => {
+          const item = document.createElement("span");
+          item.textContent = `추가 이미지 · ${file.name}`;
+          preview.append(item);
+        });
+        editVideoFiles.forEach((file) => {
+          const item = document.createElement("span");
+          item.textContent = `추가 동영상 · ${file.name}`;
+          preview.append(item);
+        });
+        const youtube = document.querySelector("#postEditYoutubeInput")?.value.trim();
+        if (youtube || media.youtubeEmbed) {
+          const item = document.createElement("span");
+          item.textContent = youtube
+            ? getYoutubeEmbed(youtube) ? "유튜브 · 새 링크 연결됨" : "유튜브 · 링크 확인 필요"
+            : "기존 유튜브 링크 유지";
+          preview.append(item);
+        }
+      }
+
       function openPostEditor() {
         if (!currentPost) return;
         const form = document.querySelector("#postEditForm");
@@ -182,6 +246,11 @@
         form.elements.summary.value = currentPost.summary || "";
         form.elements.body.value = currentPost.body || "";
         form.elements.tags.value = Array.isArray(currentPost.tags) ? currentPost.tags.join(", ") : "";
+        document.querySelector("#postEditYoutubeInput").value = currentPost.media?.youtube || "";
+        document.querySelector("#postEditYoutubeField").hidden = !currentPost.media?.youtube;
+        editImageFiles = [];
+        editVideoFiles = [];
+        renderEditMediaPreview();
         document.querySelector("#postEditError").hidden = true;
         form.scrollIntoView({ behavior: "smooth", block: "start" });
       }
@@ -194,17 +263,21 @@
         event.preventDefault();
         const form = event.currentTarget;
         const error = document.querySelector("#postEditError");
+        const formData = new FormData();
+        formData.set("title", form.elements.title.value);
+        formData.set("category", form.elements.category.value);
+        formData.set("game", form.elements.game.value);
+        formData.set("summary", form.elements.summary.value);
+        formData.set("body", form.elements.body.value);
+        formData.set("tags", form.elements.tags.value);
+        const youtube = document.querySelector("#postEditYoutubeInput").value.trim();
+        formData.set("youtube", youtube);
+        formData.set("youtubeEmbed", getYoutubeEmbed(youtube));
+        editImageFiles.forEach((file) => formData.append("images", file));
+        editVideoFiles.forEach((file) => formData.append("videos", file));
         const response = await fetch(`/api/posts/${encodeURIComponent(currentPost.id)}`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: form.elements.title.value,
-            category: form.elements.category.value,
-            game: form.elements.game.value,
-            summary: form.elements.summary.value,
-            body: form.elements.body.value,
-            tags: form.elements.tags.value,
-          }),
+          body: formData,
         });
 
         if (!response.ok) {
@@ -217,6 +290,8 @@
         const data = await response.json();
         currentPost = data.post || currentPost;
         hydratePost(currentPost);
+        editImageFiles = [];
+        editVideoFiles = [];
         closePostEditor();
       }
 
@@ -532,6 +607,23 @@
         document.querySelector("#postDeleteButton")?.addEventListener("click", deletePost);
         document.querySelector("#postEditForm")?.addEventListener("submit", submitPostEdit);
         document.querySelector("#postEditCancelButton")?.addEventListener("click", closePostEditor);
+        document.querySelector("#postEditYoutubeButton")?.addEventListener("click", () => {
+          const field = document.querySelector("#postEditYoutubeField");
+          field.hidden = !field.hidden;
+          if (!field.hidden) document.querySelector("#postEditYoutubeInput")?.focus();
+          renderEditMediaPreview();
+        });
+        document.querySelector("#postEditYoutubeInput")?.addEventListener("input", renderEditMediaPreview);
+        document.querySelector("#postEditImageInput")?.addEventListener("change", (event) => {
+          const selected = [...event.target.files].slice(0, 6);
+          editImageFiles = selected.filter((file) => file.size <= maxImageSize);
+          renderEditMediaPreview();
+        });
+        document.querySelector("#postEditVideoInput")?.addEventListener("change", (event) => {
+          const selected = [...event.target.files].slice(0, 3);
+          editVideoFiles = selected.filter((file) => file.size <= maxVideoSize);
+          renderEditMediaPreview();
+        });
         document.querySelector("#commentForm")?.addEventListener("submit", submitComment);
         loadComments();
       });

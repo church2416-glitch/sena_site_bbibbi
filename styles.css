@@ -2000,6 +2000,11 @@ p {
   font-weight: 900;
 }
 
+.post-edit-media-box {
+  border-color: rgba(var(--theme-mid-rgb), 0.18);
+  background: rgba(7, 8, 15, 0.48);
+}
+
 .post-article-section {
   min-height: 460px;
 }

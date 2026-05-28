@@ -1137,7 +1137,7 @@ app.get("/api/posts/:id", requireContentAccess, (req, res) => {
   });
 });
 
-app.patch("/api/posts/:id", requireContentAccess, (req, res) => {
+app.patch("/api/posts/:id", requireContentAccess, maybeUploadPostMedia, (req, res) => {
   const id = String(req.params.id || "");
   const post = db.prepare("SELECT * FROM posts WHERE id = ? AND status = 'published'").get(id);
   if (!post) {
@@ -1153,6 +1153,7 @@ app.patch("/api/posts/:id", requireContentAccess, (req, res) => {
   const summary = String(req.body?.summary || "").trim();
   const body = String(req.body?.body || "").trim();
   const tags = normalizeTagsInput(req.body?.tags);
+  const isMultipart = Boolean(req.files);
 
   if (!title || title.length > 70) {
     return res.status(400).json({ error: "제목은 1~70자로 입력해주세요." });
@@ -1164,6 +1165,37 @@ app.patch("/api/posts/:id", requireContentAccess, (req, res) => {
     return res.status(400).json({ error: "요약은 1~220자로 입력해주세요." });
   }
 
+  const existingMedia = safeJsonParse(post.media_json, {});
+  let media = existingMedia;
+  try {
+    if (isMultipart) {
+      const uploadedMedia = buildUploadedPostMedia(id, req.body || {}, req.files || {});
+      const existingImages = Array.isArray(existingMedia.images) ? existingMedia.images : [];
+      const existingVideos = Array.isArray(existingMedia.videos)
+        ? existingMedia.videos
+        : existingMedia.videoFile ? [existingMedia.videoFile] : [];
+      const nextYoutube = String(req.body?.youtube || "").trim();
+      const nextYoutubeEmbed = String(req.body?.youtubeEmbed || "").trim();
+      media = {
+        ...existingMedia,
+        images: [...existingImages, ...(uploadedMedia.images || [])].slice(0, 6),
+        videos: [...existingVideos, ...(uploadedMedia.videos || [])].slice(0, 3),
+        videoFile: [...existingVideos, ...(uploadedMedia.videos || [])][0] || null,
+        youtube: nextYoutube || existingMedia.youtube || "",
+        youtubeEmbed: nextYoutubeEmbed || existingMedia.youtubeEmbed || "",
+      };
+    } else if (req.body?.media && typeof req.body.media === "object") {
+      media = normalizePostMedia(req.body.media);
+      media.videoFile = savePostVideoFile(id, media.videoFile);
+    }
+  } catch (err) {
+    cleanupUploadedFiles(req.files || {});
+    if (err.status === 400) {
+      return res.status(400).json({ error: err.message === "image_too_large" ? "이미지는 8MB 이하로 업로드해주세요." : "동영상은 500MB 이하로 업로드해주세요." });
+    }
+    throw err;
+  }
+
   db.prepare(
     `
       UPDATE posts
@@ -1173,10 +1205,11 @@ app.patch("/api/posts/:id", requireContentAccess, (req, res) => {
           summary = ?,
           body = ?,
           tags_json = ?,
+          media_json = ?,
           updated_at = datetime('now')
       WHERE id = ?
     `,
-  ).run(category, game, title, summary, body, JSON.stringify(tags), id);
+  ).run(category, game, title, summary, body, JSON.stringify(tags), JSON.stringify(media), id);
 
   const updatedPost = selectPostRows("posts.id = ?", [id])[0];
   res.json({
