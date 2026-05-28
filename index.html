@@ -291,7 +291,10 @@
         <section class="account-section">
           <div class="account-section-head">
             <h3>알림</h3>
-            <button class="account-link-button" id="notificationReadButton" type="button">모두 읽음</button>
+            <div class="account-head-actions">
+              <button class="account-link-button" id="notificationReadButton" type="button">모두 읽음</button>
+              <button class="account-link-button danger" id="notificationClearButton" type="button">삭제</button>
+            </div>
           </div>
           <div class="account-list notification-list" id="notificationList">
             <p class="account-empty">알림이 없습니다.</p>
@@ -306,6 +309,13 @@
             <span><b>게시글 작성</b><em id="accountPostPermission">ON</em></span>
             <span><b>관리자 메뉴</b><em id="accountAdminPermission">OFF</em></span>
             <span><b>알림음</b><button class="account-inline-button" id="notificationSoundButton" type="button">ON</button></span>
+            <span class="account-volume-control">
+              <b>알림음 크기</b>
+              <label class="volume-knob" aria-label="알림음 크기">
+                <input id="notificationVolumeInput" type="range" min="0" max="100" step="1" />
+                <em id="notificationVolumeValue">72%</em>
+              </label>
+            </span>
           </div>
         </section>
       </form>

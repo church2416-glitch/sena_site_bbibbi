@@ -853,6 +853,12 @@ textarea:focus {
   gap: 12px;
 }
 
+.account-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .account-section h3,
 .account-tabs h4 {
   margin: 0;
@@ -963,6 +969,11 @@ textarea:focus {
   font-weight: 900;
 }
 
+.account-link-button.danger {
+  color: #ffd0d0;
+  border-color: rgba(255, 113, 68, 0.34);
+}
+
 .account-inline-button {
   min-height: 28px;
   min-width: 46px;
@@ -986,6 +997,28 @@ textarea:focus {
   background: rgba(111, 224, 205, 0.08);
 }
 
+.notification-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.notification-delete-button {
+  min-width: 48px;
+  border: 1px solid rgba(255, 113, 68, 0.26);
+  border-radius: 8px;
+  color: #ffc5c5;
+  background: rgba(58, 18, 24, 0.42);
+  font-size: 11px;
+  font-weight: 1000;
+}
+
+.notification-delete-button:hover {
+  border-color: rgba(255, 113, 68, 0.56);
+  background: rgba(255, 113, 68, 0.16);
+}
+
 .notification-item.unread strong::before {
   content: "";
   display: inline-block;
@@ -999,8 +1032,39 @@ textarea:focus {
 
 .account-permission-list {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
+}
+
+.account-volume-control {
+  grid-column: span 2;
+}
+
+.volume-knob {
+  display: flex !important;
+  grid-template-columns: none !important;
+  align-items: center;
+  gap: 8px;
+  min-width: 170px;
+}
+
+.volume-knob input[type="range"] {
+  width: 120px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  accent-color: #6fe0cd;
+}
+
+.volume-knob em {
+  min-width: 38px;
+  color: #f3f0ff;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 1000;
+  text-align: right;
 }
 
 .signup-dialog {
@@ -4591,6 +4655,19 @@ p {
   .account-tabs,
   .account-permission-list {
     grid-template-columns: 1fr;
+  }
+
+  .account-volume-control {
+    grid-column: auto;
+  }
+
+  .volume-knob {
+    width: 100%;
+  }
+
+  .volume-knob input[type="range"] {
+    flex: 1;
+    width: auto;
   }
 
   .login-dialog-head .icon-button {

@@ -1041,6 +1041,18 @@ app.patch("/api/me/notifications/read", requireMember, (req, res) => {
   res.json({ ok: true });
 });
 
+app.delete("/api/me/notifications", requireMember, (req, res) => {
+  db.prepare("DELETE FROM notifications WHERE recipient_id = ?").run(req.user.id);
+  res.json({ ok: true, unreadCount: 0 });
+});
+
+app.delete("/api/me/notifications/:id", requireMember, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: "알림 ID가 올바르지 않습니다." });
+  db.prepare("DELETE FROM notifications WHERE recipient_id = ? AND id = ?").run(req.user.id, id);
+  res.json({ ok: true, unreadCount: getUnreadNotificationCount(req.user.id) });
+});
+
 app.get("/api/posts", requireContentAccess, (req, res) => {
   res.json(selectPostRows().map((row) => withUserVoteState(serializePost(row), req.user.id)));
 });
