@@ -213,17 +213,17 @@ const importantNoticeHideTodayButton = document.querySelector("#importantNoticeH
 const importantNoticeActionLink = document.querySelector("#importantNoticeActionLink");
 
 const boardInfo = {
+  공지사항: {
+    title: "공지사항",
+    desc: "운영 공지와 중요한 안내를 확인하는 게시판",
+  },
   전체: {
     title: "전체 게시판",
     desc: "지금 올라온 공략과 사람들이 주목하는 게시글들",
   },
-  베스트: {
-    title: "베스트",
-    desc: "추천과 조회 흐름이 좋은 게시글",
-  },
-  "자유 게시판": {
-    title: "자유 게시판",
-    desc: "자유롭게 글을 올리는 게시판",
+  "PVP 게시판": {
+    title: "PVP 게시판",
+    desc: "결투장, 조합, 운영 팁을 나누는 게시판",
   },
   "PVE 공략": {
     title: "PVE 공략",
@@ -253,18 +253,28 @@ const boardInfo = {
     title: "유머 게시판",
     desc: "공성전하다 터진 순간과 짤로 남기고 싶은 장면",
   },
-  "데미지 고급": {
-    title: "데미지 고급",
-    desc: "딜 계산, 장비 효율, 세팅 심화 공략",
+  "임시 채널1": {
+    title: "임시 채널1",
+    desc: "임시로 운영하는 커뮤니티 채널",
   },
-  "아이템 고급": {
-    title: "아이템 고급",
-    desc: "장비, 장신구, 세공, 재화 운용 심화 공략",
+  "임시 채널2": {
+    title: "임시 채널2",
+    desc: "임시로 운영하는 커뮤니티 채널",
   },
 };
 
 const initialBoard = new URLSearchParams(location.search).get("board");
-let activeCategory = boardInfo[initialBoard] ? initialBoard : "전체";
+const boardAliases = {
+  베스트: "전체",
+  "자유 게시판": "PVP 게시판",
+  "데미지 고급": "임시 채널1",
+  "아이템 고급": "임시 채널2",
+};
+function normalizeBoard(value) {
+  return boardAliases[value] || value;
+}
+
+let activeCategory = boardInfo[normalizeBoard(initialBoard)] ? normalizeBoard(initialBoard) : "공지사항";
 let guides = loadGuides();
 let voted = new Set(JSON.parse(localStorage.getItem(votedKey) || "[]"));
 let currentUser = { loggedIn: false, role: "guest" };
@@ -939,13 +949,10 @@ function getFilteredGuides() {
       .join(" ")
       .toLowerCase();
     const matchesQuery = !query || haystack.includes(query);
-    const matchesCategory = activeCategory === "전체" || activeCategory === "베스트" || guide.category === activeCategory;
+    const guideCategory = normalizeBoard(guide.category);
+    const matchesCategory = activeCategory === "전체" || guideCategory === activeCategory;
     return matchesQuery && matchesCategory;
   });
-
-  if (activeCategory === "베스트") {
-    return filteredGuides.sort((a, b) => (b.votes || 0) - (a.votes || 0) || (b.views || 0) - (a.views || 0));
-  }
 
   return filteredGuides;
 }
@@ -1000,7 +1007,8 @@ function renderGuides() {
     voteButton.classList.toggle("active", voted.has(guide.id));
     voteButton.addEventListener("click", () => toggleVote(guide.id));
 
-    status.textContent = guide.category === "파괴신" ? "파괴신" : "급상승";
+    const displayCategory = normalizeBoard(guide.category);
+    status.textContent = displayCategory === "파괴신" ? "파괴신" : displayCategory;
     title.textContent = guide.title;
     comment.textContent = ` (${guide.comments || 0})`;
     summary.textContent = guide.summary;
@@ -1067,7 +1075,7 @@ function renderSideLists() {
     const count = document.createElement("b");
 
     order.textContent = index + 1;
-    title.textContent = `# ${guide.category}`;
+    title.textContent = `# ${normalizeBoard(guide.category)}`;
     count.textContent = `${formatNumber(guide.votes)} 게시글`;
     item.append(order, title, count);
     rankingList.append(item);
@@ -1292,7 +1300,7 @@ searchInput.addEventListener("input", renderGuides);
 
 categoryButtons.forEach((button) => {
   button.addEventListener("click", () => {
-    activeCategory = button.dataset.filter;
+    activeCategory = normalizeBoard(button.dataset.filter);
     history.pushState(null, "", `?board=${encodeURIComponent(activeCategory)}`);
     renderGuides();
   });
@@ -1301,7 +1309,7 @@ categoryButtons.forEach((button) => {
 sideBoardLinks.forEach((link) => {
   link.addEventListener("click", (event) => {
     event.preventDefault();
-    activeCategory = link.dataset.boardLink;
+    activeCategory = normalizeBoard(link.dataset.boardLink);
     history.pushState(null, "", `?board=${encodeURIComponent(activeCategory)}`);
     renderGuides();
     document.querySelector("#guides")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1309,8 +1317,8 @@ sideBoardLinks.forEach((link) => {
 });
 
 window.addEventListener("popstate", () => {
-  const board = new URLSearchParams(location.search).get("board");
-  activeCategory = boardInfo[board] ? board : "전체";
+  const board = normalizeBoard(new URLSearchParams(location.search).get("board"));
+  activeCategory = boardInfo[board] ? board : "공지사항";
   renderGuides();
 });
 

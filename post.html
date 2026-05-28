@@ -151,6 +151,15 @@
       let editVideoFiles = [];
       const maxImageSize = 8 * 1024 * 1024;
       const maxVideoSize = 500 * 1024 * 1024;
+      const boardAliases = {
+        베스트: "전체",
+        "자유 게시판": "PVP 게시판",
+        "데미지 고급": "임시 채널1",
+        "아이템 고급": "임시 채널2",
+      };
+      function normalizeBoard(value) {
+        return boardAliases[value] || value;
+      }
 
       function formatNumber(value) {
         const number = Number(value) || 0;
@@ -441,7 +450,7 @@
           link.href = `post.html?id=${encodeURIComponent(item.id)}`;
           link.className = item.id === currentId ? "active" : "";
           title.textContent = item.title || "제목 없음";
-          meta.textContent = `${item.category || "게시글"} · ${item.createdAt || "알 수 없음"} · 추천 ${formatNumber(item.votes)}`;
+          meta.textContent = `${normalizeBoard(item.category) || "게시글"} · ${item.createdAt || "알 수 없음"} · 추천 ${formatNumber(item.votes)}`;
           link.append(title, meta);
           list.append(link);
         });
@@ -554,7 +563,7 @@
 
       function hydratePost(guide) {
         document.title = `${guide.title} - 삐삐 길드`;
-        setText("#postCategory", guide.category || "게시글");
+        setText("#postCategory", normalizeBoard(guide.category) || "게시글");
         setText("#postTitle", guide.title || "제목 없음");
         setText("#postSummary", guide.summary || "요약이 없습니다.");
         setText("#postGame", guide.game || "미지정");
@@ -563,7 +572,7 @@
         renderVoteState(guide);
         setText("#postViews", formatNumber(guide.views));
         setText("#sideAuthor", `작성자 ${guide.author || guide.displayName || "익명"}`);
-        setText("#sideCategory", guide.category || "게시판");
+        setText("#sideCategory", normalizeBoard(guide.category) || "게시판");
         setText("#sideViews", `조회 ${formatNumber(guide.views)}`);
         renderPostBody(guide);
 
