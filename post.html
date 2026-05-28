@@ -29,7 +29,11 @@
                 <dd id="postGame"></dd>
               </div>
               <div>
-                <dt>작성</dt>
+                <dt>작성자</dt>
+                <dd id="postAuthor"></dd>
+              </div>
+              <div>
+                <dt>작성일</dt>
                 <dd id="postDate"></dd>
               </div>
               <div>
@@ -87,6 +91,7 @@
             <strong>게시글 정보</strong>
             <a href="index.html">목록</a>
             <a href="upload.html" target="_blank" rel="noopener">글쓰기</a>
+            <span id="sideAuthor">작성자 -</span>
             <span id="sideCategory">게시판</span>
             <span id="sideViews">조회 0</span>
           </aside>
@@ -244,9 +249,11 @@
         setText("#postTitle", guide.title || "제목 없음");
         setText("#postSummary", guide.summary || "요약이 없습니다.");
         setText("#postGame", guide.game || "미지정");
+        setText("#postAuthor", guide.author || guide.displayName || "익명");
         setText("#postDate", guide.createdAt || "알 수 없음");
         setText("#postVotes", formatNumber(guide.votes));
         setText("#postViews", formatNumber(guide.views));
+        setText("#sideAuthor", `작성자 ${guide.author || guide.displayName || "익명"}`);
         setText("#sideCategory", guide.category || "게시판");
         setText("#sideViews", `조회 ${formatNumber(guide.views)}`);
         renderPostBody(guide);

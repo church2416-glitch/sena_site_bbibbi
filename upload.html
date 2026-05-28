@@ -124,6 +124,7 @@
       const bodyInput = document.querySelector("#bodyInput");
       let imageFiles = [];
       let videoFile = null;
+      let currentUser = { loggedIn: false, displayName: "익명" };
       const maxImageSize = 1.5 * 1024 * 1024;
 
       function makeId() {
@@ -144,6 +145,16 @@
           return JSON.parse(localStorage.getItem(storageKey) || "[]");
         } catch {
           return [];
+        }
+      }
+
+      async function fetchCurrentUser() {
+        try {
+          const response = await fetch("/api/me");
+          if (!response.ok) throw new Error("me failed");
+          currentUser = await response.json();
+        } catch {
+          currentUser = { loggedIn: false, displayName: "익명" };
         }
       }
 
@@ -243,6 +254,8 @@
           game: formData.get("game").trim(),
           category: formData.get("category"),
           summary: formData.get("summary").trim(),
+          author: currentUser?.displayName || currentUser?.username || "익명",
+          authorUsername: currentUser?.username || "",
           body: formData.get("body").trim(),
           tags: normalizeTags(formData.get("tags") || ""),
           attachment: fileInput.files[0]?.name || "",
@@ -266,6 +279,8 @@
         fileName.textContent = "첨부 선택";
         draftState.textContent = "업로드 완료";
       });
+
+      fetchCurrentUser();
     </script>
   </body>
 </html>
