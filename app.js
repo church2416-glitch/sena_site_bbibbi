@@ -154,6 +154,7 @@ const loginForm = document.querySelector("#loginForm");
 const signupForm = document.querySelector("#signupForm");
 const profileForm = document.querySelector("#profileForm");
 const providerLoginOpenButton = document.querySelector("#providerLoginOpenButton");
+const adminDashboardLink = document.querySelector("#adminDashboardLink");
 const kakaoLoginButton = document.querySelector("#kakaoLoginButton");
 const loginCloseButton = document.querySelector("#loginCloseButton");
 const profileCloseButton = document.querySelector("#profileCloseButton");
@@ -290,6 +291,7 @@ function renderAuthState(user) {
       : "로그인하고<br />댓글과 공략글을";
   }
   if (providerLoginOpenButton) providerLoginOpenButton.hidden = Boolean(user?.loggedIn);
+  if (adminDashboardLink) adminDashboardLink.hidden = !isAdmin;
   if (kakaoLoginButton) kakaoLoginButton.hidden = Boolean(user?.loggedIn);
   if (profileButton) profileButton.hidden = !user?.loggedIn;
   if (logoutButton) logoutButton.hidden = !user?.loggedIn;

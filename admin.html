@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>관리자 데이터베이스 - 삐삐 길드</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="admin-dashboard-page">
+    <aside class="admin-sidebar" aria-label="관리자 메뉴">
+      <a class="admin-brand" href="index.html">
+        <span>삐</span>
+        <strong>삐삐 관리자</strong>
+      </a>
+      <nav class="admin-nav">
+        <a class="active" href="admin.html"><span>▦</span>대시보드</a>
+        <a href="#members"><span>♙</span>사용자 관리</a>
+        <a href="#contents"><span>✎</span>콘텐츠 관리</a>
+        <a href="guild-war-admin.html"><span>⚔</span>길드전 족보</a>
+        <a href="#database"><span>◫</span>데이터베이스</a>
+        <a href="index.html"><span>⌂</span>사이트로</a>
+      </nav>
+      <div class="admin-locale">한국어</div>
+    </aside>
+
+    <main class="admin-workspace">
+      <header class="admin-topbar">
+        <div>
+          <span>운영 콘솔</span>
+          <strong>관리자 데이터베이스</strong>
+        </div>
+        <button class="admin-logout" id="adminLogoutButton" type="button">로그아웃</button>
+      </header>
+
+      <section class="admin-metrics" aria-label="핵심 지표">
+        <article>
+          <span>전체 회원</span>
+          <strong id="metricUsers">0</strong>
+          <small>가입 계정</small>
+        </article>
+        <article>
+          <span>인증 회원</span>
+          <strong id="metricVerified">0</strong>
+          <small>SNS/검증 계정</small>
+        </article>
+        <article>
+          <span>게시글</span>
+          <strong id="metricPosts">0</strong>
+          <small>DB 저장 콘텐츠</small>
+        </article>
+        <article>
+          <span>길드전 족보</span>
+          <strong id="metricSheets">0</strong>
+          <small>운영 자료</small>
+        </article>
+      </section>
+
+      <div class="admin-grid">
+        <section class="admin-panel admin-chart-panel" aria-label="방문자 현황">
+          <div class="admin-panel-head">
+            <h1>일자별 현황</h1>
+            <div class="admin-legend">
+              <span>회원</span>
+              <span>게시글</span>
+            </div>
+          </div>
+          <div class="admin-chart" id="dailyChart" aria-label="최근 7일 회원과 게시글 현황"></div>
+        </section>
+
+        <section class="admin-panel" id="database">
+          <div class="admin-panel-head">
+            <h2>DB 요약</h2>
+            <small>SQLite</small>
+          </div>
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>일자</th>
+                <th>회원</th>
+                <th>게시글</th>
+              </tr>
+            </thead>
+            <tbody id="dailyTable"></tbody>
+          </table>
+        </section>
+
+        <aside class="admin-profile-panel">
+          <div class="admin-avatar">A</div>
+          <strong id="adminName">관리자</strong>
+          <span id="adminEmail">admin</span>
+          <dl>
+            <div><dt>권한</dt><dd>최고 관리자</dd></div>
+            <div><dt>상태</dt><dd>운영 중</dd></div>
+            <div><dt>DB</dt><dd>SQLite</dd></div>
+          </dl>
+        </aside>
+
+        <section class="admin-panel" id="members">
+          <div class="admin-panel-head">
+            <h2>새 회원</h2>
+            <a href="#members">더보기</a>
+          </div>
+          <div class="admin-list" id="recentUsers"></div>
+        </section>
+
+        <section class="admin-panel" id="contents">
+          <div class="admin-panel-head">
+            <h2>콘텐츠 반응</h2>
+            <span class="admin-count" id="contentCount">0</span>
+          </div>
+          <div class="admin-list content-list" id="recentPosts"></div>
+        </section>
+
+        <section class="admin-panel admin-note-panel">
+          <div class="admin-panel-head">
+            <h2>운영자 메모</h2>
+            <button id="clearMemoButton" type="button">초기화</button>
+          </div>
+          <textarea id="adminMemo" placeholder="관리자들과 공유할 메모를 남겨주세요."></textarea>
+        </section>
+      </div>
+    </main>
+
+    <script src="admin.js"></script>
+  </body>
+</html>

@@ -101,7 +101,13 @@ function requireMemberForPrivatePages(req, res, next) {
   const isHtmlPage = requestPath.endsWith(".html");
 
   if (!isHtmlPage || publicPages.has(requestPath)) return next();
-  if (readSession(req)) return next();
+  const session = readSession(req);
+  if (requestPath === "/admin.html") {
+    if (!session) return res.redirect("/?login=required");
+    if (session.role !== "admin") return res.status(403).send("관리자 권한이 필요합니다.");
+    return next();
+  }
+  if (session) return next();
 
   res.redirect("/?login=required");
 }
@@ -558,6 +564,74 @@ app.get("/api/admin/db-status", requireAdmin, (req, res) => {
     tables.map((table) => [table, db.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get().count]),
   );
   res.json({ ok: true, counts });
+});
+
+app.get("/api/admin/dashboard", requireAdmin, (req, res) => {
+  const counts = {
+    users: db.prepare("SELECT COUNT(*) AS count FROM users").get().count,
+    admins: db.prepare("SELECT COUNT(*) AS count FROM users WHERE role = 'admin'").get().count,
+    verified: db.prepare("SELECT COUNT(*) AS count FROM users WHERE role = 'verified'").get().count,
+    posts: db.prepare("SELECT COUNT(*) AS count FROM posts").get().count,
+    publishedPosts: db.prepare("SELECT COUNT(*) AS count FROM posts WHERE status = 'published'").get().count,
+    guildSheets: db.prepare("SELECT COUNT(*) AS count FROM guild_war_sheets").get().count,
+  };
+
+  const dailyRows = db
+    .prepare(
+      `
+        WITH days(day) AS (
+          SELECT date('now', '-6 days')
+          UNION ALL
+          SELECT date(day, '+1 day') FROM days WHERE day < date('now')
+        )
+        SELECT
+          day,
+          (SELECT COUNT(*) FROM users WHERE date(created_at) = day) AS users,
+          (SELECT COUNT(*) FROM posts WHERE date(created_at) = day) AS posts
+        FROM days
+        ORDER BY day
+      `,
+    )
+    .all();
+
+  const recentUsers = db
+    .prepare(
+      `
+        SELECT id, username, display_name, email, provider, role, created_at
+        FROM users
+        ORDER BY datetime(created_at) DESC
+        LIMIT 8
+      `,
+    )
+    .all();
+
+  const recentPosts = db
+    .prepare(
+      `
+        SELECT
+          posts.id,
+          posts.title,
+          posts.category,
+          posts.status,
+          posts.views,
+          posts.votes,
+          posts.created_at,
+          users.display_name AS author_name,
+          users.username AS author_username
+        FROM posts
+        LEFT JOIN users ON users.id = posts.author_id
+        ORDER BY datetime(posts.created_at) DESC
+        LIMIT 8
+      `,
+    )
+    .all();
+
+  res.json({
+    counts,
+    daily: dailyRows,
+    recentUsers,
+    recentPosts,
+  });
 });
 
 app.get("/api/notices", async (req, res) => {
