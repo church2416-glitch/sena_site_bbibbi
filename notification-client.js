@@ -20,7 +20,7 @@
 
   function soundVolume() {
     const value = Number(localStorage.getItem(volumeKey));
-    if (!Number.isFinite(value)) return 0.72;
+    if (!Number.isFinite(value)) return 0.2;
     return Math.max(0, Math.min(1, value));
   }
 

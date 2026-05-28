@@ -262,7 +262,7 @@ let currentUser = { loggedIn: false, role: "guest" };
 let notificationStream = null;
 let notificationSoundEnabled = localStorage.getItem("bbibbi-notification-sound") !== "off";
 let notificationVolume = Number(localStorage.getItem("bbibbi-notification-volume"));
-if (!Number.isFinite(notificationVolume)) notificationVolume = 0.72;
+if (!Number.isFinite(notificationVolume)) notificationVolume = 0.2;
 notificationVolume = Math.max(0, Math.min(1, notificationVolume));
 let notificationAudioContext = null;
 const notificationBroadcastChannel = "BroadcastChannel" in window ? new BroadcastChannel("bbibbi-notifications") : null;
@@ -577,7 +577,7 @@ function syncNotificationVolumeControl() {
 
 function changeNotificationVolume(value, preview = false) {
   const nextVolume = Number(value) / 100;
-  notificationVolume = Number.isFinite(nextVolume) ? Math.max(0, Math.min(1, nextVolume)) : 0.72;
+  notificationVolume = Number.isFinite(nextVolume) ? Math.max(0, Math.min(1, nextVolume)) : 0.2;
   localStorage.setItem("bbibbi-notification-volume", String(notificationVolume));
   syncNotificationVolumeControl();
   if (preview && notificationSoundEnabled && notificationVolume > 0) {
