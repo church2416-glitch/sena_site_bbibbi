@@ -47,7 +47,7 @@ const defaultGuildSeasonSettings = {
   round: 0,
   totalRound: 18,
   autoUpdateEnabled: false,
-  autoUpdateWeekday: 1,
+  autoUpdateWeekdays: [1, 3, 6],
   lastAutoUpdateDate: "",
 };
 
@@ -237,12 +237,22 @@ function addDays(dateStamp, amount) {
   return `${nextYear}-${nextMonth}-${nextDay}`;
 }
 
-function countPassedWeekdays(fromDateStamp, toDateStamp, weekday) {
+function normalizeWeekdays(value, fallback = defaultGuildSeasonSettings.autoUpdateWeekdays) {
+  const rawValues = Array.isArray(value) ? value : [value].filter((item) => item !== undefined && item !== null);
+  const weekdays = rawValues
+    .map(Number)
+    .filter((day) => Number.isFinite(day))
+    .map((day) => Math.max(0, Math.min(6, day)));
+  return [...new Set(weekdays.length ? weekdays : fallback)].sort((a, b) => a - b);
+}
+
+function countPassedWeekdays(fromDateStamp, toDateStamp, weekdays) {
   if (!fromDateStamp || fromDateStamp >= toDateStamp) return 0;
+  const targetWeekdays = new Set(normalizeWeekdays(weekdays));
   let count = 0;
   let cursor = addDays(fromDateStamp, 1);
   while (cursor <= toDateStamp) {
-    if (getKstWeekday(cursor) === weekday) count += 1;
+    if (targetWeekdays.has(getKstWeekday(cursor))) count += 1;
     cursor = addDays(cursor, 1);
   }
   return count;
@@ -252,15 +262,12 @@ function getGuildSeasonSettings() {
   const settings = readSetting("guildWarSeason", defaultGuildSeasonSettings);
   const totalRound = Math.max(1, Math.min(365, Number(settings.totalRound) || defaultGuildSeasonSettings.totalRound));
   const today = getKstDateStamp();
-  const requestedWeekday = Number(settings.autoUpdateWeekday);
-  const autoUpdateWeekday = Number.isFinite(requestedWeekday)
-    ? Math.max(0, Math.min(6, requestedWeekday))
-    : defaultGuildSeasonSettings.autoUpdateWeekday;
+  const autoUpdateWeekdays = normalizeWeekdays(settings.autoUpdateWeekdays ?? settings.autoUpdateWeekday);
   let round = Math.max(0, Math.min(totalRound, Number(settings.round) || 0));
   let lastAutoUpdateDate = settings.lastAutoUpdateDate || today;
 
   if (settings.autoUpdateEnabled) {
-    const passed = countPassedWeekdays(lastAutoUpdateDate, today, autoUpdateWeekday);
+    const passed = countPassedWeekdays(lastAutoUpdateDate, today, autoUpdateWeekdays);
     if (passed > 0) {
       round = Math.min(totalRound, round + passed);
       lastAutoUpdateDate = today;
@@ -268,7 +275,7 @@ function getGuildSeasonSettings() {
         ...settings,
         round,
         totalRound,
-        autoUpdateWeekday,
+        autoUpdateWeekdays,
         lastAutoUpdateDate,
       });
     } else if (!settings.lastAutoUpdateDate) {
@@ -276,7 +283,7 @@ function getGuildSeasonSettings() {
         ...settings,
         round,
         totalRound,
-        autoUpdateWeekday,
+        autoUpdateWeekdays,
         lastAutoUpdateDate,
       });
     }
@@ -287,7 +294,7 @@ function getGuildSeasonSettings() {
     round,
     totalRound,
     autoUpdateEnabled: Boolean(settings.autoUpdateEnabled),
-    autoUpdateWeekday,
+    autoUpdateWeekdays,
     lastAutoUpdateDate,
   };
 }
@@ -796,16 +803,13 @@ app.patch("/api/admin/guild-war/season", requireAdmin, (req, res) => {
   const totalRound = Math.max(1, Math.min(365, Number(req.body.totalRound) || defaultGuildSeasonSettings.totalRound));
   const round = Math.max(0, Math.min(totalRound, Number(req.body.round) || 0));
   const seasonNote = String(req.body.seasonNote || defaultGuildSeasonSettings.seasonNote).trim().slice(0, 60);
-  const requestedWeekday = Number(req.body.autoUpdateWeekday);
   const settings = {
     ...getGuildSeasonSettings(),
     seasonNote,
     round,
     totalRound,
     autoUpdateEnabled: Boolean(req.body.autoUpdateEnabled),
-    autoUpdateWeekday: Number.isFinite(requestedWeekday)
-      ? Math.max(0, Math.min(6, requestedWeekday))
-      : defaultGuildSeasonSettings.autoUpdateWeekday,
+    autoUpdateWeekdays: normalizeWeekdays(req.body.autoUpdateWeekdays),
     lastAutoUpdateDate: getKstDateStamp(),
   };
   writeSetting("guildWarSeason", settings);

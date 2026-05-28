@@ -143,17 +143,13 @@
                 사용
               </span>
             </label>
-            <label>
+            <label class="admin-weekday-field">
               갱신 요일
-              <select id="guildSeasonAutoWeekday" name="autoUpdateWeekday">
-                <option value="1">월요일</option>
-                <option value="2">화요일</option>
-                <option value="3">수요일</option>
-                <option value="4">목요일</option>
-                <option value="5">금요일</option>
-                <option value="6">토요일</option>
-                <option value="0">일요일</option>
-              </select>
+              <span>
+                <label><input name="autoUpdateWeekdays" type="checkbox" value="1" checked />월</label>
+                <label><input name="autoUpdateWeekdays" type="checkbox" value="3" checked />수</label>
+                <label><input name="autoUpdateWeekdays" type="checkbox" value="6" checked />토</label>
+              </span>
             </label>
             <button type="submit">저장</button>
           </form>

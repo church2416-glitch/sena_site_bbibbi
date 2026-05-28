@@ -2089,6 +2089,25 @@ p {
   min-height: 18px;
 }
 
+.admin-weekday-field > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+}
+
+.admin-weekday-field > span label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #333;
+}
+
+.admin-weekday-field input {
+  width: 16px;
+  min-height: 16px;
+}
+
 .admin-settings-form button {
   min-height: 38px;
   padding: 0 18px;

@@ -32,7 +32,7 @@ const guildSeasonNote = document.querySelector("#guildSeasonNote");
 const guildSeasonRound = document.querySelector("#guildSeasonRound");
 const guildSeasonTotalRound = document.querySelector("#guildSeasonTotalRound");
 const guildSeasonAutoUpdate = document.querySelector("#guildSeasonAutoUpdate");
-const guildSeasonAutoWeekday = document.querySelector("#guildSeasonAutoWeekday");
+const guildSeasonAutoWeekdays = [...document.querySelectorAll("[name='autoUpdateWeekdays']")];
 const guildSeasonSaveState = document.querySelector("#guildSeasonSaveState");
 
 const viewTitles = {
@@ -141,7 +141,10 @@ function renderGuildSeasonSettings(settings) {
   guildSeasonRound.value = Number(settings.round) || 0;
   guildSeasonTotalRound.value = Number(settings.totalRound) || 18;
   guildSeasonAutoUpdate.checked = Boolean(settings.autoUpdateEnabled);
-  guildSeasonAutoWeekday.value = String(Number(settings.autoUpdateWeekday) || 0);
+  const weekdays = new Set((settings.autoUpdateWeekdays || [1, 3, 6]).map(String));
+  guildSeasonAutoWeekdays.forEach((input) => {
+    input.checked = weekdays.has(input.value);
+  });
   setText(guildSeasonSaveState, "불러옴");
 }
 
@@ -164,7 +167,7 @@ async function saveGuildSeasonSettings(event) {
       round: Number(guildSeasonRound.value),
       totalRound: Number(guildSeasonTotalRound.value),
       autoUpdateEnabled: guildSeasonAutoUpdate.checked,
-      autoUpdateWeekday: Number(guildSeasonAutoWeekday.value),
+      autoUpdateWeekdays: guildSeasonAutoWeekdays.filter((input) => input.checked).map((input) => Number(input.value)),
     }),
   });
   const data = await response.json();
