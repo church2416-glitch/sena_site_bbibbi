@@ -938,11 +938,11 @@ p {
 
 .guide-row {
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) 92px;
+  grid-template-columns: 56px minmax(0, 1fr) 118px;
   gap: 8px;
   align-items: center;
   min-height: 66px;
-  padding-right: 36px;
+  padding-right: 42px;
   border-top: 1px solid rgba(148, 116, 255, 0.08);
 }
 
@@ -1001,7 +1001,7 @@ p {
   display: grid;
   justify-items: end;
   gap: 3px;
-  width: 92px;
+  width: 118px;
   overflow: hidden;
   color: var(--dim);
   font-size: 10px;
@@ -1011,7 +1011,7 @@ p {
 }
 
 .vote-button {
-  width: 92px;
+  width: 118px;
   padding: 0;
   overflow: hidden;
   border: 0;
