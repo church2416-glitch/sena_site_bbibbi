@@ -308,7 +308,13 @@
           <div class="account-permission-list">
             <span><b>게시글 작성</b><em id="accountPostPermission">ON</em></span>
             <span><b>관리자 메뉴</b><em id="accountAdminPermission">OFF</em></span>
-            <span><b>알림음</b><button class="account-inline-button" id="notificationSoundButton" type="button">ON</button></span>
+            <span class="account-sound-control">
+              <b>알림음</b>
+              <span class="account-inline-actions">
+                <button class="account-inline-button" id="notificationSoundButton" type="button">ON</button>
+                <button class="account-inline-button" id="notificationSoundTestButton" type="button">테스트</button>
+              </span>
+            </span>
             <span class="account-volume-control">
               <b>알림음 크기</b>
               <label class="volume-knob" aria-label="알림음 크기">

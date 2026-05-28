@@ -191,6 +191,7 @@ const notificationList = document.querySelector("#notificationList");
 const notificationReadButton = document.querySelector("#notificationReadButton");
 const notificationClearButton = document.querySelector("#notificationClearButton");
 const notificationSoundButton = document.querySelector("#notificationSoundButton");
+const notificationSoundTestButton = document.querySelector("#notificationSoundTestButton");
 const notificationVolumeInput = document.querySelector("#notificationVolumeInput");
 const notificationVolumeValue = document.querySelector("#notificationVolumeValue");
 const accountPostPermission = document.querySelector("#accountPostPermission");
@@ -268,6 +269,8 @@ const notificationBroadcastChannel = "BroadcastChannel" in window ? new Broadcas
 const notificationAudio = new Audio("assets/sound/notification-pling.mp3");
 notificationAudio.preload = "auto";
 notificationAudio.volume = notificationVolume;
+let notificationUnreadCountReady = false;
+let lastNotificationUnreadCount = 0;
 
 const seedNotices = [
   {
@@ -554,6 +557,12 @@ function setNotificationBadge(count) {
   notificationBadge.textContent = number > 99 ? "99+" : String(number);
 }
 
+function syncNotificationUnreadCount(count) {
+  lastNotificationUnreadCount = Number(count) || 0;
+  notificationUnreadCountReady = true;
+  setNotificationBadge(lastNotificationUnreadCount);
+}
+
 function syncNotificationSoundButton() {
   if (!notificationSoundButton) return;
   notificationSoundButton.textContent = notificationSoundEnabled ? "ON" : "OFF";
@@ -632,6 +641,10 @@ function toggleNotificationSound() {
   });
 }
 
+function testNotificationSound() {
+  unlockNotificationSound().then(playNotificationSound);
+}
+
 function renderNotificationList(notifications = []) {
   if (!notificationList) return;
   notificationList.innerHTML = "";
@@ -673,7 +686,7 @@ async function loadNotificationBadge() {
     const response = await fetch("/api/me/notifications");
     if (!response.ok) throw new Error("notifications failed");
     const data = await response.json();
-    setNotificationBadge(data.unreadCount);
+    syncNotificationUnreadCount(data.unreadCount);
   } catch {
     setNotificationBadge(0);
   }
@@ -690,11 +703,11 @@ function connectNotificationStream() {
   notificationStream = new EventSource("/api/me/notifications/stream");
   notificationStream.addEventListener("ready", (event) => {
     const data = JSON.parse(event.data || "{}");
-    setNotificationBadge(data.unreadCount);
+    syncNotificationUnreadCount(data.unreadCount);
   });
   notificationStream.addEventListener("notification", (event) => {
     const data = JSON.parse(event.data || "{}");
-    setNotificationBadge(data.unreadCount);
+    syncNotificationUnreadCount(data.unreadCount);
     if (data.notification) {
       playNotificationSound();
       notificationBroadcastChannel?.postMessage({ type: "notification", notification: data.notification });
@@ -715,7 +728,7 @@ async function markNotificationsRead() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({}),
   });
-  setNotificationBadge(0);
+  syncNotificationUnreadCount(0);
   await loadAccountDashboard();
 }
 
@@ -736,9 +749,30 @@ async function clearNotifications() {
     method: "DELETE",
   });
   if (response.ok) {
-    setNotificationBadge(0);
+    syncNotificationUnreadCount(0);
     await loadAccountDashboard();
   }
+}
+
+async function pollNotificationsForSound() {
+  if (!currentUser?.loggedIn) return;
+  const response = await fetch("/api/me/notifications").catch(() => null);
+  if (!response?.ok) return;
+  const data = await response.json().catch(() => null);
+  if (!data) return;
+
+  const unreadCount = Number(data.unreadCount) || 0;
+  if (!notificationUnreadCountReady) {
+    syncNotificationUnreadCount(unreadCount);
+    return;
+  }
+
+  if (unreadCount > lastNotificationUnreadCount) {
+    const notifications = Array.isArray(data.notifications) ? data.notifications : [];
+    playNotificationSound();
+    notificationBroadcastChannel?.postMessage({ type: "notification", notification: notifications[0] || { id: `poll-${Date.now()}` } });
+  }
+  syncNotificationUnreadCount(unreadCount);
 }
 
 async function loadAccountDashboard() {
@@ -1210,6 +1244,7 @@ profileForm?.addEventListener("submit", submitProfile);
 notificationReadButton?.addEventListener("click", markNotificationsRead);
 notificationClearButton?.addEventListener("click", clearNotifications);
 notificationSoundButton?.addEventListener("click", toggleNotificationSound);
+notificationSoundTestButton?.addEventListener("click", testNotificationSound);
 notificationVolumeInput?.addEventListener("input", () => changeNotificationVolume(notificationVolumeInput.value));
 notificationVolumeInput?.addEventListener("change", () => changeNotificationVolume(notificationVolumeInput.value, true));
 logoutButton?.addEventListener("click", logout);
@@ -1228,6 +1263,7 @@ signupToLoginButton?.addEventListener("click", () => {
 signupForm?.addEventListener("submit", submitSignup);
 syncNotificationSoundButton();
 syncNotificationVolumeControl();
+window.setInterval(pollNotificationsForSound, 8000);
 document.addEventListener("pointerdown", unlockNotificationSound, { once: true });
 document.addEventListener("keydown", unlockNotificationSound, { once: true });
 document.querySelectorAll("[data-provider-soon]").forEach((button) => {

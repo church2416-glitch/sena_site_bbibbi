@@ -992,6 +992,19 @@ textarea:focus {
   background: #6fe0cd;
 }
 
+.account-sound-control {
+  align-items: center;
+}
+
+.account-inline-actions {
+  display: inline-flex !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  gap: 6px;
+}
+
 .notification-item.unread {
   border-color: rgba(111, 224, 205, 0.46);
   background: rgba(111, 224, 205, 0.08);

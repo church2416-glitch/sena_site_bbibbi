@@ -9,6 +9,8 @@
   let stream = null;
   let audioContext = null;
   let lastPlayedNotificationId = "";
+  let unreadCountReady = false;
+  let lastUnreadCount = 0;
 
   audio.preload = "auto";
 
@@ -122,8 +124,15 @@
     if (!me?.loggedIn) return;
 
     stream = new EventSource("/api/me/notifications/stream");
+    stream.addEventListener("ready", (event) => {
+      const data = JSON.parse(event.data || "{}");
+      lastUnreadCount = Number(data.unreadCount) || 0;
+      unreadCountReady = true;
+    });
     stream.addEventListener("notification", (event) => {
       const data = JSON.parse(event.data || "{}");
+      lastUnreadCount = Number(data.unreadCount) || lastUnreadCount;
+      unreadCountReady = true;
       handleNotification(data.notification);
     });
     stream.onerror = () => {
@@ -131,6 +140,27 @@
       stream = null;
       window.setTimeout(startNotificationStream, 5000);
     };
+  }
+
+  async function pollNotifications() {
+    const data = await fetch("/api/me/notifications").then((response) => {
+      if (!response.ok) throw new Error("notifications failed");
+      return response.json();
+    }).catch(() => null);
+    if (!data) return;
+
+    const unreadCount = Number(data.unreadCount) || 0;
+    if (!unreadCountReady) {
+      lastUnreadCount = unreadCount;
+      unreadCountReady = true;
+      return;
+    }
+
+    if (unreadCount > lastUnreadCount) {
+      const notifications = Array.isArray(data.notifications) ? data.notifications : [];
+      handleNotification(notifications[0] || { id: `poll-${Date.now()}` });
+    }
+    lastUnreadCount = unreadCount;
   }
 
   document.addEventListener("pointerdown", unlockSound, { once: true });
@@ -141,4 +171,5 @@
     if (event.data?.type === "notification") handleNotification(event.data.notification, false);
   });
   startNotificationStream();
+  window.setInterval(pollNotifications, 8000);
 })();
