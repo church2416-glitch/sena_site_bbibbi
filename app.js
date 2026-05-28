@@ -305,6 +305,8 @@ async function loadGuidesFromServer() {
     if (!response.ok) throw new Error("posts failed");
     const posts = await response.json();
     guides = Array.isArray(posts) ? posts : [];
+    voted = new Set(guides.filter((guide) => guide.voted).map((guide) => guide.id));
+    saveVotes();
   } catch {
     guides = loadGuides();
   }
@@ -493,7 +495,7 @@ function isVotedGuide(guide) {
   return voted.has(guide.id) || voted.has(String(guide.id)) || voted.has(Number(guide.id));
 }
 
-function renderAccountPostList(container, items, emptyText, metaBuilder) {
+function renderAccountPostList(container, items, emptyText, metaBuilder, hrefBuilder = (item) => `post.html?id=${encodeURIComponent(item.id)}`) {
   if (!container) return;
   container.innerHTML = "";
 
@@ -511,7 +513,7 @@ function renderAccountPostList(container, items, emptyText, metaBuilder) {
     const meta = document.createElement("small");
 
     link.className = "account-history-item";
-    link.href = `post.html?id=${encodeURIComponent(post.id)}`;
+    link.href = hrefBuilder(post);
     title.textContent = post.title || "제목 없음";
     meta.textContent = metaBuilder(post);
     link.append(title, meta);
@@ -535,7 +537,8 @@ async function loadAccountDashboard() {
     const user = activity.user || currentUser;
     const stats = activity.stats || {};
     const recentPosts = Array.isArray(activity.recentPosts) ? activity.recentPosts : [];
-    const likedPosts = guides.filter(isVotedGuide).slice(0, 8);
+    const likedPosts = Array.isArray(activity.likedPosts) ? activity.likedPosts : guides.filter(isVotedGuide).slice(0, 8);
+    const comments = Array.isArray(activity.comments) ? activity.comments : [];
     const displayName = user.displayName || user.username || currentUser.displayName || currentUser.username || "-";
 
     setAccountText(accountName, displayName);
@@ -562,12 +565,18 @@ async function loadAccountDashboard() {
     renderAccountPostList(
       accountLikedList,
       likedPosts,
-      "이 기기에서 좋아요 누른 글이 없습니다.",
-      (post) => `${post.category || "게시글"} · 추천 ${formatNumber(Number(post.votes) || 0)}`,
+      "좋아요 누른 글이 없습니다.",
+      (post) => `${formatFeedDate(post.votedAt || post.createdAt)} · 추천 ${formatNumber(Number(post.votes) || 0)}`,
     );
 
     if (accountCommentList) {
-      accountCommentList.innerHTML = '<p class="account-empty">댓글 기록은 댓글 DB 연결 후 표시됩니다.</p>';
+      renderAccountPostList(
+        accountCommentList,
+        comments,
+        "아직 작성한 댓글이 없습니다.",
+        (comment) => `${comment.postTitle || "게시글"} · ${formatFeedDate(comment.createdAt)}`,
+        (comment) => `post.html?id=${encodeURIComponent(comment.postId)}`,
+      );
     }
   } catch {
     renderAccountPostList(accountPostList, [], "내 정보를 불러오지 못했습니다.", () => "");
@@ -913,16 +922,27 @@ async function renderFeedList({ endpoint, storageKey, fallback, listElement, sou
   }
 }
 
-function toggleVote(id) {
+async function toggleVote(id) {
   const guide = guides.find((item) => item.id === id);
   if (!guide) return;
 
-  if (voted.has(id)) {
-    voted.delete(id);
-    guide.votes = Math.max(0, guide.votes - 1);
-  } else {
-    voted.add(id);
-    guide.votes += 1;
+  try {
+    const response = await fetch(`/api/posts/${encodeURIComponent(id)}/vote`, { method: "POST" });
+    if (!response.ok) throw new Error("vote failed");
+    const result = await response.json();
+    if (result.voted) voted.add(id);
+    else voted.delete(id);
+    if (result.post) {
+      Object.assign(guide, result.post);
+    }
+  } catch {
+    if (voted.has(id)) {
+      voted.delete(id);
+      guide.votes = Math.max(0, guide.votes - 1);
+    } else {
+      voted.add(id);
+      guide.votes += 1;
+    }
   }
 
   saveGuides();

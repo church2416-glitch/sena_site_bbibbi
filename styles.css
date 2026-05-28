@@ -1643,6 +1643,29 @@ p {
   font-weight: 900;
 }
 
+.post-vote-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0;
+  color: #ffffff;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.post-vote-button::before {
+  content: "추천 ";
+  margin-right: 4px;
+  color: #b9aed9;
+  font-size: 12px;
+}
+
+.post-vote-button.active {
+  color: #ffe879;
+}
+
 .post-section {
   padding: 24px 30px;
   border-top: 1px solid rgba(148, 116, 255, 0.1);
@@ -1751,6 +1774,78 @@ p {
   background: var(--accent-weak);
   font-size: 12px;
   font-weight: 900;
+}
+
+.comment-section .section-title {
+  margin-bottom: 14px;
+}
+
+.comment-form {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.comment-form textarea {
+  width: 100%;
+  min-height: 92px;
+  resize: vertical;
+}
+
+.comment-form > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.comment-form button {
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid rgba(111, 224, 205, 0.55);
+  border-radius: 8px;
+  color: #07110f;
+  background: #6fe0cd;
+  font-size: 13px;
+  font-weight: 1000;
+}
+
+.comment-list {
+  display: grid;
+  gap: 10px;
+}
+
+.comment-item {
+  display: grid;
+  gap: 8px;
+  padding: 13px 14px;
+  border: 1px solid rgba(148, 116, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(7, 8, 15, 0.62);
+}
+
+.comment-item > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.comment-item strong {
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 1000;
+}
+
+.comment-item time {
+  color: #8f89a8;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.comment-item p {
+  margin: 0;
+  white-space: pre-wrap;
 }
 
 .post-nav {

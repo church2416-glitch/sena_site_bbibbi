@@ -378,6 +378,29 @@ function serializePost(row) {
   };
 }
 
+function serializeComment(row) {
+  return {
+    id: row.id,
+    postId: row.post_id,
+    content: row.content || "",
+    status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    author: row.author_name || row.author_username || "익명",
+    authorUsername: row.author_username || "",
+    postTitle: row.post_title || "",
+    postCategory: row.post_category || "",
+  };
+}
+
+function withUserVoteState(post, userId) {
+  if (!userId) return post;
+  return {
+    ...post,
+    voted: Boolean(db.prepare("SELECT 1 FROM post_votes WHERE post_id = ? AND user_id = ?").get(post.id, userId)),
+  };
+}
+
 function normalizePostMedia(media = {}) {
   const images = Array.isArray(media.images)
     ? media.images
@@ -523,6 +546,26 @@ function selectPostRows(where = "posts.status = 'published'", params = []) {
         LEFT JOIN users ON users.id = posts.author_id
         WHERE ${where}
         ORDER BY datetime(posts.created_at) DESC
+      `,
+    )
+    .all(...params);
+}
+
+function selectCommentRows(where = "post_comments.status = 'published'", params = []) {
+  return db
+    .prepare(
+      `
+        SELECT
+          post_comments.*,
+          users.display_name AS author_name,
+          users.username AS author_username,
+          posts.title AS post_title,
+          posts.category AS post_category
+        FROM post_comments
+        LEFT JOIN users ON users.id = post_comments.user_id
+        LEFT JOIN posts ON posts.id = post_comments.post_id
+        WHERE ${where}
+        ORDER BY datetime(post_comments.created_at) ASC
       `,
     )
     .all(...params);
@@ -709,6 +752,35 @@ app.get("/api/me/activity", requireMember, (req, res) => {
     )
     .get(user.id);
   const recentPosts = selectPostRows("posts.author_id = ?", [user.id]).slice(0, 8).map(serializePost);
+  const ownCommentCount = db
+    .prepare("SELECT COUNT(*) AS count FROM post_comments WHERE user_id = ? AND status = 'published'")
+    .get(user.id);
+  const likedPosts = db
+    .prepare(
+      `
+        SELECT
+          posts.*,
+          users.display_name AS author_name,
+          users.username AS author_username,
+          post_votes.created_at AS voted_at
+        FROM post_votes
+        JOIN posts ON posts.id = post_votes.post_id
+        LEFT JOIN users ON users.id = posts.author_id
+        WHERE post_votes.user_id = ?
+          AND posts.status = 'published'
+        ORDER BY datetime(post_votes.created_at) DESC
+        LIMIT 12
+      `,
+    )
+    .all(user.id)
+    .map((row) => ({
+      ...serializePost(row),
+      votedAt: row.voted_at,
+    }));
+  const comments = selectCommentRows("post_comments.user_id = ? AND post_comments.status = 'published'", [user.id])
+    .reverse()
+    .slice(0, 12)
+    .map(serializeComment);
 
   res.json({
     user: {
@@ -724,16 +796,18 @@ app.get("/api/me/activity", requireMember, (req, res) => {
     },
     stats: {
       postCount: Number(stats.postCount) || 0,
-      commentCount: Number(stats.commentCount) || 0,
+      commentCount: Number(ownCommentCount.count) || 0,
       voteCount: Number(stats.voteCount) || 0,
       viewCount: Number(stats.viewCount) || 0,
     },
     recentPosts,
+    likedPosts,
+    comments,
   });
 });
 
 app.get("/api/posts", requireMember, (req, res) => {
-  res.json(selectPostRows().map(serializePost));
+  res.json(selectPostRows().map((row) => withUserVoteState(serializePost(row), req.user.id)));
 });
 
 app.post("/api/posts", requireMember, maybeUploadPostMedia, (req, res) => {
@@ -783,7 +857,7 @@ app.post("/api/posts", requireMember, maybeUploadPostMedia, (req, res) => {
   ).run(id, req.user.id, category, game, title, summary, body, JSON.stringify(tags), attachment, JSON.stringify(postMedia));
 
   const post = selectPostRows("posts.id = ?", [id])[0];
-  res.status(201).json(serializePost(post));
+  res.status(201).json(withUserVoteState(serializePost(post), req.user.id));
 });
 
 app.get("/api/posts/:id", requireMember, (req, res) => {
@@ -794,14 +868,75 @@ app.get("/api/posts/:id", requireMember, (req, res) => {
     return res.status(404).json({ error: "게시글을 찾을 수 없습니다." });
   }
 
-  const posts = selectPostRows().map(serializePost);
+  const posts = selectPostRows().map((row) => withUserVoteState(serializePost(row), req.user.id));
   const index = posts.findIndex((item) => item.id === id);
   res.json({
-    post: serializePost(post),
+    post: withUserVoteState(serializePost(post), req.user.id),
     posts,
+    voted: Boolean(db.prepare("SELECT 1 FROM post_votes WHERE post_id = ? AND user_id = ?").get(id, req.user.id)),
     prevPost: index >= 0 ? posts[index - 1] || null : null,
     nextPost: index >= 0 ? posts[index + 1] || null : null,
   });
+});
+
+app.post("/api/posts/:id/vote", requireMember, (req, res) => {
+  const id = String(req.params.id || "");
+  const post = db.prepare("SELECT id FROM posts WHERE id = ? AND status = 'published'").get(id);
+  if (!post) {
+    return res.status(404).json({ error: "게시글을 찾을 수 없습니다." });
+  }
+
+  const toggleVote = db.transaction(() => {
+    const existing = db.prepare("SELECT id FROM post_votes WHERE post_id = ? AND user_id = ?").get(id, req.user.id);
+    if (existing) {
+      db.prepare("DELETE FROM post_votes WHERE id = ?").run(existing.id);
+      db.prepare("UPDATE posts SET votes = MAX(votes - 1, 0), updated_at = datetime('now') WHERE id = ?").run(id);
+      return false;
+    }
+
+    db.prepare("INSERT INTO post_votes (post_id, user_id) VALUES (?, ?)").run(id, req.user.id);
+    db.prepare("UPDATE posts SET votes = votes + 1, updated_at = datetime('now') WHERE id = ?").run(id);
+    return true;
+  });
+
+  const voted = toggleVote();
+  const updatedPost = selectPostRows("posts.id = ?", [id])[0];
+  res.json({ voted, post: serializePost(updatedPost) });
+});
+
+app.get("/api/posts/:id/comments", requireMember, (req, res) => {
+  const id = String(req.params.id || "");
+  const post = db.prepare("SELECT id FROM posts WHERE id = ? AND status = 'published'").get(id);
+  if (!post) {
+    return res.status(404).json({ error: "게시글을 찾을 수 없습니다." });
+  }
+
+  res.json(selectCommentRows("post_comments.post_id = ? AND post_comments.status = 'published'", [id]).map(serializeComment));
+});
+
+app.post("/api/posts/:id/comments", requireMember, (req, res) => {
+  const id = String(req.params.id || "");
+  const content = String(req.body?.content || "").trim();
+  const post = db.prepare("SELECT id FROM posts WHERE id = ? AND status = 'published'").get(id);
+  if (!post) {
+    return res.status(404).json({ error: "게시글을 찾을 수 없습니다." });
+  }
+  if (content.length < 1 || content.length > 1000) {
+    return res.status(400).json({ error: "댓글은 1~1000자로 입력해주세요." });
+  }
+
+  const createComment = db.transaction(() => {
+    const result = db
+      .prepare("INSERT INTO post_comments (post_id, user_id, content) VALUES (?, ?, ?)")
+      .run(id, req.user.id, content);
+    db.prepare("UPDATE posts SET comments = comments + 1, updated_at = datetime('now') WHERE id = ?").run(id);
+    return result.lastInsertRowid;
+  });
+
+  const commentId = createComment();
+  const comment = selectCommentRows("post_comments.id = ?", [commentId])[0];
+  const updatedPost = selectPostRows("posts.id = ?", [id])[0];
+  res.status(201).json({ comment: serializeComment(comment), post: serializePost(updatedPost) });
 });
 
 app.get("/auth/kakao", (req, res) => {
