@@ -2786,6 +2786,8 @@ p {
 
 .admin-user-row .admin-permission-grid {
   grid-column: 1 / -1;
+  display: grid;
+  min-width: 0;
 }
 
 .admin-permission-grid {
@@ -2801,7 +2803,9 @@ p {
 
 .admin-permission-grid label {
   display: inline-flex;
+  flex-direction: row;
   align-items: center;
+  justify-content: flex-start;
   gap: 8px;
   min-width: 0;
   min-height: 34px;
@@ -2814,6 +2818,8 @@ p {
   font-weight: 800;
   line-height: 1;
   white-space: nowrap;
+  word-break: keep-all;
+  writing-mode: horizontal-tb;
 }
 
 .admin-permission-grid label:has(input:checked) {
