@@ -1,7 +1,11 @@
 import express from "express";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const app = express();
 const port = 3000;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const loungeBaseUrl = "https://comm-api.game.naver.com/nng_main/v1/community/lounge/sena_rebirth/feed";
 const boardIds = {
   notices: 11,
@@ -12,7 +16,7 @@ const boardLinks = {
   devNotes: "https://game.naver.com/lounge/sena_rebirth/board/3",
 };
 
-app.use(express.static("."));
+app.use(express.static(__dirname));
 
 async function fetchLoungeBoard(boardId) {
   const url = `${loungeBaseUrl}?boardId=${boardId}&buffFilteringYN=N&limit=10&offset=0&order=NEW`;
