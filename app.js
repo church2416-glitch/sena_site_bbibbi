@@ -147,6 +147,22 @@ const boardDesc = document.querySelector("#boardDesc");
 const boardCount = document.querySelector("#boardCount");
 const searchInput = document.querySelector("#searchInput");
 const categoryButtons = [...document.querySelectorAll("[data-filter]")];
+const loginModal = document.querySelector("#loginModal");
+const signupModal = document.querySelector("#signupModal");
+const loginForm = document.querySelector("#loginForm");
+const signupForm = document.querySelector("#signupForm");
+const providerLoginOpenButton = document.querySelector("#providerLoginOpenButton");
+const kakaoLoginButton = document.querySelector("#kakaoLoginButton");
+const loginCloseButton = document.querySelector("#loginCloseButton");
+const signupButton = document.querySelector("#signupButton");
+const signupCloseButton = document.querySelector("#signupCloseButton");
+const signupToLoginButton = document.querySelector("#signupToLoginButton");
+const logoutButton = document.querySelector("#logoutButton");
+const loginStateText = document.querySelector("#loginStateText");
+const roleText = document.querySelector("#roleText");
+const loginError = document.querySelector("#loginError");
+const signupError = document.querySelector("#signupError");
+const providerMessage = document.querySelector("#providerMessage");
 
 const boardInfo = {
   전체: {
@@ -244,6 +260,122 @@ function saveGuides() {
 
 function saveVotes() {
   localStorage.setItem(votedKey, JSON.stringify([...voted]));
+}
+
+async function fetchCurrentUser() {
+  try {
+    const response = await fetch("/api/me");
+    if (!response.ok) throw new Error("me failed");
+    return response.json();
+  } catch {
+    return { loggedIn: false, role: "guest" };
+  }
+}
+
+function renderAuthState(user) {
+  const isAdmin = Boolean(user?.isAdmin);
+  const roleLabel = isAdmin ? "관리자" : user?.isVerified ? "인증 회원" : "일반 회원";
+  if (loginStateText) {
+    loginStateText.innerHTML = user?.loggedIn
+      ? `${roleLabel}<br />${user.username || "user"}`
+      : "로그인하고<br />댓글과 공략글을";
+  }
+  if (providerLoginOpenButton) providerLoginOpenButton.hidden = Boolean(user?.loggedIn);
+  if (kakaoLoginButton) kakaoLoginButton.hidden = Boolean(user?.loggedIn);
+  if (logoutButton) logoutButton.hidden = !user?.loggedIn;
+  if (roleText) {
+    roleText.textContent = user?.loggedIn ? roleLabel : "회원가입";
+  }
+  document.body.classList.toggle("is-admin", isAdmin);
+  document.body.classList.toggle("is-verified", Boolean(user?.isVerified));
+}
+
+function openLoginModal() {
+  if (!loginModal) return;
+  loginModal.hidden = false;
+  loginError.hidden = true;
+  if (providerMessage) providerMessage.hidden = true;
+  loginForm?.username?.focus();
+}
+
+function closeLoginModal() {
+  if (!loginModal) return;
+  loginModal.hidden = true;
+  loginForm?.reset();
+}
+
+function openSignupModal() {
+  if (!signupModal) return;
+  closeLoginModal();
+  signupModal.hidden = false;
+  if (signupError) signupError.hidden = true;
+  signupForm?.username?.focus();
+}
+
+function closeSignupModal() {
+  if (!signupModal) return;
+  signupModal.hidden = true;
+  signupForm?.reset();
+}
+
+function showProviderSoon(provider) {
+  if (!providerMessage) return;
+  providerMessage.textContent = `${provider} 로그인은 다음 단계에서 연결할 예정입니다.`;
+  providerMessage.hidden = false;
+}
+
+async function submitLogin(event) {
+  event.preventDefault();
+  const formData = new FormData(loginForm);
+  const response = await fetch("/api/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      username: formData.get("username"),
+      password: formData.get("password"),
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: "로그인 실패" }));
+    loginError.textContent = error.error || "로그인 실패";
+    loginError.hidden = false;
+    return;
+  }
+
+  renderAuthState(await response.json());
+  closeLoginModal();
+}
+
+async function submitSignup(event) {
+  event.preventDefault();
+  const formData = new FormData(signupForm);
+  const response = await fetch("/api/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      username: formData.get("username"),
+      displayName: formData.get("displayName"),
+      email: formData.get("email"),
+      password: formData.get("password"),
+      passwordConfirm: formData.get("passwordConfirm"),
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: "회원가입 실패" }));
+    signupError.textContent = error.error || "회원가입 실패";
+    signupError.hidden = false;
+    return;
+  }
+
+  renderAuthState(await response.json());
+  closeSignupModal();
+}
+
+async function logout() {
+  await fetch("/api/logout", { method: "POST" });
+  renderAuthState({ loggedIn: false, role: "guest" });
 }
 
 function loadStoredFeed(key, fallback) {
@@ -535,9 +667,37 @@ categoryButtons.forEach((button) => {
   });
 });
 
+providerLoginOpenButton?.addEventListener("click", openLoginModal);
+loginCloseButton?.addEventListener("click", closeLoginModal);
+loginForm?.addEventListener("submit", submitLogin);
+logoutButton?.addEventListener("click", logout);
+signupButton?.addEventListener("click", () => {
+  openSignupModal();
+});
+roleText?.addEventListener("click", (event) => {
+  event.preventDefault();
+  if (roleText.textContent === "회원가입") openSignupModal();
+});
+signupCloseButton?.addEventListener("click", closeSignupModal);
+signupToLoginButton?.addEventListener("click", () => {
+  closeSignupModal();
+  openLoginModal();
+});
+signupForm?.addEventListener("submit", submitSignup);
+document.querySelectorAll("[data-provider-soon]").forEach((button) => {
+  button.addEventListener("click", () => showProviderSoon(button.dataset.providerSoon));
+});
+loginModal?.addEventListener("click", (event) => {
+  if (event.target === loginModal) closeLoginModal();
+});
+signupModal?.addEventListener("click", (event) => {
+  if (event.target === signupModal) closeSignupModal();
+});
+
 window.addEventListener("focus", () => {
   guides = loadGuides();
   renderGuides();
 });
 
+fetchCurrentUser().then(renderAuthState);
 renderGuides();

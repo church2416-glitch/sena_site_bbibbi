@@ -110,9 +110,10 @@
       <aside class="right-rail" aria-label="오른쪽 정보">
         <section class="rail-card rail-login">
           <div class="login-card compact-login">
-            <p>로그인하고<br />댓글과 공략글을</p>
-            <button type="button">로그인</button>
-            <a href="#">회원가입</a>
+            <p id="loginStateText">로그인하고<br />댓글과 공략글을</p>
+            <button id="providerLoginOpenButton" type="button">로그인</button>
+            <button class="ghost-login-button" id="logoutButton" type="button" hidden>로그아웃</button>
+            <a href="#" id="roleText">회원가입</a>
           </div>
         </section>
 
@@ -136,6 +137,82 @@
           <div id="hotList" class="hot-list" hidden></div>
         </section>
       </aside>
+    </div>
+
+    <div class="auth-modal" id="loginModal" hidden>
+      <form class="auth-dialog login-dialog" id="loginForm" autocomplete="off">
+        <div class="login-dialog-head">
+          <h2>LOGIN</h2>
+          <button class="icon-button" id="loginCloseButton" type="button" aria-label="로그인 닫기">×</button>
+        </div>
+        <div class="login-mode-row" aria-label="로그인 방식">
+          <span>회원 로그인</span>
+        </div>
+        <label class="auth-input-row" aria-label="아이디 또는 이메일">
+          <span class="auth-field-icon">ID</span>
+          <input id="loginUserInput" name="username" type="text" placeholder="아이디 또는 이메일" required />
+        </label>
+        <label class="auth-input-row" aria-label="비밀번호">
+          <span class="auth-field-icon">PW</span>
+          <input id="loginPasswordInput" name="password" type="password" placeholder="비밀번호" required />
+        </label>
+        <div class="auth-options">
+          <label>
+            <input type="checkbox" name="remember" />
+            <span>로그인 유지</span>
+          </label>
+          <a href="#">아이디·비밀번호 찾기</a>
+        </div>
+        <p class="auth-error" id="loginError" hidden></p>
+        <p class="auth-error" id="providerMessage" hidden></p>
+        <button class="auth-primary-button" type="submit">로그인</button>
+        <button class="auth-secondary-button" id="signupButton" type="button">회원가입</button>
+        <div class="provider-divider"><span>또는 SNS 로그인</span></div>
+        <div class="provider-login-list">
+          <a class="provider-login-button kakao-login-button" id="kakaoLoginButton" href="/auth/kakao" aria-label="카카오 로그인">
+            <img src="assets/common/kakao.png" alt="" />
+          </a>
+          <a class="provider-login-button naver-login-button" href="/auth/naver" aria-label="네이버 로그인">
+            <img src="assets/common/naver.png" alt="" />
+          </a>
+          <a class="provider-login-button google-login-button" href="/auth/google" aria-label="구글 로그인">
+            <img src="assets/common/google.png" alt="" />
+          </a>
+        </div>
+      </form>
+    </div>
+
+    <div class="auth-modal" id="signupModal" hidden>
+      <form class="auth-dialog login-dialog signup-dialog" id="signupForm" autocomplete="off">
+        <div class="login-dialog-head">
+          <h2>JOIN</h2>
+          <button class="icon-button" id="signupCloseButton" type="button" aria-label="회원가입 닫기">×</button>
+        </div>
+        <p class="auth-caption">커뮤니티에서 사용할 계정을 만들어주세요.</p>
+        <label class="auth-input-row" aria-label="아이디">
+          <span class="auth-field-icon">ID</span>
+          <input id="signupUserInput" name="username" type="text" placeholder="아이디 4~20자" required />
+        </label>
+        <label class="auth-input-row" aria-label="닉네임">
+          <span class="auth-field-icon">NN</span>
+          <input name="displayName" type="text" placeholder="닉네임" />
+        </label>
+        <label class="auth-input-row" aria-label="이메일">
+          <span class="auth-field-icon">@</span>
+          <input name="email" type="email" placeholder="이메일 선택" />
+        </label>
+        <label class="auth-input-row" aria-label="비밀번호">
+          <span class="auth-field-icon">PW</span>
+          <input name="password" type="password" placeholder="비밀번호 8자 이상" required />
+        </label>
+        <label class="auth-input-row" aria-label="비밀번호 확인">
+          <span class="auth-field-icon">OK</span>
+          <input name="passwordConfirm" type="password" placeholder="비밀번호 확인" required />
+        </label>
+        <p class="auth-error" id="signupError" hidden></p>
+        <button class="auth-primary-button" type="submit">회원가입</button>
+        <button class="auth-secondary-button" id="signupToLoginButton" type="button">로그인으로 돌아가기</button>
+      </form>
     </div>
 
     <script src="theme.js"></script>
