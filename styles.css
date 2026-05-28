@@ -2056,7 +2056,7 @@ p {
 
 .admin-settings-form {
   display: grid;
-  grid-template-columns: minmax(220px, 1.4fr) minmax(120px, 0.6fr) minmax(120px, 0.6fr) auto;
+  grid-template-columns: minmax(220px, 1.4fr) minmax(100px, 0.5fr) minmax(100px, 0.5fr) minmax(92px, 0.42fr) minmax(120px, 0.5fr) auto;
   gap: 12px;
   align-items: end;
 }
@@ -2069,11 +2069,24 @@ p {
   font-weight: 800;
 }
 
-.admin-settings-form input {
+.admin-settings-form input,
+.admin-settings-form select {
   min-height: 38px;
   border-color: #d8d8d8;
   color: #222;
   background: #fff;
+}
+
+.admin-check-field span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+}
+
+.admin-check-field input {
+  width: 18px;
+  min-height: 18px;
 }
 
 .admin-settings-form button {

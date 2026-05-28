@@ -31,6 +31,8 @@ const guildSeasonForm = document.querySelector("#guildSeasonForm");
 const guildSeasonNote = document.querySelector("#guildSeasonNote");
 const guildSeasonRound = document.querySelector("#guildSeasonRound");
 const guildSeasonTotalRound = document.querySelector("#guildSeasonTotalRound");
+const guildSeasonAutoUpdate = document.querySelector("#guildSeasonAutoUpdate");
+const guildSeasonAutoWeekday = document.querySelector("#guildSeasonAutoWeekday");
 const guildSeasonSaveState = document.querySelector("#guildSeasonSaveState");
 
 const viewTitles = {
@@ -138,6 +140,8 @@ function renderGuildSeasonSettings(settings) {
   guildSeasonNote.value = settings.seasonNote || "";
   guildSeasonRound.value = Number(settings.round) || 0;
   guildSeasonTotalRound.value = Number(settings.totalRound) || 18;
+  guildSeasonAutoUpdate.checked = Boolean(settings.autoUpdateEnabled);
+  guildSeasonAutoWeekday.value = String(Number(settings.autoUpdateWeekday) || 0);
   setText(guildSeasonSaveState, "불러옴");
 }
 
@@ -159,6 +163,8 @@ async function saveGuildSeasonSettings(event) {
       seasonNote: guildSeasonNote.value.trim(),
       round: Number(guildSeasonRound.value),
       totalRound: Number(guildSeasonTotalRound.value),
+      autoUpdateEnabled: guildSeasonAutoUpdate.checked,
+      autoUpdateWeekday: Number(guildSeasonAutoWeekday.value),
     }),
   });
   const data = await response.json();

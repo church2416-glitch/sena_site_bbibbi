@@ -136,6 +136,25 @@
               전체 일수
               <input id="guildSeasonTotalRound" name="totalRound" type="number" min="1" max="365" step="1" />
             </label>
+            <label class="admin-check-field">
+              자동갱신
+              <span>
+                <input id="guildSeasonAutoUpdate" name="autoUpdateEnabled" type="checkbox" />
+                사용
+              </span>
+            </label>
+            <label>
+              갱신 요일
+              <select id="guildSeasonAutoWeekday" name="autoUpdateWeekday">
+                <option value="1">월요일</option>
+                <option value="2">화요일</option>
+                <option value="3">수요일</option>
+                <option value="4">목요일</option>
+                <option value="5">금요일</option>
+                <option value="6">토요일</option>
+                <option value="0">일요일</option>
+              </select>
+            </label>
             <button type="submit">저장</button>
           </form>
         </section>

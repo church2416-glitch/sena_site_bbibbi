@@ -46,6 +46,9 @@ const defaultGuildSeasonSettings = {
   seasonNote: "세븐나이츠 리버스 길드전",
   round: 0,
   totalRound: 18,
+  autoUpdateEnabled: false,
+  autoUpdateWeekday: 1,
+  lastAutoUpdateDate: "",
 };
 
 initDb({ adminUser, adminPassword });
@@ -212,14 +215,80 @@ function writeSetting(key, value) {
   ).run(key, JSON.stringify(value));
 }
 
+function getKstDateStamp(date = new Date()) {
+  const kstDate = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+  const year = kstDate.getUTCFullYear();
+  const month = String(kstDate.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(kstDate.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getKstWeekday(dateStamp = getKstDateStamp()) {
+  const [year, month, day] = dateStamp.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+}
+
+function addDays(dateStamp, amount) {
+  const [year, month, day] = dateStamp.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + amount));
+  const nextYear = date.getUTCFullYear();
+  const nextMonth = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const nextDay = String(date.getUTCDate()).padStart(2, "0");
+  return `${nextYear}-${nextMonth}-${nextDay}`;
+}
+
+function countPassedWeekdays(fromDateStamp, toDateStamp, weekday) {
+  if (!fromDateStamp || fromDateStamp >= toDateStamp) return 0;
+  let count = 0;
+  let cursor = addDays(fromDateStamp, 1);
+  while (cursor <= toDateStamp) {
+    if (getKstWeekday(cursor) === weekday) count += 1;
+    cursor = addDays(cursor, 1);
+  }
+  return count;
+}
+
 function getGuildSeasonSettings() {
   const settings = readSetting("guildWarSeason", defaultGuildSeasonSettings);
   const totalRound = Math.max(1, Math.min(365, Number(settings.totalRound) || defaultGuildSeasonSettings.totalRound));
-  const round = Math.max(0, Math.min(totalRound, Number(settings.round) || 0));
+  const today = getKstDateStamp();
+  const requestedWeekday = Number(settings.autoUpdateWeekday);
+  const autoUpdateWeekday = Number.isFinite(requestedWeekday)
+    ? Math.max(0, Math.min(6, requestedWeekday))
+    : defaultGuildSeasonSettings.autoUpdateWeekday;
+  let round = Math.max(0, Math.min(totalRound, Number(settings.round) || 0));
+  let lastAutoUpdateDate = settings.lastAutoUpdateDate || today;
+
+  if (settings.autoUpdateEnabled) {
+    const passed = countPassedWeekdays(lastAutoUpdateDate, today, autoUpdateWeekday);
+    if (passed > 0) {
+      round = Math.min(totalRound, round + passed);
+      lastAutoUpdateDate = today;
+      writeSetting("guildWarSeason", {
+        ...settings,
+        round,
+        totalRound,
+        autoUpdateWeekday,
+        lastAutoUpdateDate,
+      });
+    } else if (!settings.lastAutoUpdateDate) {
+      writeSetting("guildWarSeason", {
+        ...settings,
+        round,
+        totalRound,
+        autoUpdateWeekday,
+        lastAutoUpdateDate,
+      });
+    }
+  }
+
   return {
     seasonNote: String(settings.seasonNote || defaultGuildSeasonSettings.seasonNote).slice(0, 60),
     round,
     totalRound,
+    autoUpdateEnabled: Boolean(settings.autoUpdateEnabled),
+    autoUpdateWeekday,
+    lastAutoUpdateDate,
   };
 }
 
@@ -727,7 +796,18 @@ app.patch("/api/admin/guild-war/season", requireAdmin, (req, res) => {
   const totalRound = Math.max(1, Math.min(365, Number(req.body.totalRound) || defaultGuildSeasonSettings.totalRound));
   const round = Math.max(0, Math.min(totalRound, Number(req.body.round) || 0));
   const seasonNote = String(req.body.seasonNote || defaultGuildSeasonSettings.seasonNote).trim().slice(0, 60);
-  const settings = { seasonNote, round, totalRound };
+  const requestedWeekday = Number(req.body.autoUpdateWeekday);
+  const settings = {
+    ...getGuildSeasonSettings(),
+    seasonNote,
+    round,
+    totalRound,
+    autoUpdateEnabled: Boolean(req.body.autoUpdateEnabled),
+    autoUpdateWeekday: Number.isFinite(requestedWeekday)
+      ? Math.max(0, Math.min(6, requestedWeekday))
+      : defaultGuildSeasonSettings.autoUpdateWeekday,
+    lastAutoUpdateDate: getKstDateStamp(),
+  };
   writeSetting("guildWarSeason", settings);
   res.json({ ok: true, settings });
 });
