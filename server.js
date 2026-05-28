@@ -3,6 +3,7 @@ import cookieParser from "cookie-parser";
 import crypto from "node:crypto";
 import dotenv from "dotenv";
 import fs from "node:fs";
+import multer from "multer";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -51,8 +52,34 @@ const defaultGuildSeasonSettings = {
   autoUpdateWeekdays: [1, 3, 6],
   lastAutoUpdateDate: "",
 };
-const maxPostVideoSize = 80 * 1024 * 1024;
+const maxPostImageSize = 8 * 1024 * 1024;
+const maxPostVideoSize = 500 * 1024 * 1024;
 const uploadRoot = path.join(__dirname, "uploads");
+const uploadTmpRoot = path.join(uploadRoot, "tmp");
+const uploadPostMedia = multer({
+  storage: multer.diskStorage({
+    destination(req, file, cb) {
+      fs.mkdirSync(uploadTmpRoot, { recursive: true });
+      cb(null, uploadTmpRoot);
+    },
+    filename(req, file, cb) {
+      const extension = extensionFromMime(file.mimetype || "") || path.extname(file.originalname).slice(1) || "bin";
+      cb(null, `${Date.now().toString(36)}-${crypto.randomBytes(6).toString("hex")}.${extension}`);
+    },
+  }),
+  limits: {
+    fileSize: maxPostVideoSize,
+    files: 9,
+  },
+  fileFilter(req, file, cb) {
+    if (file.fieldname === "images" && file.mimetype.startsWith("image/")) return cb(null, true);
+    if (file.fieldname === "videos" && file.mimetype.startsWith("video/")) return cb(null, true);
+    return cb(new Error("unsupported_media_type"));
+  },
+}).fields([
+  { name: "images", maxCount: 6 },
+  { name: "videos", maxCount: 3 },
+]);
 
 initDb({ adminUser, adminPassword });
 
@@ -190,6 +217,23 @@ function requireMember(req, res, next) {
   req.session = session;
   req.user = user;
   next();
+}
+
+function maybeUploadPostMedia(req, res, next) {
+  if (!req.is("multipart/form-data")) return next();
+  uploadPostMedia(req, res, (err) => {
+    if (!err) return next();
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res.status(413).json({ error: "파일은 500MB 이하로 업로드해주세요." });
+    }
+    if (err.code === "LIMIT_UNEXPECTED_FILE") {
+      return res.status(400).json({ error: "이미지는 최대 6개, 동영상은 최대 3개까지 업로드할 수 있어요." });
+    }
+    if (err.message === "unsupported_media_type") {
+      return res.status(400).json({ error: "이미지 또는 동영상 파일만 업로드할 수 있어요." });
+    }
+    return next(err);
+  });
 }
 
 function safeJsonParse(value, fallback) {
@@ -352,9 +396,26 @@ function normalizePostMedia(media = {}) {
   };
 }
 
+function normalizeTagsInput(value) {
+  if (Array.isArray(value)) return value.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 4);
+  const text = String(value || "").trim();
+  if (!text) return [];
+  try {
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed)) return parsed.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 4);
+  } catch {
+    // Fall through to comma-separated tags.
+  }
+  return text.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 4);
+}
+
 function extensionFromMime(mimeType = "") {
   const cleanType = String(mimeType).split(";")[0].trim().toLowerCase();
   const map = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/gif": "gif",
+    "image/webp": "webp",
     "video/mp4": "mp4",
     "video/webm": "webm",
     "video/ogg": "ogv",
@@ -390,6 +451,52 @@ function savePostVideoFile(postId, videoFile) {
     type,
     size: buffer.length,
     src: `/uploads/posts/${postId}/${storedName}`,
+  };
+}
+
+function moveUploadedFile(postId, file, index) {
+  const directory = path.join(uploadRoot, "posts", postId);
+  const extension = extensionFromMime(file.mimetype) || path.extname(file.originalname).slice(1) || "bin";
+  const storedName = `${file.fieldname}-${index + 1}.${extension}`;
+  const targetPath = path.join(directory, storedName);
+  fs.mkdirSync(directory, { recursive: true });
+  try {
+    fs.renameSync(file.path, targetPath);
+  } catch (err) {
+    if (err.code !== "EXDEV") throw err;
+    fs.copyFileSync(file.path, targetPath);
+    fs.unlinkSync(file.path);
+  }
+  return {
+    name: String(file.originalname || storedName).slice(0, 80),
+    type: String(file.mimetype || "").slice(0, 80),
+    size: file.size,
+    src: `/uploads/posts/${postId}/${storedName}`,
+  };
+}
+
+function cleanupUploadedFiles(files = {}) {
+  Object.values(files).flat().forEach((file) => {
+    if (file?.path && fs.existsSync(file.path)) fs.unlinkSync(file.path);
+  });
+}
+
+function buildUploadedPostMedia(postId, body, files = {}) {
+  const images = (files.images || []).map((file, index) => {
+    if (file.size > maxPostImageSize) {
+      const error = new Error("image_too_large");
+      error.status = 400;
+      throw error;
+    }
+    return moveUploadedFile(postId, file, index);
+  });
+  const videos = (files.videos || []).map((file, index) => moveUploadedFile(postId, file, index));
+  return {
+    images,
+    videoFile: videos[0] || null,
+    videos,
+    youtube: String(body.youtube || "").trim().slice(0, 240),
+    youtubeEmbed: String(body.youtubeEmbed || "").trim().slice(0, 240),
   };
 }
 
@@ -579,15 +686,18 @@ app.get("/api/posts", requireMember, (req, res) => {
   res.json(selectPostRows().map(serializePost));
 });
 
-app.post("/api/posts", requireMember, (req, res) => {
+app.post("/api/posts", requireMember, maybeUploadPostMedia, (req, res) => {
   const title = String(req.body?.title || "").trim();
   const category = String(req.body?.category || "").trim();
   const game = String(req.body?.game || "").trim();
   const summary = String(req.body?.summary || "").trim();
   const body = String(req.body?.body || "").trim();
   const attachment = String(req.body?.attachment || "").trim();
-  const tags = Array.isArray(req.body?.tags) ? req.body.tags.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 4) : [];
-  const media = normalizePostMedia(req.body?.media && typeof req.body.media === "object" ? req.body.media : {});
+  const tags = normalizeTagsInput(req.body?.tags);
+  const isMultipart = Boolean(req.files);
+  const media = isMultipart
+    ? null
+    : normalizePostMedia(req.body?.media && typeof req.body.media === "object" ? req.body.media : {});
 
   if (!title || title.length > 70) {
     return res.status(400).json({ error: "제목은 1~70자로 입력해주세요." });
@@ -600,11 +710,14 @@ app.post("/api/posts", requireMember, (req, res) => {
   }
 
   const id = crypto.randomUUID();
+  let postMedia;
   try {
-    media.videoFile = savePostVideoFile(id, media.videoFile);
+    postMedia = isMultipart ? buildUploadedPostMedia(id, req.body || {}, req.files || {}) : media;
+    if (!isMultipart) postMedia.videoFile = savePostVideoFile(id, postMedia.videoFile);
   } catch (err) {
+    cleanupUploadedFiles(req.files || {});
     if (err.status === 400) {
-      return res.status(400).json({ error: "동영상은 80MB 이하로 업로드해주세요." });
+      return res.status(400).json({ error: err.message === "image_too_large" ? "이미지는 8MB 이하로 업로드해주세요." : "동영상은 500MB 이하로 업로드해주세요." });
     }
     throw err;
   }
@@ -617,7 +730,7 @@ app.post("/api/posts", requireMember, (req, res) => {
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 'published')
     `,
-  ).run(id, req.user.id, category, game, title, summary, body, JSON.stringify(tags), attachment, JSON.stringify(media));
+  ).run(id, req.user.id, category, game, title, summary, body, JSON.stringify(tags), attachment, JSON.stringify(postMedia));
 
   const post = selectPostRows("posts.id = ?", [id])[0];
   res.status(201).json(serializePost(post));

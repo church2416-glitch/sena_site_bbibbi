@@ -147,7 +147,10 @@
       function renderPostMedia(body, media) {
         const hasImages = Array.isArray(media.images) && media.images.length;
         const hasYoutube = Boolean(media.youtubeEmbed);
-        const hasVideo = Boolean(media.videoFile);
+        const videos = Array.isArray(media.videos) && media.videos.length
+          ? media.videos
+          : media.videoFile ? [media.videoFile] : [];
+        const hasVideo = Boolean(videos.length);
         if (!hasImages && !hasYoutube && !hasVideo) return;
 
         const wrap = document.createElement("div");
@@ -179,19 +182,21 @@
         }
 
         if (hasVideo) {
-          if (media.videoFile.src) {
-            const video = document.createElement("video");
-            video.controls = true;
-            video.preload = "metadata";
-            video.src = media.videoFile.src;
-            video.title = media.videoFile.name || "첨부 동영상";
-            wrap.append(video);
-          } else {
-            const videoNote = document.createElement("div");
-            videoNote.className = "post-inline-note";
-            videoNote.textContent = `동영상 파일: ${media.videoFile.name}`;
-            wrap.append(videoNote);
-          }
+          videos.forEach((videoFile) => {
+            if (videoFile.src) {
+              const video = document.createElement("video");
+              video.controls = true;
+              video.preload = "metadata";
+              video.src = videoFile.src;
+              video.title = videoFile.name || "첨부 동영상";
+              wrap.append(video);
+            } else {
+              const videoNote = document.createElement("div");
+              videoNote.className = "post-inline-note";
+              videoNote.textContent = `동영상 파일: ${videoFile.name}`;
+              wrap.append(videoNote);
+            }
+          });
         }
 
         body.append(wrap);

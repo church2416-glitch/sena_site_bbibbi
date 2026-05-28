@@ -76,7 +76,7 @@
               </label>
               <label class="tool-file">
                 동영상
-                <input id="videoInput" type="file" accept="video/*" />
+                <input id="videoInput" type="file" accept="video/*" multiple />
               </label>
               <button type="button" id="youtubeButton">유튜브</button>
             </div>
@@ -125,15 +125,9 @@
       const mediaPreview = document.querySelector("#mediaPreview");
       const bodyInput = document.querySelector("#bodyInput");
       let imageFiles = [];
-      let videoFile = null;
-      let currentUser = { loggedIn: false, displayName: "익명" };
-      const maxImageSize = 1.5 * 1024 * 1024;
-      const maxVideoSize = 80 * 1024 * 1024;
-
-      function makeId() {
-        if (crypto.randomUUID) return crypto.randomUUID();
-        return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-      }
+      let videoFiles = [];
+      const maxImageSize = 8 * 1024 * 1024;
+      const maxVideoSize = 500 * 1024 * 1024;
 
       function normalizeTags(value) {
         return value
@@ -151,25 +145,6 @@
         }
       }
 
-      async function fetchCurrentUser() {
-        try {
-          const response = await fetch("/api/me");
-          if (!response.ok) throw new Error("me failed");
-          currentUser = await response.json();
-        } catch {
-          currentUser = { loggedIn: false, displayName: "익명" };
-        }
-      }
-
-      function fileToDataUrl(file) {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      }
-
       function getYoutubeEmbed(url) {
         const value = String(url || "").trim();
         const match = value.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{6,})/);
@@ -185,11 +160,11 @@
           mediaPreview.append(item);
         });
 
-        if (videoFile) {
+        videoFiles.forEach((file) => {
           const item = document.createElement("span");
-          item.textContent = `동영상 · ${videoFile.name}`;
+          item.textContent = `동영상 · ${file.name}`;
           mediaPreview.append(item);
-        }
+        });
 
         if (youtubeInput.value.trim()) {
           const item = document.createElement("span");
@@ -234,11 +209,12 @@
       });
 
       videoInput.addEventListener("change", () => {
-        videoFile = videoInput.files[0] || null;
-        if (videoFile && videoFile.size > maxVideoSize) {
-          draftState.textContent = "동영상은 80MB 이하만 업로드할 수 있어요.";
+        const selected = [...videoInput.files].slice(0, 3);
+        const oversized = selected.filter((file) => file.size > maxVideoSize);
+        videoFiles = selected.filter((file) => file.size <= maxVideoSize);
+        if (oversized.length) {
+          draftState.textContent = "동영상은 파일당 500MB 이하만 업로드할 수 있어요.";
           videoInput.value = "";
-          videoFile = null;
         }
         renderMediaPreview();
       });
@@ -248,48 +224,17 @@
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
         const formData = new FormData(form);
-        const images = await Promise.all(
-          imageFiles.map(async (file) => ({
-            name: file.name,
-            type: file.type,
-            src: await fileToDataUrl(file),
-          })),
-        );
-        const uploadedVideo = videoFile
-          ? {
-            name: videoFile.name,
-            type: videoFile.type,
-            size: videoFile.size,
-            src: await fileToDataUrl(videoFile),
-          }
-          : null;
-        const guide = {
-          id: makeId(),
-          title: formData.get("title").trim(),
-          comments: 0,
-          game: formData.get("game").trim(),
-          category: formData.get("category"),
-          summary: formData.get("summary").trim(),
-          author: currentUser?.displayName || currentUser?.username || "익명",
-          authorUsername: currentUser?.username || "",
-          body: formData.get("body").trim(),
-          tags: normalizeTags(formData.get("tags") || ""),
-          attachment: fileInput.files[0]?.name || "",
-          media: {
-            images,
-            videoFile: uploadedVideo,
-            youtube: youtubeInput.value.trim(),
-            youtubeEmbed: getYoutubeEmbed(youtubeInput.value),
-          },
-          votes: 0,
-          views: 0,
-          createdAt: "방금 전",
-        };
+        formData.delete("file");
+        formData.set("tags", JSON.stringify(normalizeTags(formData.get("tags") || "")));
+        formData.set("attachment", fileInput.files[0]?.name || "");
+        formData.set("youtube", youtubeInput.value.trim());
+        formData.set("youtubeEmbed", getYoutubeEmbed(youtubeInput.value));
+        imageFiles.forEach((file) => formData.append("images", file));
+        videoFiles.forEach((file) => formData.append("videos", file));
 
         const response = await fetch("/api/posts", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(guide),
+          body: formData,
         });
 
         if (!response.ok) {
@@ -302,15 +247,13 @@
         localStorage.setItem(storageKey, JSON.stringify([saved, ...loadGuides()]));
         form.reset();
         imageFiles = [];
-        videoFile = null;
+        videoFiles = [];
         mediaPreview.innerHTML = "";
         youtubeField.hidden = true;
         fileName.textContent = "첨부 선택";
         draftState.textContent = "업로드 완료";
         location.href = `post.html?id=${encodeURIComponent(saved.id)}`;
       });
-
-      fetchCurrentUser();
     </script>
   </body>
 </html>
