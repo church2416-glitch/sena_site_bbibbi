@@ -179,10 +179,19 @@
         }
 
         if (hasVideo) {
-          const videoNote = document.createElement("div");
-          videoNote.className = "post-inline-note";
-          videoNote.textContent = `동영상 파일: ${media.videoFile.name}`;
-          wrap.append(videoNote);
+          if (media.videoFile.src) {
+            const video = document.createElement("video");
+            video.controls = true;
+            video.preload = "metadata";
+            video.src = media.videoFile.src;
+            video.title = media.videoFile.name || "첨부 동영상";
+            wrap.append(video);
+          } else {
+            const videoNote = document.createElement("div");
+            videoNote.className = "post-inline-note";
+            videoNote.textContent = `동영상 파일: ${media.videoFile.name}`;
+            wrap.append(videoNote);
+          }
         }
 
         body.append(wrap);

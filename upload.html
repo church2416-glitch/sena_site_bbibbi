@@ -128,6 +128,7 @@
       let videoFile = null;
       let currentUser = { loggedIn: false, displayName: "익명" };
       const maxImageSize = 1.5 * 1024 * 1024;
+      const maxVideoSize = 20 * 1024 * 1024;
 
       function makeId() {
         if (crypto.randomUUID) return crypto.randomUUID();
@@ -234,6 +235,11 @@
 
       videoInput.addEventListener("change", () => {
         videoFile = videoInput.files[0] || null;
+        if (videoFile && videoFile.size > maxVideoSize) {
+          draftState.textContent = "동영상은 20MB 이하만 업로드할 수 있어요.";
+          videoInput.value = "";
+          videoFile = null;
+        }
         renderMediaPreview();
       });
 
@@ -249,6 +255,14 @@
             src: await fileToDataUrl(file),
           })),
         );
+        const uploadedVideo = videoFile
+          ? {
+            name: videoFile.name,
+            type: videoFile.type,
+            size: videoFile.size,
+            src: await fileToDataUrl(videoFile),
+          }
+          : null;
         const guide = {
           id: makeId(),
           title: formData.get("title").trim(),
@@ -263,7 +277,7 @@
           attachment: fileInput.files[0]?.name || "",
           media: {
             images,
-            videoFile: videoFile ? { name: videoFile.name, type: videoFile.type, size: videoFile.size } : null,
+            videoFile: uploadedVideo,
             youtube: youtubeInput.value.trim(),
             youtubeEmbed: getYoutubeEmbed(youtubeInput.value),
           },

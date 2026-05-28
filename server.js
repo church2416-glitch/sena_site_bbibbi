@@ -50,10 +50,11 @@ const defaultGuildSeasonSettings = {
   autoUpdateWeekdays: [1, 3, 6],
   lastAutoUpdateDate: "",
 };
+const maxPostVideoSize = 20 * 1024 * 1024;
 
 initDb({ adminUser, adminPassword });
 
-app.use(express.json({ limit: "8mb" }));
+app.use(express.json({ limit: "40mb" }));
 app.use(cookieParser(sessionSecret));
 app.use(requireMemberForPrivatePages);
 app.use(express.static(__dirname));
@@ -320,6 +321,35 @@ function serializePost(row) {
   };
 }
 
+function normalizePostMedia(media = {}) {
+  const images = Array.isArray(media.images)
+    ? media.images
+      .filter((image) => typeof image?.src === "string" && image.src.startsWith("data:image/"))
+      .slice(0, 6)
+      .map((image) => ({
+        name: String(image.name || "첨부 이미지").slice(0, 80),
+        type: String(image.type || "").slice(0, 80),
+        src: image.src,
+      }))
+    : [];
+  const videoFile = media.videoFile && typeof media.videoFile === "object" ? media.videoFile : null;
+  const normalizedVideo = videoFile?.src && String(videoFile.src).startsWith("data:video/")
+    ? {
+      name: String(videoFile.name || "첨부 동영상").slice(0, 80),
+      type: String(videoFile.type || "video/mp4").slice(0, 80),
+      size: Number(videoFile.size) || 0,
+      src: videoFile.src,
+    }
+    : null;
+
+  return {
+    images,
+    videoFile: normalizedVideo,
+    youtube: String(media.youtube || "").trim().slice(0, 240),
+    youtubeEmbed: String(media.youtubeEmbed || "").trim().slice(0, 240),
+  };
+}
+
 function selectPostRows(where = "posts.status = 'published'", params = []) {
   return db
     .prepare(
@@ -514,7 +544,7 @@ app.post("/api/posts", requireMember, (req, res) => {
   const body = String(req.body?.body || "").trim();
   const attachment = String(req.body?.attachment || "").trim();
   const tags = Array.isArray(req.body?.tags) ? req.body.tags.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 4) : [];
-  const media = req.body?.media && typeof req.body.media === "object" ? req.body.media : {};
+  const media = normalizePostMedia(req.body?.media && typeof req.body.media === "object" ? req.body.media : {});
 
   if (!title || title.length > 70) {
     return res.status(400).json({ error: "제목은 1~70자로 입력해주세요." });
@@ -524,6 +554,10 @@ app.post("/api/posts", requireMember, (req, res) => {
   }
   if (!summary || summary.length > 220) {
     return res.status(400).json({ error: "요약은 1~220자로 입력해주세요." });
+  }
+
+  if (media.videoFile?.size > maxPostVideoSize) {
+    return res.status(400).json({ error: "동영상은 20MB 이하로 업로드해주세요." });
   }
 
   const id = crypto.randomUUID();
