@@ -381,7 +381,10 @@ const GuildWar = (() => {
 
   function syncSkillHeroes(form, sourcePrefix = "ally") {
     [0, 1, 2].forEach((index) => {
-      setSelectValue(field(form, `slotHero${index}`), field(form, `${sourcePrefix}Hero${index}`).value);
+      const skillEntry = field(form, `slotHero${index}`);
+      if (!skillEntry.value.trim()) {
+        skillEntry.value = field(form, `${sourcePrefix}Hero${index}`).value;
+      }
     });
   }
 
@@ -428,6 +431,12 @@ const GuildWar = (() => {
   }
 
   function parseSkillEntry(value) {
+    if (value && typeof value === "object") {
+      return {
+        hero: String(value.label || value.hero || value.name || "").trim(),
+        skill: String(value.skill || "").trim(),
+      };
+    }
     const text = String(value || "").trim();
     const match = text.match(/\s+([0-9]+)$/);
     return {
@@ -745,12 +754,13 @@ const GuildWar = (() => {
     fillGearFields(form, activeTarget.gear);
     const sourcePrefix = getHeroSourcePrefix(mode);
     syncGearHeroes(form, sourcePrefix);
-    syncSkillHeroes(form, sourcePrefix);
     [0, 1, 2].forEach((index) => {
+      field(form, `slotHero${index}`).value = "";
       field(form, `slotSkill${index}`).value = "";
     });
     activeTarget.skillOrder.slice(0, 3).forEach((skill, index) => {
       const parsed = parseSkillEntry(skill);
+      field(form, `slotHero${index}`).value = parsed.hero;
       field(form, `slotSkill${index}`).value = parsed.skill;
     });
     syncSkillChoiceButtons(form);
@@ -765,10 +775,14 @@ const GuildWar = (() => {
     const skillOrder = [0, 1, 2]
       .map((index) => ({
         hero: field(form, `${sourcePrefix}Hero${index}`).value.trim(),
+        label: field(form, `slotHero${index}`).value.trim(),
         skill: field(form, `slotSkill${index}`).value.trim(),
       }))
-      .filter((slot) => slot.hero)
-      .map((slot) => `${slot.hero}${slot.skill ? ` ${slot.skill}` : ""}`);
+      .filter((slot) => slot.label || slot.hero)
+      .map((slot) => ({
+        label: slot.label || slot.hero,
+        skill: slot.skill,
+      }));
     const bosses = splitList(field(form, "bosses").value, fallback.bosses);
     const activeTargetIndex = Math.min(Math.max(Number(previousSheet.activeTargetIndex) || 0, 0), Math.max(0, bosses.length - 1));
     const previousTargets = Array.isArray(previousSheet.targetSheets) ? previousSheet.targetSheets : [];

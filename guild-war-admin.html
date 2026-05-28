@@ -252,7 +252,7 @@
             <div class="skill-slot-grid">
               <fieldset>
                 <legend>칸 1</legend>
-                <select name="slotHero0" data-character-select data-skill-hero readonly disabled data-placeholder="캐릭터"></select>
+                <input name="slotHero0" data-skill-entry maxlength="28" placeholder="스킬/행동 이름" />
                 <div class="skill-choice" data-slot="0">
                   <button type="button" data-skill="1">1번칸</button>
                   <button type="button" data-skill="2">2번칸</button>
@@ -261,7 +261,7 @@
               </fieldset>
               <fieldset>
                 <legend>칸 2</legend>
-                <select name="slotHero1" data-character-select data-skill-hero readonly disabled data-placeholder="캐릭터"></select>
+                <input name="slotHero1" data-skill-entry maxlength="28" placeholder="스킬/행동 이름" />
                 <div class="skill-choice" data-slot="1">
                   <button type="button" data-skill="1">1번칸</button>
                   <button type="button" data-skill="2">2번칸</button>
@@ -270,7 +270,7 @@
               </fieldset>
               <fieldset>
                 <legend>칸 3</legend>
-                <select name="slotHero2" data-character-select data-skill-hero readonly disabled data-placeholder="캐릭터"></select>
+                <input name="slotHero2" data-skill-entry maxlength="28" placeholder="스킬/행동 이름" />
                 <div class="skill-choice" data-slot="2">
                   <button type="button" data-skill="1">1번칸</button>
                   <button type="button" data-skill="2">2번칸</button>
@@ -337,7 +337,6 @@
         const sourcePrefix = activeMode === "defense" ? "enemy" : "ally";
         if (event?.target?.name?.startsWith(`${sourcePrefix}Hero`)) {
           GuildWar.syncGearHeroes(form, sourcePrefix);
-          GuildWar.syncSkillHeroes(form, sourcePrefix);
         }
         guildState[activeMode] = GuildWar.readAdminForm(form, GuildWar.sheetDefaults[activeMode], guildState[activeMode], activePlanIndex);
         GuildWar.saveState(guildState);

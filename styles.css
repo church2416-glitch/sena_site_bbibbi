@@ -2354,10 +2354,14 @@ p {
   font-size: 13px;
 }
 
-.gear-editor-row [data-gear-hero],
-.skill-slot-grid [data-skill-hero] {
+.gear-editor-row [data-gear-hero] {
   opacity: 0.72;
   cursor: default;
+}
+
+.skill-slot-grid [data-skill-entry] {
+  min-height: 42px;
+  font-weight: 900;
 }
 
 .gear-editor-row .accessory-editor {
