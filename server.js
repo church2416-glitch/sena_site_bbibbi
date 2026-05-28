@@ -327,7 +327,7 @@ function requireMemberForPrivatePages(req, res, next) {
   if (req.method !== "GET" && req.method !== "HEAD") return next();
 
   const requestPath = req.path === "/" ? "/index.html" : req.path;
-  const publicPages = new Set(["/index.html", "/terms.html", "/privacy.html"]);
+  const publicPages = new Set(["/index.html", "/notices.html", "/terms.html", "/privacy.html"]);
   const isHtmlPage = requestPath.endsWith(".html");
 
   if (!isHtmlPage || publicPages.has(requestPath)) return next();

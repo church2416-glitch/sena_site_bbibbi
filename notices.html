@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>공지사항 - bbitsena</title>
+    <link rel="stylesheet" href="styles.css?v=notice-page-20260529" />
+  </head>
+  <body class="notice-page">
+    <header class="notice-page-topbar">
+      <a class="notice-page-brand" href="index.html">
+        <span>삐</span>
+        <strong>bbitsena</strong>
+      </a>
+      <nav>
+        <a href="index.html">홈</a>
+        <a class="active" href="notices.html">공지사항</a>
+        <a href="guild-war.html">길드전 족보</a>
+        <a href="upload.html">글쓰기</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="notice-page-hero">
+        <div>
+          <span>BBITSENA · NOTICE</span>
+          <h1>공지사항</h1>
+          <p>삐삐 커뮤니티와 세븐나이츠 리버스 주요 공지를 확인하세요.</p>
+        </div>
+      </section>
+
+      <section class="notice-board-shell">
+        <div class="notice-board-head">
+          <div>
+            <h2>공지 목록</h2>
+            <p id="noticePageState">공지사항을 불러오는 중입니다.</p>
+          </div>
+          <a id="noticePageSource" href="https://game.naver.com/lounge/sena_rebirth/board/11" target="_blank" rel="noopener">원문 보기</a>
+        </div>
+        <div class="notice-table-wrap">
+          <table class="notice-table">
+            <thead>
+              <tr>
+                <th>No.</th>
+                <th>제목</th>
+                <th>날짜</th>
+                <th>조회</th>
+              </tr>
+            </thead>
+            <tbody id="noticePageList"></tbody>
+          </table>
+        </div>
+        <div class="notice-page-footer">
+          <span id="noticePageCount">PAGE 1 OF 1</span>
+          <a href="index.html">메인으로</a>
+        </div>
+      </section>
+    </main>
+
+    <script src="notices.js?v=notice-page-20260529"></script>
+  </body>
+</html>
