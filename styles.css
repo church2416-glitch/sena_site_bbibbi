@@ -3631,6 +3631,26 @@ p {
 }
 
 @media (max-width: 860px) {
+  body.is-guest-locked .app-shell {
+    grid-template-columns: 1fr;
+    align-content: center;
+    min-height: 100svh;
+  }
+
+  body.is-guest-locked .right-rail {
+    display: grid;
+    grid-column: auto;
+    padding-top: 0;
+  }
+
+  body.is-guest-locked .rail-login {
+    min-height: 180px;
+  }
+
+  body.is-guest-locked .login-card {
+    display: grid;
+  }
+
   .app-shell {
     grid-template-columns: 1fr;
     padding: 12px;

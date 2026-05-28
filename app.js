@@ -336,6 +336,9 @@ function renderAuthState(user) {
   if (!user?.loggedIn && new URLSearchParams(location.search).get("login") === "required") {
     openLoginModal();
   }
+  if (!user?.loggedIn && window.matchMedia("(max-width: 860px)").matches) {
+    window.setTimeout(openLoginModal, 80);
+  }
 }
 
 function openLoginModal() {
