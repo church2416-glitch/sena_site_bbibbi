@@ -1469,6 +1469,11 @@ p {
   max-height: 68vh;
 }
 
+.video-fallback a {
+  color: #f4df7f;
+  font-weight: 900;
+}
+
 .post-media figcaption {
   color: var(--muted);
   font-size: 12px;

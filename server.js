@@ -85,6 +85,17 @@ initDb({ adminUser, adminPassword });
 
 app.use(express.json({ limit: "120mb" }));
 app.use(cookieParser(sessionSecret));
+app.use("/uploads", express.static(uploadRoot, {
+  acceptRanges: true,
+  immutable: false,
+  maxAge: "1h",
+  setHeaders(res, filePath) {
+    if (/\.(mp4|webm|ogv|mov)$/i.test(filePath)) {
+      res.setHeader("Accept-Ranges", "bytes");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+    }
+  },
+}));
 app.use(requireMemberForPrivatePages);
 app.use(express.static(__dirname));
 

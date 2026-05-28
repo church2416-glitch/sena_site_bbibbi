@@ -185,11 +185,29 @@
           videos.forEach((videoFile) => {
             if (videoFile.src) {
               const video = document.createElement("video");
+              const source = document.createElement("source");
               video.controls = true;
               video.preload = "metadata";
-              video.src = videoFile.src;
+              video.playsInline = true;
               video.title = videoFile.name || "첨부 동영상";
-              wrap.append(video);
+              source.src = videoFile.src;
+              source.type = videoFile.type || "video/mp4";
+              video.append(source);
+
+              const fallback = document.createElement("div");
+              const openLink = document.createElement("a");
+              fallback.className = "post-inline-note video-fallback";
+              fallback.hidden = true;
+              fallback.textContent = "동영상을 불러오지 못했습니다. ";
+              openLink.href = videoFile.src;
+              openLink.target = "_blank";
+              openLink.rel = "noopener";
+              openLink.textContent = "새 창에서 열기";
+              fallback.append(openLink);
+              video.addEventListener("error", () => {
+                fallback.hidden = false;
+              });
+              wrap.append(video, fallback);
             } else {
               const videoNote = document.createElement("div");
               videoNote.className = "post-inline-note";
