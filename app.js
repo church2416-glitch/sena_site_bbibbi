@@ -154,6 +154,7 @@ const loginForm = document.querySelector("#loginForm");
 const signupForm = document.querySelector("#signupForm");
 const profileForm = document.querySelector("#profileForm");
 const providerLoginOpenButton = document.querySelector("#providerLoginOpenButton");
+const mobileLoginButton = document.querySelector("#mobileLoginButton");
 const adminDashboardLink = document.querySelector("#adminDashboardLink");
 const kakaoLoginButton = document.querySelector("#kakaoLoginButton");
 const loginCloseButton = document.querySelector("#loginCloseButton");
@@ -321,6 +322,7 @@ function renderAuthState(user) {
       : "로그인하고<br />댓글과 공략글을";
   }
   if (providerLoginOpenButton) providerLoginOpenButton.hidden = Boolean(user?.loggedIn);
+  if (mobileLoginButton) mobileLoginButton.hidden = Boolean(user?.loggedIn);
   if (adminDashboardLink) adminDashboardLink.hidden = !isAdmin;
   if (kakaoLoginButton) kakaoLoginButton.hidden = Boolean(user?.loggedIn);
   if (profileButton) profileButton.hidden = !user?.loggedIn;
@@ -814,6 +816,7 @@ window.addEventListener("popstate", () => {
 });
 
 providerLoginOpenButton?.addEventListener("click", openLoginModal);
+mobileLoginButton?.addEventListener("click", openLoginModal);
 loginCloseButton?.addEventListener("click", closeLoginModal);
 loginForm?.addEventListener("submit", submitLogin);
 profileButton?.addEventListener("click", openProfileModal);
