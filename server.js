@@ -52,6 +52,16 @@ const defaultGuildSeasonSettings = {
   autoUpdateWeekdays: [1, 3, 6],
   lastAutoUpdateDate: "",
 };
+const defaultImportantNoticeSettings = {
+  enabled: false,
+  title: "중요 공지사항",
+  eyebrow: "삐삐 공지사항",
+  content: "",
+  imageUrl: "",
+  actionLabel: "",
+  actionUrl: "",
+  updatedAt: "",
+};
 const maxPostImageSize = 8 * 1024 * 1024;
 const maxPostVideoSize = 500 * 1024 * 1024;
 const uploadRoot = path.join(__dirname, "uploads");
@@ -577,6 +587,23 @@ function getGuildSeasonSettings() {
     autoUpdateEnabled: Boolean(settings.autoUpdateEnabled),
     autoUpdateWeekdays,
     lastAutoUpdateDate,
+  };
+}
+
+function getImportantNoticeSettings() {
+  return readSetting("importantNotice", defaultImportantNoticeSettings);
+}
+
+function normalizeImportantNoticeSettings(value = {}) {
+  return {
+    enabled: Boolean(value.enabled),
+    title: String(value.title || defaultImportantNoticeSettings.title).trim().slice(0, 80),
+    eyebrow: String(value.eyebrow || defaultImportantNoticeSettings.eyebrow).trim().slice(0, 40),
+    content: String(value.content || "").trim().slice(0, 1800),
+    imageUrl: String(value.imageUrl || "").trim().slice(0, 500),
+    actionLabel: String(value.actionLabel || "").trim().slice(0, 30),
+    actionUrl: String(value.actionUrl || "").trim().slice(0, 500),
+    updatedAt: new Date().toISOString(),
   };
 }
 
@@ -1804,6 +1831,11 @@ app.get("/api/guild-war/season", (req, res) => {
   res.json({ ok: true, settings: getGuildSeasonSettings() });
 });
 
+app.get("/api/important-notice", (req, res) => {
+  const settings = getImportantNoticeSettings();
+  res.json({ ok: true, notice: settings });
+});
+
 app.patch("/api/admin/guild-war/season", requireGuildManager, (req, res) => {
   const totalRound = Math.max(1, Math.min(365, Number(req.body.totalRound) || defaultGuildSeasonSettings.totalRound));
   const round = Math.max(0, Math.min(totalRound, Number(req.body.round) || 0));
@@ -1819,6 +1851,12 @@ app.patch("/api/admin/guild-war/season", requireGuildManager, (req, res) => {
   };
   writeSetting("guildWarSeason", settings);
   res.json({ ok: true, settings });
+});
+
+app.patch("/api/admin/important-notice", requireContentManager, (req, res) => {
+  const settings = normalizeImportantNoticeSettings(req.body || {});
+  writeSetting("importantNotice", settings);
+  res.json({ ok: true, notice: settings });
 });
 
 app.get("/api/admin/dashboard", requireAdmin, (req, res) => {

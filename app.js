@@ -202,6 +202,15 @@ const boardVoteTotal = document.querySelector("#boardVoteTotal");
 const boardViewTotal = document.querySelector("#boardViewTotal");
 const boardPulseText = document.querySelector("#boardPulseText");
 const boardSparkline = document.querySelector("#boardSparkline");
+const importantNoticeModal = document.querySelector("#importantNoticeModal");
+const importantNoticeEyebrowText = document.querySelector("#importantNoticeEyebrowText");
+const importantNoticeTitleText = document.querySelector("#importantNoticeTitleText");
+const importantNoticeImage = document.querySelector("#importantNoticeImage");
+const importantNoticeBody = document.querySelector("#importantNoticeBody");
+const importantNoticeCloseButton = document.querySelector("#importantNoticeCloseButton");
+const importantNoticeConfirmButton = document.querySelector("#importantNoticeConfirmButton");
+const importantNoticeHideTodayButton = document.querySelector("#importantNoticeHideTodayButton");
+const importantNoticeActionLink = document.querySelector("#importantNoticeActionLink");
 
 const boardInfo = {
   전체: {
@@ -1099,6 +1108,64 @@ function renderSideLists() {
   });
 }
 
+function importantNoticeDismissKey(notice) {
+  const stamp = String(notice.updatedAt || notice.title || "default").slice(0, 32);
+  return `bbibbi-important-notice:${stamp}:${new Date().toISOString().slice(0, 10)}`;
+}
+
+function closeImportantNotice() {
+  if (!importantNoticeModal) return;
+  importantNoticeModal.hidden = true;
+  document.body.classList.remove("important-notice-open");
+}
+
+function showImportantNotice(notice) {
+  if (!importantNoticeModal || !notice?.enabled) return;
+  const dismissKey = importantNoticeDismissKey(notice);
+  if (localStorage.getItem(dismissKey) === "hidden") return;
+
+  if (importantNoticeEyebrowText) importantNoticeEyebrowText.textContent = notice.eyebrow || "삐삐 공지사항";
+  if (importantNoticeTitleText) importantNoticeTitleText.textContent = notice.title || "중요 공지사항";
+  if (importantNoticeBody) {
+    importantNoticeBody.innerHTML = "";
+    String(notice.content || "")
+      .split(/\n{2,}/)
+      .map((paragraph) => paragraph.trim())
+      .filter(Boolean)
+      .forEach((paragraph) => {
+        const p = document.createElement("p");
+        p.textContent = paragraph;
+        importantNoticeBody.append(p);
+      });
+  }
+  if (importantNoticeImage) {
+    importantNoticeImage.hidden = !notice.imageUrl;
+    importantNoticeImage.src = notice.imageUrl || "";
+  }
+  if (importantNoticeActionLink) {
+    importantNoticeActionLink.hidden = !(notice.actionLabel && notice.actionUrl);
+    importantNoticeActionLink.textContent = notice.actionLabel || "자세히 보기";
+    importantNoticeActionLink.href = notice.actionUrl || "#";
+  }
+  importantNoticeHideTodayButton?.addEventListener("click", () => {
+    localStorage.setItem(dismissKey, "hidden");
+    closeImportantNotice();
+  }, { once: true });
+  importantNoticeModal.hidden = false;
+  document.body.classList.add("important-notice-open");
+}
+
+async function loadImportantNotice() {
+  try {
+    const response = await fetch("/api/important-notice");
+    if (!response.ok) return;
+    const data = await response.json();
+    showImportantNotice(data.notice);
+  } catch {
+    // 공지 팝업은 실패해도 메인 이용을 막지 않습니다.
+  }
+}
+
 async function getFeedItems(endpoint, storageKey, fallback) {
   try {
     const response = await fetch(endpoint);
@@ -1278,6 +1345,11 @@ signupModal?.addEventListener("click", (event) => {
 profileModal?.addEventListener("click", (event) => {
   if (event.target === profileModal) closeProfileModal();
 });
+importantNoticeCloseButton?.addEventListener("click", closeImportantNotice);
+importantNoticeConfirmButton?.addEventListener("click", closeImportantNotice);
+importantNoticeModal?.addEventListener("click", (event) => {
+  if (event.target === importantNoticeModal) closeImportantNotice();
+});
 
 window.addEventListener("focus", () => {
   loadGuidesFromServer().then(renderGuides);
@@ -1285,3 +1357,4 @@ window.addEventListener("focus", () => {
 
 fetchCurrentUser().then(renderAuthState);
 loadGuidesFromServer().then(renderGuides);
+loadImportantNotice();

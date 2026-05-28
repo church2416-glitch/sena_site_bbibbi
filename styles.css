@@ -42,6 +42,10 @@ body.auth-modal-open {
   overflow: hidden;
 }
 
+body.important-notice-open {
+  overflow: hidden;
+}
+
 body.is-guest-locked .main-area,
 body.is-guest-locked .sidebar .side-nav,
 body.is-guest-locked .sidebar .score-card,
@@ -634,6 +638,144 @@ textarea:focus {
   padding: 18px;
   background: rgba(0, 0, 0, 0.62);
   backdrop-filter: blur(8px);
+}
+
+.important-notice-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(2, 4, 12, 0.72);
+  backdrop-filter: blur(5px);
+}
+
+.important-notice-card {
+  overflow: hidden;
+  width: min(520px, 100%);
+  max-height: min(760px, calc(100vh - 48px));
+  border: 1px solid rgba(255, 230, 115, 0.72);
+  border-radius: 18px;
+  color: #121212;
+  background: #f6f6f7;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.42);
+}
+
+.important-notice-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  color: #fff;
+  background: #101827;
+}
+
+.important-notice-card header span {
+  display: block;
+  color: #ffe15d;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.important-notice-card h2 {
+  margin: 4px 0 0;
+  font-size: 21px;
+  letter-spacing: 0;
+}
+
+.important-notice-card header button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 24px;
+}
+
+.important-notice-card img {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  object-fit: cover;
+  background: #0b0d14;
+}
+
+.important-notice-body {
+  overflow: auto;
+  max-height: 360px;
+  padding: 26px 32px;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.important-notice-body p {
+  margin: 0 0 16px;
+  white-space: pre-wrap;
+}
+
+.important-notice-card footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid #e4e4e6;
+  background: #f0f0f2;
+}
+
+.important-notice-card footer button,
+.important-notice-card footer a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 16px;
+  border: 1px solid #d8d8dd;
+  border-radius: 10px;
+  color: #111;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.important-notice-card footer button:last-child,
+.important-notice-card footer a {
+  border-color: #ffe15d;
+  background: #ffe15d;
+}
+
+@media (max-width: 620px) {
+  .important-notice-modal {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .important-notice-card {
+    max-height: calc(100vh - 24px);
+    border-radius: 16px;
+  }
+
+  .important-notice-body {
+    max-height: 320px;
+    padding: 22px;
+  }
+
+  .important-notice-card footer {
+    flex-wrap: wrap;
+    justify-content: stretch;
+  }
+
+  .important-notice-card footer button,
+  .important-notice-card footer a {
+    flex: 1 1 130px;
+  }
 }
 
 .auth-dialog {
@@ -2886,6 +3028,10 @@ p {
   .admin-permission-grid {
     grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
   }
+
+  .admin-notice-form {
+    grid-template-columns: 1fr;
+  }
 }
 
 .admin-settings-form {
@@ -2895,7 +3041,15 @@ p {
   align-items: end;
 }
 
-.admin-settings-form label {
+.admin-notice-form {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.5fr) repeat(2, minmax(180px, 1fr)) minmax(220px, 1.2fr);
+  gap: 12px;
+  align-items: end;
+}
+
+.admin-settings-form label,
+.admin-notice-form label {
   display: grid;
   gap: 7px;
   color: #555;
@@ -2904,11 +3058,31 @@ p {
 }
 
 .admin-settings-form input,
-.admin-settings-form select {
+.admin-settings-form select,
+.admin-notice-form input,
+.admin-notice-form textarea {
   min-height: 38px;
   border-color: #d8d8d8;
   color: #222;
   background: #fff;
+}
+
+.admin-notice-form textarea {
+  min-height: 140px;
+  resize: vertical;
+}
+
+.admin-notice-content-field {
+  grid-column: 1 / -1;
+}
+
+.admin-notice-form button[type="submit"] {
+  min-height: 38px;
+  border: 0;
+  border-radius: 2px;
+  color: white;
+  background: #ff342f;
+  font-weight: 900;
 }
 
 .admin-check-field span {

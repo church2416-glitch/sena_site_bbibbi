@@ -34,6 +34,15 @@ const guildSeasonTotalRound = document.querySelector("#guildSeasonTotalRound");
 const guildSeasonAutoUpdate = document.querySelector("#guildSeasonAutoUpdate");
 const guildSeasonAutoWeekdays = [...document.querySelectorAll("[name='autoUpdateWeekdays']")];
 const guildSeasonSaveState = document.querySelector("#guildSeasonSaveState");
+const importantNoticeForm = document.querySelector("#importantNoticeForm");
+const importantNoticeEnabled = document.querySelector("#importantNoticeEnabled");
+const importantNoticeEyebrow = document.querySelector("#importantNoticeEyebrow");
+const importantNoticeTitle = document.querySelector("#importantNoticeTitle");
+const importantNoticeImageUrl = document.querySelector("#importantNoticeImageUrl");
+const importantNoticeActionLabel = document.querySelector("#importantNoticeActionLabel");
+const importantNoticeActionUrl = document.querySelector("#importantNoticeActionUrl");
+const importantNoticeContent = document.querySelector("#importantNoticeContent");
+const importantNoticeSaveState = document.querySelector("#importantNoticeSaveState");
 
 const viewTitles = {
   dashboard: "대시보드",
@@ -265,6 +274,51 @@ async function saveGuildSeasonSettings(event) {
   if (dbResponse.ok) renderDatabaseTable((await dbResponse.json()).counts || {});
 }
 
+function renderImportantNoticeSettings(notice) {
+  if (!importantNoticeForm || !notice) return;
+  importantNoticeEnabled.checked = Boolean(notice.enabled);
+  importantNoticeEyebrow.value = notice.eyebrow || "";
+  importantNoticeTitle.value = notice.title || "";
+  importantNoticeImageUrl.value = notice.imageUrl || "";
+  importantNoticeActionLabel.value = notice.actionLabel || "";
+  importantNoticeActionUrl.value = notice.actionUrl || "";
+  importantNoticeContent.value = notice.content || "";
+  setText(importantNoticeSaveState, "불러옴");
+}
+
+async function loadImportantNoticeSettings() {
+  if (!importantNoticeForm) return;
+  const response = await fetch("/api/important-notice");
+  if (!response.ok) return;
+  const data = await response.json();
+  renderImportantNoticeSettings(data.notice);
+}
+
+async function saveImportantNoticeSettings(event) {
+  event.preventDefault();
+  setText(importantNoticeSaveState, "저장 중");
+  const response = await fetch("/api/admin/important-notice", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      enabled: importantNoticeEnabled.checked,
+      eyebrow: importantNoticeEyebrow.value.trim(),
+      title: importantNoticeTitle.value.trim(),
+      imageUrl: importantNoticeImageUrl.value.trim(),
+      actionLabel: importantNoticeActionLabel.value.trim(),
+      actionUrl: importantNoticeActionUrl.value.trim(),
+      content: importantNoticeContent.value.trim(),
+    }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    setText(importantNoticeSaveState, data.error || "실패");
+    return;
+  }
+  renderImportantNoticeSettings(data.notice);
+  setText(importantNoticeSaveState, "저장됨");
+}
+
 function renderUsers(users) {
   if (!recentUsers) return;
   recentUsers.innerHTML = "";
@@ -464,6 +518,7 @@ async function loadDashboard() {
   renderDailyTable(dashboard.daily || []);
   renderDatabaseTable(dbStatus.counts || {});
   await loadGuildSeasonSettings();
+  await loadImportantNoticeSettings();
   await loadManagementLists();
 }
 
@@ -488,6 +543,7 @@ clearMemoButton?.addEventListener("click", () => {
 refreshUsersButton?.addEventListener("click", loadManagementLists);
 refreshDatabaseButton?.addEventListener("click", loadDashboard);
 guildSeasonForm?.addEventListener("submit", saveGuildSeasonSettings);
+importantNoticeForm?.addEventListener("submit", saveImportantNoticeSettings);
 
 adminLogoutButton?.addEventListener("click", async () => {
   await fetch("/api/logout", { method: "POST" });

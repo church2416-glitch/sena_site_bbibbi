@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>관리자 데이터베이스 - 삐삐 길드</title>
-    <link rel="stylesheet" href="styles.css?v=admin-permissions-20260529" />
+    <link rel="stylesheet" href="styles.css?v=important-notice-20260529" />
   </head>
   <body class="admin-dashboard-page">
     <aside class="admin-sidebar" aria-label="관리자 메뉴">
@@ -118,6 +118,50 @@
         <section class="admin-panel admin-wide-panel">
           <div class="admin-panel-head">
             <div>
+              <h1>중요 공지 팝업</h1>
+              <small>메인 화면에 표시할 공지와 이미지를 설정합니다.</small>
+            </div>
+            <span class="admin-count" id="importantNoticeSaveState">대기</span>
+          </div>
+          <form class="admin-notice-form" id="importantNoticeForm">
+            <label class="admin-check-field">
+              팝업 사용
+              <span>
+                <input id="importantNoticeEnabled" name="enabled" type="checkbox" />
+                사용
+              </span>
+            </label>
+            <label>
+              작은 제목
+              <input id="importantNoticeEyebrow" name="eyebrow" maxlength="40" placeholder="삐삐 공지사항" />
+            </label>
+            <label>
+              제목
+              <input id="importantNoticeTitle" name="title" maxlength="80" placeholder="중요 공지사항" />
+            </label>
+            <label>
+              이미지 URL
+              <input id="importantNoticeImageUrl" name="imageUrl" maxlength="500" placeholder="https://..." />
+            </label>
+            <label>
+              버튼 문구
+              <input id="importantNoticeActionLabel" name="actionLabel" maxlength="30" placeholder="자세히 보기" />
+            </label>
+            <label>
+              버튼 링크
+              <input id="importantNoticeActionUrl" name="actionUrl" maxlength="500" placeholder="https://..." />
+            </label>
+            <label class="admin-notice-content-field">
+              내용
+              <textarea id="importantNoticeContent" name="content" maxlength="1800" placeholder="공지 내용을 입력하세요. 줄바꿈이 그대로 표시됩니다."></textarea>
+            </label>
+            <button type="submit">저장</button>
+          </form>
+        </section>
+
+        <section class="admin-panel admin-wide-panel">
+          <div class="admin-panel-head">
+            <div>
               <h1>길드전 시즌 설정</h1>
               <small>공개 길드전 족보 상단의 시즌 일수를 DB에서 관리합니다.</small>
             </div>
@@ -171,7 +215,7 @@
       </section>
     </main>
 
-    <script src="admin.js?v=admin-permissions-20260529"></script>
+    <script src="admin.js?v=important-notice-20260529"></script>
     <script src="notification-client.js"></script>
   </body>
 </html>

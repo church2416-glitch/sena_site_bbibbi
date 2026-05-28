@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>삣삐이 온다</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=important-notice-20260529" />
   </head>
   <body>
     <div class="app-shell">
@@ -149,6 +149,25 @@
     </div>
 
     <button class="guest-login-fallback" id="guestLoginFallbackButton" type="button">로그인 / 회원가입</button>
+
+    <div class="important-notice-modal" id="importantNoticeModal" hidden>
+      <div class="important-notice-card" role="dialog" aria-modal="true" aria-labelledby="importantNoticeTitleText">
+        <header>
+          <div>
+            <span id="importantNoticeEyebrowText">삐삐 공지사항</span>
+            <h2 id="importantNoticeTitleText">중요 공지사항</h2>
+          </div>
+          <button id="importantNoticeCloseButton" type="button" aria-label="닫기">×</button>
+        </header>
+        <img id="importantNoticeImage" alt="" hidden />
+        <div class="important-notice-body" id="importantNoticeBody"></div>
+        <footer>
+          <button id="importantNoticeHideTodayButton" type="button">오늘 하루 보지 않기</button>
+          <a id="importantNoticeActionLink" href="#" hidden>자세히 보기</a>
+          <button id="importantNoticeConfirmButton" type="button">닫기</button>
+        </footer>
+      </div>
+    </div>
 
     <div class="auth-modal" id="loginModal" hidden>
       <form class="auth-dialog login-dialog" id="loginForm" autocomplete="off">
@@ -337,6 +356,6 @@
     </div>
 
     <script src="theme.js"></script>
-    <script src="app.js"></script>
+    <script src="app.js?v=important-notice-20260529"></script>
   </body>
 </html>
