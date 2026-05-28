@@ -270,7 +270,20 @@
           createdAt: "방금 전",
         };
 
-        localStorage.setItem(storageKey, JSON.stringify([guide, ...loadGuides()]));
+        const response = await fetch("/api/posts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(guide),
+        });
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({ error: "업로드 실패" }));
+          draftState.textContent = error.error || "업로드 실패";
+          return;
+        }
+
+        const saved = await response.json();
+        localStorage.setItem(storageKey, JSON.stringify([saved, ...loadGuides()]));
         form.reset();
         imageFiles = [];
         videoFile = null;
@@ -278,6 +291,7 @@
         youtubeField.hidden = true;
         fileName.textContent = "첨부 선택";
         draftState.textContent = "업로드 완료";
+        location.href = `post.html?id=${encodeURIComponent(saved.id)}`;
       });
 
       fetchCurrentUser();

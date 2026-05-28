@@ -3,15 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>게시글 상세 - 삣삐이 온다</title>
+    <title>게시글 상세 - 삐삐 길드</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body class="post-page">
     <main class="post-shell">
       <a class="brand upload-brand" href="index.html">
-        <span class="brand-kicker">삣삐 커뮤니티</span>
-        <strong>삣삐이 온다</strong>
-        <small>SEVENKNIGHT : REBITH</small>
+        <span class="brand-kicker">삐삐 커뮤니티</span>
+        <strong>삐삐 길드</strong>
+        <small>SEVENKNIGHT : REBIRTH</small>
       </a>
 
       <article class="post-card" id="postCard" hidden>
@@ -24,26 +24,11 @@
         <div class="post-body-layout">
           <div class="post-main-flow">
             <dl class="post-meta">
-              <div>
-                <dt>게임</dt>
-                <dd id="postGame"></dd>
-              </div>
-              <div>
-                <dt>작성자</dt>
-                <dd id="postAuthor"></dd>
-              </div>
-              <div>
-                <dt>작성일</dt>
-                <dd id="postDate"></dd>
-              </div>
-              <div>
-                <dt>추천</dt>
-                <dd id="postVotes"></dd>
-              </div>
-              <div>
-                <dt>조회</dt>
-                <dd id="postViews"></dd>
-              </div>
+              <div><dt>게임</dt><dd id="postGame"></dd></div>
+              <div><dt>작성자</dt><dd id="postAuthor"></dd></div>
+              <div><dt>작성일</dt><dd id="postDate"></dd></div>
+              <div><dt>추천</dt><dd id="postVotes"></dd></div>
+              <div><dt>조회</dt><dd id="postViews"></dd></div>
             </dl>
 
             <section class="post-section post-article-section">
@@ -62,14 +47,8 @@
             </section>
 
             <nav class="post-nav" aria-label="이전글 다음글">
-              <a id="prevPost" href="#" aria-disabled="true">
-                <span>이전글</span>
-                <strong>이전 글이 없습니다</strong>
-              </a>
-              <a id="nextPost" href="#" aria-disabled="true">
-                <span>다음글</span>
-                <strong>다음 글이 없습니다</strong>
-              </a>
+              <a id="prevPost" href="#" aria-disabled="true"><span>이전글</span><strong>이전 글이 없습니다</strong></a>
+              <a id="nextPost" href="#" aria-disabled="true"><span>다음글</span><strong>다음 글이 없습니다</strong></a>
             </nav>
 
             <section class="post-list-section">
@@ -130,6 +109,23 @@
         if (target) target.textContent = value;
       }
 
+      async function loadPostData() {
+        try {
+          const response = await fetch(`/api/posts/${encodeURIComponent(postId)}`);
+          if (!response.ok) throw new Error("post failed");
+          return response.json();
+        } catch {
+          const guides = loadGuides();
+          const postIndex = guides.findIndex((item) => item.id === postId);
+          return {
+            post: guides[postIndex],
+            posts: guides,
+            prevPost: guides[postIndex - 1],
+            nextPost: guides[postIndex + 1],
+          };
+        }
+      }
+
       function renderPostBody(guide) {
         const body = document.querySelector("#postBody");
         const source = guide.body || guide.content || guide.summary || "아직 상세 본문이 없습니다.";
@@ -145,13 +141,6 @@
           body.append(paragraph);
         });
 
-        if (!guide.body && !guide.content) {
-          const note = document.createElement("div");
-          note.className = "post-inline-note";
-          note.textContent = "상세 본문 입력 기능을 붙이면 이 영역에 긴 공략글과 이미지가 순서대로 표시됩니다.";
-          body.append(note);
-        }
-
         renderPostMedia(body, guide.media || {});
       }
 
@@ -159,7 +148,6 @@
         const hasImages = Array.isArray(media.images) && media.images.length;
         const hasYoutube = Boolean(media.youtubeEmbed);
         const hasVideo = Boolean(media.videoFile);
-
         if (!hasImages && !hasYoutube && !hasVideo) return;
 
         const wrap = document.createElement("div");
@@ -193,7 +181,7 @@
         if (hasVideo) {
           const videoNote = document.createElement("div");
           videoNote.className = "post-inline-note";
-          videoNote.textContent = `동영상 파일: ${media.videoFile.name} (실제 서버 업로드 연결 전까지 파일명만 저장됩니다.)`;
+          videoNote.textContent = `동영상 파일: ${media.videoFile.name}`;
           wrap.append(videoNote);
         }
 
@@ -218,9 +206,8 @@
 
       function renderCompactList(guides, currentId) {
         const list = document.querySelector("#compactPostList");
-        const posts = guides.slice(0, 8);
-
-        posts.forEach((item) => {
+        list.innerHTML = "";
+        guides.slice(0, 8).forEach((item) => {
           const link = document.createElement("a");
           const title = document.createElement("span");
           const meta = document.createElement("small");
@@ -234,17 +221,13 @@
         });
       }
 
-      const guides = loadGuides();
-      const postIndex = guides.findIndex((item) => item.id === postId);
-      const guide = guides[postIndex];
+      loadPostData().then(({ post: guide, posts: guides, prevPost, nextPost }) => {
+        if (!guide) {
+          document.querySelector("#notFound").hidden = false;
+          return;
+        }
 
-      if (!guide) {
-        document.querySelector("#notFound").hidden = false;
-      } else {
-        guide.views = (Number(guide.views) || 0) + 1;
-        localStorage.setItem(storageKey, JSON.stringify(guides));
-
-        document.title = `${guide.title} - 삣삐이 온다`;
+        document.title = `${guide.title} - 삐삐 길드`;
         setText("#postCategory", guide.category || "게시글");
         setText("#postTitle", guide.title || "제목 없음");
         setText("#postSummary", guide.summary || "요약이 없습니다.");
@@ -276,11 +259,11 @@
           setText("#postAttachment", guide.attachment);
         }
 
-        bindSiblingPost("#prevPost", "이전 글", guides[postIndex - 1]);
-        bindSiblingPost("#nextPost", "다음 글", guides[postIndex + 1]);
+        bindSiblingPost("#prevPost", "이전 글", prevPost);
+        bindSiblingPost("#nextPost", "다음 글", nextPost);
         renderCompactList(guides, guide.id);
         document.querySelector("#postCard").hidden = false;
-      }
+      });
     </script>
   </body>
 </html>

@@ -45,6 +45,9 @@ export function initDb({ adminUser, adminPassword }) {
       summary TEXT,
       body TEXT,
       tags_json TEXT NOT NULL DEFAULT '[]',
+      attachment TEXT,
+      media_json TEXT NOT NULL DEFAULT '{}',
+      comments INTEGER NOT NULL DEFAULT 0,
       votes INTEGER NOT NULL DEFAULT 0,
       views INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'published',
@@ -100,6 +103,7 @@ export function initDb({ adminUser, adminPassword }) {
   `);
 
   migrateUsersTable();
+  migratePostsTable();
   ensureAdminUser(adminUser, adminPassword);
 }
 
@@ -113,6 +117,17 @@ function migrateUsersTable() {
   addColumn("provider_id", "TEXT");
   addColumn("email", "TEXT");
   addColumn("avatar_url", "TEXT");
+}
+
+function migratePostsTable() {
+  const columns = db.prepare("PRAGMA table_info(posts)").all().map((column) => column.name);
+  const addColumn = (name, definition) => {
+    if (!columns.includes(name)) db.prepare(`ALTER TABLE posts ADD COLUMN ${name} ${definition}`).run();
+  };
+
+  addColumn("attachment", "TEXT");
+  addColumn("media_json", "TEXT NOT NULL DEFAULT '{}'");
+  addColumn("comments", "INTEGER NOT NULL DEFAULT 0");
 }
 
 export function hashPassword(password) {

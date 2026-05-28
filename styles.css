@@ -1963,6 +1963,41 @@ p {
   font-weight: 900;
 }
 
+.admin-management-list article {
+  grid-template-columns: 42px minmax(0, 1fr) minmax(190px, auto);
+}
+
+.admin-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.admin-row-actions select,
+.admin-row-actions button {
+  min-height: 30px;
+  border: 1px solid #d7d7d7;
+  border-radius: 2px;
+  color: #333;
+  background: white;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-row-actions select {
+  width: 92px;
+  padding: 0 8px;
+}
+
+.admin-row-actions button {
+  padding: 0 9px;
+}
+
+.admin-row-actions button:last-child {
+  color: #d92828;
+}
+
 .admin-empty-row {
   margin: 0;
   padding: 28px 0;

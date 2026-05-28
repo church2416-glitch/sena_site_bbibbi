@@ -45,7 +45,7 @@ const googleRedirectUri = process.env.GOOGLE_REDIRECT_URI || `${siteUrl}/auth/go
 
 initDb({ adminUser, adminPassword });
 
-app.use(express.json({ limit: "100kb" }));
+app.use(express.json({ limit: "8mb" }));
 app.use(cookieParser(sessionSecret));
 app.use(requireMemberForPrivatePages);
 app.use(express.static(__dirname));
@@ -163,6 +163,68 @@ function requireAdmin(req, res, next) {
   }
   req.session = session;
   next();
+}
+
+function requireMember(req, res, next) {
+  const session = readSession(req);
+  if (!session) {
+    return res.status(401).json({ error: "로그인이 필요합니다." });
+  }
+
+  const user = findUserByUsername(session.username);
+  if (!user) {
+    return res.status(401).json({ error: "회원 정보를 찾을 수 없습니다." });
+  }
+
+  req.session = session;
+  req.user = user;
+  next();
+}
+
+function safeJsonParse(value, fallback) {
+  try {
+    return JSON.parse(value || "");
+  } catch {
+    return fallback;
+  }
+}
+
+function serializePost(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    comments: row.comments || 0,
+    game: row.game || "",
+    category: row.category,
+    summary: row.summary || "",
+    body: row.body || "",
+    tags: safeJsonParse(row.tags_json, []),
+    attachment: row.attachment || "",
+    media: safeJsonParse(row.media_json, {}),
+    votes: row.votes || 0,
+    views: row.views || 0,
+    status: row.status,
+    createdAt: row.created_at,
+    author: row.author_name || row.author_username || "익명",
+    authorUsername: row.author_username || "",
+  };
+}
+
+function selectPostRows(where = "posts.status = 'published'", params = []) {
+  return db
+    .prepare(
+      `
+        SELECT
+          posts.*,
+          users.display_name AS author_name,
+          users.username AS author_username
+        FROM posts
+        LEFT JOIN users ON users.id = posts.author_id
+        WHERE ${where}
+        ORDER BY datetime(posts.created_at) DESC
+      `,
+    )
+    .all(...params);
 }
 
 async function fetchLoungeBoard(boardId) {
@@ -328,6 +390,63 @@ app.patch("/api/me/display-name", (req, res) => {
 
   const user = updateUserDisplayName(session.username, displayName);
   res.json(serializeUser(user));
+});
+
+app.get("/api/posts", requireMember, (req, res) => {
+  res.json(selectPostRows().map(serializePost));
+});
+
+app.post("/api/posts", requireMember, (req, res) => {
+  const title = String(req.body?.title || "").trim();
+  const category = String(req.body?.category || "").trim();
+  const game = String(req.body?.game || "").trim();
+  const summary = String(req.body?.summary || "").trim();
+  const body = String(req.body?.body || "").trim();
+  const attachment = String(req.body?.attachment || "").trim();
+  const tags = Array.isArray(req.body?.tags) ? req.body.tags.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 4) : [];
+  const media = req.body?.media && typeof req.body.media === "object" ? req.body.media : {};
+
+  if (!title || title.length > 70) {
+    return res.status(400).json({ error: "제목은 1~70자로 입력해주세요." });
+  }
+  if (!category) {
+    return res.status(400).json({ error: "게시판을 선택해주세요." });
+  }
+  if (!summary || summary.length > 220) {
+    return res.status(400).json({ error: "요약은 1~220자로 입력해주세요." });
+  }
+
+  const id = crypto.randomUUID();
+  db.prepare(
+    `
+      INSERT INTO posts (
+        id, author_id, category, game, title, summary, body,
+        tags_json, attachment, media_json, votes, views, status
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 'published')
+    `,
+  ).run(id, req.user.id, category, game, title, summary, body, JSON.stringify(tags), attachment, JSON.stringify(media));
+
+  const post = selectPostRows("posts.id = ?", [id])[0];
+  res.status(201).json(serializePost(post));
+});
+
+app.get("/api/posts/:id", requireMember, (req, res) => {
+  const id = String(req.params.id || "");
+  db.prepare("UPDATE posts SET views = views + 1 WHERE id = ? AND status = 'published'").run(id);
+  const post = selectPostRows("posts.id = ? AND posts.status = 'published'", [id])[0];
+  if (!post) {
+    return res.status(404).json({ error: "게시글을 찾을 수 없습니다." });
+  }
+
+  const posts = selectPostRows().map(serializePost);
+  const index = posts.findIndex((item) => item.id === id);
+  res.json({
+    post: serializePost(post),
+    posts,
+    prevPost: index >= 0 ? posts[index - 1] || null : null,
+    nextPost: index >= 0 ? posts[index + 1] || null : null,
+  });
 });
 
 app.get("/auth/kakao", (req, res) => {
@@ -630,8 +749,96 @@ app.get("/api/admin/dashboard", requireAdmin, (req, res) => {
     counts,
     daily: dailyRows,
     recentUsers,
-    recentPosts,
+    recentPosts: recentPosts.map(serializePost),
   });
+});
+
+app.get("/api/admin/users", requireAdmin, (req, res) => {
+  const users = db
+    .prepare(
+      `
+        SELECT
+          users.id,
+          users.username,
+          users.display_name,
+          users.email,
+          users.provider,
+          users.role,
+          users.created_at,
+          COUNT(posts.id) AS post_count
+        FROM users
+        LEFT JOIN posts ON posts.author_id = users.id
+        GROUP BY users.id
+        ORDER BY datetime(users.created_at) DESC
+      `,
+    )
+    .all();
+  res.json(users);
+});
+
+app.patch("/api/admin/users/:id", requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  const role = String(req.body?.role || "").trim();
+  const displayName = String(req.body?.displayName || "").trim();
+  const allowedRoles = new Set(["user", "verified", "admin"]);
+
+  if (!allowedRoles.has(role)) {
+    return res.status(400).json({ error: "권한 값이 올바르지 않습니다." });
+  }
+  if (displayName && [...displayName].length > 16) {
+    return res.status(400).json({ error: "닉네임은 16자 이하로 입력해주세요." });
+  }
+
+  db.prepare(
+    `
+      UPDATE users
+      SET role = ?,
+          display_name = COALESCE(NULLIF(?, ''), display_name),
+          updated_at = datetime('now')
+      WHERE id = ?
+    `,
+  ).run(role, displayName, id);
+
+  const user = db.prepare("SELECT id, username, display_name, email, provider, role, created_at FROM users WHERE id = ?").get(id);
+  if (!user) return res.status(404).json({ error: "회원을 찾을 수 없습니다." });
+  res.json(user);
+});
+
+app.delete("/api/admin/users/:id", requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  const actor = findUserByUsername(req.session.username);
+  if (actor?.id === id) {
+    return res.status(400).json({ error: "본인 계정은 삭제할 수 없습니다." });
+  }
+
+  const result = db.prepare("DELETE FROM users WHERE id = ?").run(id);
+  if (!result.changes) return res.status(404).json({ error: "회원을 찾을 수 없습니다." });
+  res.json({ ok: true });
+});
+
+app.get("/api/admin/posts", requireAdmin, (req, res) => {
+  res.json(selectPostRows("1 = 1").map(serializePost));
+});
+
+app.patch("/api/admin/posts/:id", requireAdmin, (req, res) => {
+  const id = String(req.params.id || "");
+  const status = String(req.body?.status || "").trim();
+  const allowedStatuses = new Set(["published", "hidden", "deleted"]);
+  if (!allowedStatuses.has(status)) {
+    return res.status(400).json({ error: "상태 값이 올바르지 않습니다." });
+  }
+
+  const result = db.prepare("UPDATE posts SET status = ?, updated_at = datetime('now') WHERE id = ?").run(status, id);
+  if (!result.changes) return res.status(404).json({ error: "게시글을 찾을 수 없습니다." });
+  const post = selectPostRows("posts.id = ?", [id])[0];
+  res.json(serializePost(post));
+});
+
+app.delete("/api/admin/posts/:id", requireAdmin, (req, res) => {
+  const id = String(req.params.id || "");
+  const result = db.prepare("DELETE FROM posts WHERE id = ?").run(id);
+  if (!result.changes) return res.status(404).json({ error: "게시글을 찾을 수 없습니다." });
+  res.json({ ok: true });
 });
 
 app.get("/api/notices", async (req, res) => {

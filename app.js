@@ -261,6 +261,17 @@ function loadGuides() {
   return seedGuides;
 }
 
+async function loadGuidesFromServer() {
+  try {
+    const response = await fetch("/api/posts");
+    if (!response.ok) throw new Error("posts failed");
+    const posts = await response.json();
+    guides = Array.isArray(posts) ? posts : [];
+  } catch {
+    guides = loadGuides();
+  }
+}
+
 function saveGuides() {
   localStorage.setItem(storageKey, JSON.stringify(guides));
 }
@@ -756,9 +767,8 @@ profileModal?.addEventListener("click", (event) => {
 });
 
 window.addEventListener("focus", () => {
-  guides = loadGuides();
-  renderGuides();
+  loadGuidesFromServer().then(renderGuides);
 });
 
 fetchCurrentUser().then(renderAuthState);
-renderGuides();
+loadGuidesFromServer().then(renderGuides);
