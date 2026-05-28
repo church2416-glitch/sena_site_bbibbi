@@ -2719,7 +2719,7 @@ p {
 
 .admin-list {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .admin-list article {
@@ -2774,38 +2774,65 @@ p {
 }
 
 .admin-management-list article.admin-user-row {
-  grid-template-columns: 42px minmax(180px, 1fr) minmax(190px, auto);
-  align-items: start;
+  grid-template-columns: 46px minmax(260px, 1fr) minmax(220px, auto);
+  align-items: center;
+  gap: 14px 16px;
+  padding: 16px;
+  border: 1px solid #e7e7e7;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
 }
 
 .admin-user-row .admin-permission-grid {
-  grid-column: 2 / -1;
+  grid-column: 1 / -1;
 }
 
 .admin-permission-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
   gap: 8px;
   width: 100%;
-  padding: 10px;
-  border: 1px solid #e6e6e6;
+  padding: 12px;
+  border: 1px solid #ececf0;
+  border-radius: 8px;
   background: #fafafa;
 }
 
 .admin-permission-grid label {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 28px;
+  gap: 8px;
+  min-width: 0;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid #dedee6;
+  border-radius: 999px;
   color: #444;
+  background: #fff;
   font-size: 12px;
   font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.admin-permission-grid label:has(input:checked) {
+  border-color: rgba(255, 52, 47, 0.32);
+  color: #a51f1b;
+  background: #fff4f3;
 }
 
 .admin-permission-grid input {
-  width: 14px;
-  height: 14px;
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  margin: 0;
   accent-color: #ff342f;
+}
+
+.admin-permission-grid span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .admin-row-actions {
@@ -2817,9 +2844,9 @@ p {
 
 .admin-row-actions select,
 .admin-row-actions button {
-  min-height: 30px;
+  min-height: 34px;
   border: 1px solid #d7d7d7;
-  border-radius: 2px;
+  border-radius: 6px;
   color: #333;
   background: white;
   font-size: 12px;
@@ -2827,7 +2854,7 @@ p {
 }
 
 .admin-row-actions select {
-  width: 92px;
+  width: 112px;
   padding: 0 8px;
 }
 
@@ -2837,6 +2864,22 @@ p {
 
 .admin-row-actions button:last-child {
   color: #d92828;
+}
+
+@media (max-width: 860px) {
+  .admin-management-list article.admin-user-row {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .admin-user-row .admin-row-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .admin-permission-grid {
+    grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
+  }
 }
 
 .admin-settings-form {
