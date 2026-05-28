@@ -1,12 +1,22 @@
 const numberFormat = new Intl.NumberFormat("ko-KR");
 const memoKey = "bbibbi-admin-memo";
 
+const pageTitle = document.querySelector("#adminPageTitle");
+const navButtons = [...document.querySelectorAll("[data-admin-view]")];
+const viewButtons = [...document.querySelectorAll("[data-admin-view-button]")];
+const sections = [...document.querySelectorAll("[data-admin-section]")];
+
 const metricUsers = document.querySelector("#metricUsers");
 const metricVerified = document.querySelector("#metricVerified");
 const metricPosts = document.querySelector("#metricPosts");
 const metricSheets = document.querySelector("#metricSheets");
+const dbUsers = document.querySelector("#dbUsers");
+const dbPosts = document.querySelector("#dbPosts");
+const dbMedia = document.querySelector("#dbMedia");
+const dbAudit = document.querySelector("#dbAudit");
 const dailyChart = document.querySelector("#dailyChart");
 const dailyTable = document.querySelector("#dailyTable");
+const databaseTable = document.querySelector("#databaseTable");
 const recentUsers = document.querySelector("#recentUsers");
 const recentPosts = document.querySelector("#recentPosts");
 const contentCount = document.querySelector("#contentCount");
@@ -16,6 +26,14 @@ const adminMemo = document.querySelector("#adminMemo");
 const clearMemoButton = document.querySelector("#clearMemoButton");
 const adminLogoutButton = document.querySelector("#adminLogoutButton");
 const refreshUsersButton = document.querySelector("#refreshUsersButton");
+const refreshDatabaseButton = document.querySelector("#refreshDatabaseButton");
+
+const viewTitles = {
+  dashboard: "대시보드",
+  users: "사용자 관리",
+  contents: "콘텐츠 관리",
+  database: "데이터베이스",
+};
 
 function formatNumber(value) {
   return numberFormat.format(Number(value) || 0);
@@ -29,6 +47,14 @@ function formatDate(value) {
 
 function setText(target, value) {
   if (target) target.textContent = value;
+}
+
+function switchView(view) {
+  const nextView = viewTitles[view] ? view : "dashboard";
+  navButtons.forEach((button) => button.classList.toggle("active", button.dataset.adminView === nextView));
+  sections.forEach((section) => section.classList.toggle("active", section.dataset.adminSection === nextView));
+  setText(pageTitle, viewTitles[nextView]);
+  history.replaceState(null, "", `#${nextView}`);
 }
 
 function emptyRow(message) {
@@ -48,7 +74,6 @@ function renderChart(rows) {
     const userBar = document.createElement("i");
     const postBar = document.createElement("b");
     const label = document.createElement("span");
-
     item.className = "admin-chart-day";
     userBar.style.height = `${Math.max(6, (Number(row.users) / maxValue) * 100)}%`;
     postBar.style.height = `${Math.max(6, (Number(row.posts) / maxValue) * 100)}%`;
@@ -73,6 +98,34 @@ function renderDailyTable(rows) {
       });
       dailyTable.append(tr);
     });
+}
+
+function renderDatabaseTable(counts) {
+  if (!databaseTable) return;
+  const tableCounts = {
+    users: counts.users,
+    posts: counts.posts,
+    post_media: counts.post_media,
+    guild_war_sheets: counts.guild_war_sheets,
+    app_settings: counts.app_settings,
+    audit_logs: counts.audit_logs,
+  };
+
+  setText(dbUsers, formatNumber(counts.users));
+  setText(dbPosts, formatNumber(counts.posts));
+  setText(dbMedia, formatNumber(counts.post_media));
+  setText(dbAudit, formatNumber(counts.audit_logs));
+
+  databaseTable.innerHTML = "";
+  Object.entries(tableCounts).forEach(([table, count]) => {
+    const tr = document.createElement("tr");
+    const name = document.createElement("td");
+    const value = document.createElement("td");
+    name.textContent = table;
+    value.textContent = formatNumber(count);
+    tr.append(name, value);
+    databaseTable.append(tr);
+  });
 }
 
 function renderUsers(users) {
@@ -216,14 +269,19 @@ async function deletePost(id, title) {
 }
 
 async function loadDashboard() {
-  const [meResponse, dashboardResponse] = await Promise.all([fetch("/api/me"), fetch("/api/admin/dashboard")]);
-  if (!meResponse.ok || !dashboardResponse.ok) {
+  const [meResponse, dashboardResponse, dbResponse] = await Promise.all([
+    fetch("/api/me"),
+    fetch("/api/admin/dashboard"),
+    fetch("/api/admin/db-status"),
+  ]);
+  if (!meResponse.ok || !dashboardResponse.ok || !dbResponse.ok) {
     location.href = "/?login=required";
     return;
   }
 
   const me = await meResponse.json();
   const dashboard = await dashboardResponse.json();
+  const dbStatus = await dbResponse.json();
 
   setText(adminName, me.displayName || me.username || "관리자");
   setText(adminEmail, me.username || "admin");
@@ -234,8 +292,17 @@ async function loadDashboard() {
 
   renderChart(dashboard.daily || []);
   renderDailyTable(dashboard.daily || []);
+  renderDatabaseTable(dbStatus.counts || {});
   await loadManagementLists();
 }
+
+navButtons.forEach((button) => {
+  button.addEventListener("click", () => switchView(button.dataset.adminView));
+});
+
+viewButtons.forEach((button) => {
+  button.addEventListener("click", () => switchView(button.dataset.adminViewButton));
+});
 
 adminMemo.value = localStorage.getItem(memoKey) || "";
 adminMemo.addEventListener("input", () => {
@@ -248,12 +315,14 @@ clearMemoButton?.addEventListener("click", () => {
 });
 
 refreshUsersButton?.addEventListener("click", loadManagementLists);
+refreshDatabaseButton?.addEventListener("click", loadDashboard);
 
 adminLogoutButton?.addEventListener("click", async () => {
   await fetch("/api/logout", { method: "POST" });
   location.href = "/";
 });
 
+switchView(location.hash.replace("#", "") || "dashboard");
 loadDashboard().catch(() => {
   location.href = "/?login=required";
 });

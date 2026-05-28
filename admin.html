@@ -13,11 +13,11 @@
         <strong>삐삐 관리자</strong>
       </a>
       <nav class="admin-nav">
-        <a class="active" href="admin.html"><span>▦</span>대시보드</a>
-        <a href="#members"><span>♙</span>사용자 관리</a>
-        <a href="#contents"><span>✎</span>콘텐츠 관리</a>
+        <button class="active" type="button" data-admin-view="dashboard"><span>▦</span>대시보드</button>
+        <button type="button" data-admin-view="users"><span>♙</span>사용자 관리</button>
+        <button type="button" data-admin-view="contents"><span>✎</span>콘텐츠 관리</button>
         <a href="guild-war-admin.html"><span>⚔</span>길드전 족보</a>
-        <a href="#database"><span>◫</span>데이터베이스</a>
+        <button type="button" data-admin-view="database"><span>▣</span>데이터베이스</button>
         <a href="index.html"><span>⌂</span>사이트로</a>
       </nav>
       <div class="admin-locale">한국어</div>
@@ -27,98 +27,108 @@
       <header class="admin-topbar">
         <div>
           <span>운영 콘솔</span>
-          <strong>관리자 데이터베이스</strong>
+          <strong id="adminPageTitle">대시보드</strong>
         </div>
         <button class="admin-logout" id="adminLogoutButton" type="button">로그아웃</button>
       </header>
 
-      <section class="admin-metrics" aria-label="핵심 지표">
-        <article>
-          <span>전체 회원</span>
-          <strong id="metricUsers">0</strong>
-          <small>가입 계정</small>
-        </article>
-        <article>
-          <span>인증 회원</span>
-          <strong id="metricVerified">0</strong>
-          <small>SNS/검증 계정</small>
-        </article>
-        <article>
-          <span>게시글</span>
-          <strong id="metricPosts">0</strong>
-          <small>DB 저장 콘텐츠</small>
-        </article>
-        <article>
-          <span>길드전 족보</span>
-          <strong id="metricSheets">0</strong>
-          <small>운영 자료</small>
-        </article>
+      <section class="admin-view active" data-admin-section="dashboard">
+        <section class="admin-metrics" aria-label="핵심 지표">
+          <article><span>전체 회원</span><strong id="metricUsers">0</strong><small>가입 계정</small></article>
+          <article><span>인증 회원</span><strong id="metricVerified">0</strong><small>SNS/검증 계정</small></article>
+          <article><span>게시글</span><strong id="metricPosts">0</strong><small>DB 저장 콘텐츠</small></article>
+          <article><span>길드전 족보</span><strong id="metricSheets">0</strong><small>운영 자료</small></article>
+        </section>
+
+        <div class="admin-grid">
+          <section class="admin-panel admin-chart-panel" aria-label="일자별 현황">
+            <div class="admin-panel-head">
+              <h1>일자별 현황</h1>
+              <div class="admin-legend"><span>회원</span><span>게시글</span></div>
+            </div>
+            <div class="admin-chart" id="dailyChart" aria-label="최근 7일 회원과 게시글 현황"></div>
+          </section>
+
+          <section class="admin-panel">
+            <div class="admin-panel-head">
+              <h2>DB 요약</h2>
+              <button type="button" data-admin-view-button="database">관리</button>
+            </div>
+            <table class="admin-table">
+              <thead><tr><th>일자</th><th>회원</th><th>게시글</th></tr></thead>
+              <tbody id="dailyTable"></tbody>
+            </table>
+          </section>
+
+          <aside class="admin-profile-panel">
+            <div class="admin-avatar">A</div>
+            <strong id="adminName">관리자</strong>
+            <span id="adminEmail">admin</span>
+            <dl>
+              <div><dt>권한</dt><dd>최고 관리자</dd></div>
+              <div><dt>상태</dt><dd>운영 중</dd></div>
+              <div><dt>DB</dt><dd>SQLite</dd></div>
+            </dl>
+          </aside>
+
+          <section class="admin-panel admin-note-panel">
+            <div class="admin-panel-head">
+              <h2>운영자 메모</h2>
+              <button id="clearMemoButton" type="button">초기화</button>
+            </div>
+            <textarea id="adminMemo" placeholder="관리자들과 공유할 메모를 남겨주세요."></textarea>
+          </section>
+        </div>
       </section>
 
-      <div class="admin-grid">
-        <section class="admin-panel admin-chart-panel" aria-label="방문자 현황">
+      <section class="admin-view" data-admin-section="users">
+        <section class="admin-panel admin-wide-panel">
           <div class="admin-panel-head">
-            <h1>일자별 현황</h1>
-            <div class="admin-legend">
-              <span>회원</span>
-              <span>게시글</span>
+            <div>
+              <h1>사용자 관리</h1>
+              <small>회원 권한 변경, 계정 삭제, 가입 경로 확인</small>
             </div>
-          </div>
-          <div class="admin-chart" id="dailyChart" aria-label="최근 7일 회원과 게시글 현황"></div>
-        </section>
-
-        <section class="admin-panel" id="database">
-          <div class="admin-panel-head">
-            <h2>DB 요약</h2>
-            <small>SQLite</small>
-          </div>
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>일자</th>
-                <th>회원</th>
-                <th>게시글</th>
-              </tr>
-            </thead>
-            <tbody id="dailyTable"></tbody>
-          </table>
-        </section>
-
-        <aside class="admin-profile-panel">
-          <div class="admin-avatar">A</div>
-          <strong id="adminName">관리자</strong>
-          <span id="adminEmail">admin</span>
-          <dl>
-            <div><dt>권한</dt><dd>최고 관리자</dd></div>
-            <div><dt>상태</dt><dd>운영 중</dd></div>
-            <div><dt>DB</dt><dd>SQLite</dd></div>
-          </dl>
-        </aside>
-
-        <section class="admin-panel" id="members">
-          <div class="admin-panel-head">
-            <h2>사용자 관리</h2>
             <button id="refreshUsersButton" type="button">새로고침</button>
           </div>
           <div class="admin-list admin-management-list" id="recentUsers"></div>
         </section>
+      </section>
 
-        <section class="admin-panel" id="contents">
+      <section class="admin-view" data-admin-section="contents">
+        <section class="admin-panel admin-wide-panel">
           <div class="admin-panel-head">
-            <h2>콘텐츠 관리</h2>
+            <div>
+              <h1>콘텐츠 관리</h1>
+              <small>게시글 공개 상태 변경과 삭제</small>
+            </div>
             <span class="admin-count" id="contentCount">0</span>
           </div>
           <div class="admin-list admin-management-list content-list" id="recentPosts"></div>
         </section>
+      </section>
 
-        <section class="admin-panel admin-note-panel">
-          <div class="admin-panel-head">
-            <h2>운영자 메모</h2>
-            <button id="clearMemoButton" type="button">초기화</button>
-          </div>
-          <textarea id="adminMemo" placeholder="관리자들과 공유할 메모를 남겨주세요."></textarea>
+      <section class="admin-view" data-admin-section="database">
+        <section class="admin-metrics admin-db-metrics" aria-label="데이터베이스 테이블 현황">
+          <article><span>users</span><strong id="dbUsers">0</strong><small>회원</small></article>
+          <article><span>posts</span><strong id="dbPosts">0</strong><small>게시글</small></article>
+          <article><span>media</span><strong id="dbMedia">0</strong><small>첨부</small></article>
+          <article><span>audit</span><strong id="dbAudit">0</strong><small>로그</small></article>
         </section>
-      </div>
+
+        <section class="admin-panel admin-wide-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h1>데이터베이스</h1>
+              <small>SQLite 테이블 카운트와 최근 7일 저장 현황</small>
+            </div>
+            <button id="refreshDatabaseButton" type="button">새로고침</button>
+          </div>
+          <table class="admin-table">
+            <thead><tr><th>테이블</th><th>레코드</th></tr></thead>
+            <tbody id="databaseTable"></tbody>
+          </table>
+        </section>
+      </section>
     </main>
 
     <script src="admin.js"></script>

@@ -1611,19 +1611,26 @@ p {
   padding: 12px 0;
 }
 
-.admin-nav a {
+.admin-nav a,
+.admin-nav button {
   display: flex;
   align-items: center;
   gap: 13px;
   min-height: 48px;
+  width: 100%;
   padding: 0 20px;
+  border: 0;
   color: #e4e4e4;
   font-size: 14px;
   font-weight: 800;
+  text-align: left;
+  background: transparent;
 }
 
 .admin-nav a.active,
-.admin-nav a:hover {
+.admin-nav button.active,
+.admin-nav a:hover,
+.admin-nav button:hover {
   background: #0b78ff;
   color: white;
 }
@@ -1646,6 +1653,14 @@ p {
   min-height: 100vh;
   margin-left: 228px;
   padding: 70px 24px 28px;
+}
+
+.admin-view {
+  display: none;
+}
+
+.admin-view.active {
+  display: block;
 }
 
 .admin-topbar {
@@ -1735,6 +1750,10 @@ p {
 .admin-panel {
   min-height: 260px;
   padding: 18px 24px;
+}
+
+.admin-wide-panel {
+  min-height: calc(100vh - 118px);
 }
 
 .admin-chart-panel {
