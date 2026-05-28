@@ -1,9 +1,16 @@
 import Database from "better-sqlite3";
+import dotenv from "dotenv";
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { fileURLToPath } from "node:url";
 
-const dataDir = path.join(process.cwd(), "data");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, ".env") });
+
+const dataDir = path.join(__dirname, "data");
 const dbPath = process.env.DB_PATH || path.join(dataDir, "bbibbi.sqlite");
 
 fs.mkdirSync(path.dirname(dbPath), { recursive: true });
