@@ -38,6 +38,10 @@
   display: none !important;
 }
 
+body.auth-modal-open {
+  overflow: hidden;
+}
+
 body.is-guest-locked .main-area,
 body.is-guest-locked .sidebar .side-nav,
 body.is-guest-locked .sidebar .score-card,
@@ -53,6 +57,40 @@ body.is-guest-locked .app-shell {
 
 body.is-guest-locked .right-rail {
   align-self: center;
+}
+
+.guest-login-fallback {
+  position: fixed;
+  right: 16px;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  z-index: 38;
+  display: none;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px solid rgba(89, 224, 202, 0.55);
+  border-radius: 999px;
+  color: #06100f;
+  background: linear-gradient(135deg, #67eadb, #8df3c4);
+  box-shadow: 0 16px 40px rgba(64, 210, 163, 0.28);
+  font-size: 15px;
+  font-weight: 1000;
+}
+
+body.is-guest-locked .guest-login-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body:not(.is-guest-locked) .guest-login-fallback,
+body.auth-modal-open .guest-login-fallback {
+  display: none;
+}
+
+@media (min-width: 861px) {
+  .guest-login-fallback {
+    display: none !important;
+  }
 }
 
 html {
@@ -3654,6 +3692,16 @@ p {
 
   body.is-guest-locked .login-card {
     display: grid;
+  }
+
+  body.is-guest-locked .compact-login {
+    width: min(100%, 280px);
+    min-height: 154px;
+  }
+
+  body.is-guest-locked .compact-login button {
+    min-height: 46px;
+    font-size: 15px;
   }
 
   .app-shell {

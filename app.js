@@ -155,6 +155,7 @@ const signupForm = document.querySelector("#signupForm");
 const profileForm = document.querySelector("#profileForm");
 const providerLoginOpenButton = document.querySelector("#providerLoginOpenButton");
 const mobileLoginButton = document.querySelector("#mobileLoginButton");
+const guestLoginFallbackButton = document.querySelector("#guestLoginFallbackButton");
 const adminDashboardLink = document.querySelector("#adminDashboardLink");
 const kakaoLoginButton = document.querySelector("#kakaoLoginButton");
 const loginCloseButton = document.querySelector("#loginCloseButton");
@@ -344,14 +345,17 @@ function renderAuthState(user) {
 function openLoginModal() {
   if (!loginModal) return;
   loginModal.hidden = false;
+  loginModal.removeAttribute("hidden");
+  document.body.classList.add("auth-modal-open");
   loginError.hidden = true;
   if (providerMessage) providerMessage.hidden = true;
-  loginForm?.username?.focus();
+  window.setTimeout(() => loginForm?.username?.focus(), 30);
 }
 
 function closeLoginModal() {
   if (!loginModal) return;
   loginModal.hidden = true;
+  document.body.classList.remove("auth-modal-open");
   loginForm?.reset();
 }
 
@@ -359,19 +363,24 @@ function openSignupModal() {
   if (!signupModal) return;
   closeLoginModal();
   signupModal.hidden = false;
+  signupModal.removeAttribute("hidden");
+  document.body.classList.add("auth-modal-open");
   if (signupError) signupError.hidden = true;
-  signupForm?.username?.focus();
+  window.setTimeout(() => signupForm?.username?.focus(), 30);
 }
 
 function closeSignupModal() {
   if (!signupModal) return;
   signupModal.hidden = true;
+  document.body.classList.remove("auth-modal-open");
   signupForm?.reset();
 }
 
 function openProfileModal() {
   if (!profileModal) return;
   profileModal.hidden = false;
+  profileModal.removeAttribute("hidden");
+  document.body.classList.add("auth-modal-open");
   if (profileError) profileError.hidden = true;
   if (profileForm?.displayName) {
     profileForm.displayName.value = currentUser?.displayName || currentUser?.username || "";
@@ -383,6 +392,7 @@ function openProfileModal() {
 function closeProfileModal() {
   if (!profileModal) return;
   profileModal.hidden = true;
+  document.body.classList.remove("auth-modal-open");
   profileForm?.reset();
 }
 
@@ -820,6 +830,7 @@ window.addEventListener("popstate", () => {
 
 providerLoginOpenButton?.addEventListener("click", openLoginModal);
 mobileLoginButton?.addEventListener("click", openLoginModal);
+guestLoginFallbackButton?.addEventListener("click", openLoginModal);
 loginCloseButton?.addEventListener("click", closeLoginModal);
 loginForm?.addEventListener("submit", submitLogin);
 profileButton?.addEventListener("click", openProfileModal);
