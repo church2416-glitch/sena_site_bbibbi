@@ -5,8 +5,10 @@
   const soundKey = "bbibbi-notification-sound";
   const volumeKey = "bbibbi-notification-volume";
   const audio = new Audio("assets/sound/notification-pling.mp3");
+  const channel = "BroadcastChannel" in window ? new BroadcastChannel("bbibbi-notifications") : null;
   let stream = null;
   let audioContext = null;
+  let lastPlayedNotificationId = "";
 
   audio.preload = "auto";
 
@@ -39,6 +41,37 @@
       audio.dataset.unlocked = "true";
     }).catch(() => {});
     audio.volume = originalVolume;
+    hideSoundPrompt();
+  }
+
+  function showSoundPrompt() {
+    if (document.querySelector("#bbibbiSoundPrompt")) return;
+    const button = document.createElement("button");
+    button.id = "bbibbiSoundPrompt";
+    button.type = "button";
+    button.textContent = "알림음 켜기";
+    button.style.cssText = [
+      "position:fixed",
+      "right:18px",
+      "bottom:18px",
+      "z-index:9999",
+      "min-height:42px",
+      "padding:0 16px",
+      "border:1px solid rgba(111,224,205,.6)",
+      "border-radius:8px",
+      "color:#06100f",
+      "background:#6fe0cd",
+      "font-weight:900",
+      "box-shadow:0 16px 40px rgba(0,0,0,.35)",
+    ].join(";");
+    button.addEventListener("click", () => {
+      unlockSound().then(playNotificationSound);
+    });
+    document.body.append(button);
+  }
+
+  function hideSoundPrompt() {
+    document.querySelector("#bbibbiSoundPrompt")?.remove();
   }
 
   function playFallbackTone(volume) {
@@ -60,13 +93,26 @@
     oscillator.stop(start + 0.24);
   }
 
-  function playNotificationSound() {
+  function playNotificationSound(notificationId = "") {
+    if (notificationId && lastPlayedNotificationId === notificationId) return;
+    if (notificationId) lastPlayedNotificationId = notificationId;
+
     const volume = soundVolume();
     if (!soundEnabled() || volume <= 0) return;
 
     const clone = audio.cloneNode(true);
     clone.volume = volume;
-    clone.play().catch(() => playFallbackTone(volume));
+    clone.play().catch(() => {
+      playFallbackTone(volume);
+      if (getAudioContext()?.state !== "running") showSoundPrompt();
+    });
+  }
+
+  function handleNotification(notification, notifyOtherTabs = true) {
+    if (!notification) return;
+    const notificationId = String(notification.id || `${notification.type}-${notification.createdAt || Date.now()}`);
+    playNotificationSound(notificationId);
+    if (notifyOtherTabs) channel?.postMessage({ type: "notification", notification });
   }
 
   async function startNotificationStream() {
@@ -78,7 +124,7 @@
     stream = new EventSource("/api/me/notifications/stream");
     stream.addEventListener("notification", (event) => {
       const data = JSON.parse(event.data || "{}");
-      if (data.notification) playNotificationSound();
+      handleNotification(data.notification);
     });
     stream.onerror = () => {
       stream?.close();
@@ -88,6 +134,11 @@
   }
 
   document.addEventListener("pointerdown", unlockSound, { once: true });
+  document.addEventListener("click", unlockSound, { once: true });
+  document.addEventListener("touchstart", unlockSound, { once: true });
   document.addEventListener("keydown", unlockSound, { once: true });
+  channel?.addEventListener("message", (event) => {
+    if (event.data?.type === "notification") handleNotification(event.data.notification, false);
+  });
   startNotificationStream();
 })();

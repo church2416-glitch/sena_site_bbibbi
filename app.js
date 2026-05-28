@@ -264,6 +264,7 @@ let notificationVolume = Number(localStorage.getItem("bbibbi-notification-volume
 if (!Number.isFinite(notificationVolume)) notificationVolume = 0.72;
 notificationVolume = Math.max(0, Math.min(1, notificationVolume));
 let notificationAudioContext = null;
+const notificationBroadcastChannel = "BroadcastChannel" in window ? new BroadcastChannel("bbibbi-notifications") : null;
 const notificationAudio = new Audio("assets/sound/notification-pling.mp3");
 notificationAudio.preload = "auto";
 notificationAudio.volume = notificationVolume;
@@ -694,7 +695,10 @@ function connectNotificationStream() {
   notificationStream.addEventListener("notification", (event) => {
     const data = JSON.parse(event.data || "{}");
     setNotificationBadge(data.unreadCount);
-    if (data.notification) playNotificationSound();
+    if (data.notification) {
+      playNotificationSound();
+      notificationBroadcastChannel?.postMessage({ type: "notification", notification: data.notification });
+    }
     if (!profileModal?.hidden && data.notification) {
       loadAccountDashboard();
     }
