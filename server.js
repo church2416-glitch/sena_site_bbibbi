@@ -2,6 +2,7 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import crypto from "node:crypto";
 import dotenv from "dotenv";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -50,11 +51,12 @@ const defaultGuildSeasonSettings = {
   autoUpdateWeekdays: [1, 3, 6],
   lastAutoUpdateDate: "",
 };
-const maxPostVideoSize = 20 * 1024 * 1024;
+const maxPostVideoSize = 80 * 1024 * 1024;
+const uploadRoot = path.join(__dirname, "uploads");
 
 initDb({ adminUser, adminPassword });
 
-app.use(express.json({ limit: "40mb" }));
+app.use(express.json({ limit: "120mb" }));
 app.use(cookieParser(sessionSecret));
 app.use(requireMemberForPrivatePages);
 app.use(express.static(__dirname));
@@ -350,6 +352,47 @@ function normalizePostMedia(media = {}) {
   };
 }
 
+function extensionFromMime(mimeType = "") {
+  const cleanType = String(mimeType).split(";")[0].trim().toLowerCase();
+  const map = {
+    "video/mp4": "mp4",
+    "video/webm": "webm",
+    "video/ogg": "ogv",
+    "video/quicktime": "mov",
+  };
+  return map[cleanType] || "mp4";
+}
+
+function savePostVideoFile(postId, videoFile) {
+  if (!videoFile?.src) return null;
+  if (!String(videoFile.src).startsWith("/uploads/") && !String(videoFile.src).startsWith("data:video/")) return null;
+  if (String(videoFile.src).startsWith("/uploads/")) return videoFile;
+
+  const match = String(videoFile.src).match(/^data:(video\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+  if (!match) return null;
+
+  const type = String(videoFile.type || match[1] || "video/mp4").slice(0, 80);
+  const buffer = Buffer.from(match[2], "base64");
+  if (buffer.length > maxPostVideoSize) {
+    const error = new Error("video_too_large");
+    error.status = 400;
+    throw error;
+  }
+
+  const directory = path.join(uploadRoot, "posts", postId);
+  const extension = extensionFromMime(type);
+  const storedName = `video.${extension}`;
+  fs.mkdirSync(directory, { recursive: true });
+  fs.writeFileSync(path.join(directory, storedName), buffer);
+
+  return {
+    name: String(videoFile.name || "첨부 동영상").slice(0, 80),
+    type,
+    size: buffer.length,
+    src: `/uploads/posts/${postId}/${storedName}`,
+  };
+}
+
 function selectPostRows(where = "posts.status = 'published'", params = []) {
   return db
     .prepare(
@@ -556,11 +599,16 @@ app.post("/api/posts", requireMember, (req, res) => {
     return res.status(400).json({ error: "요약은 1~220자로 입력해주세요." });
   }
 
-  if (media.videoFile?.size > maxPostVideoSize) {
-    return res.status(400).json({ error: "동영상은 20MB 이하로 업로드해주세요." });
+  const id = crypto.randomUUID();
+  try {
+    media.videoFile = savePostVideoFile(id, media.videoFile);
+  } catch (err) {
+    if (err.status === 400) {
+      return res.status(400).json({ error: "동영상은 80MB 이하로 업로드해주세요." });
+    }
+    throw err;
   }
 
-  const id = crypto.randomUUID();
   db.prepare(
     `
       INSERT INTO posts (

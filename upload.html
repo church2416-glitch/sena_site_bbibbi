@@ -128,7 +128,7 @@
       let videoFile = null;
       let currentUser = { loggedIn: false, displayName: "익명" };
       const maxImageSize = 1.5 * 1024 * 1024;
-      const maxVideoSize = 20 * 1024 * 1024;
+      const maxVideoSize = 80 * 1024 * 1024;
 
       function makeId() {
         if (crypto.randomUUID) return crypto.randomUUID();
@@ -236,7 +236,7 @@
       videoInput.addEventListener("change", () => {
         videoFile = videoInput.files[0] || null;
         if (videoFile && videoFile.size > maxVideoSize) {
-          draftState.textContent = "동영상은 20MB 이하만 업로드할 수 있어요.";
+          draftState.textContent = "동영상은 80MB 이하만 업로드할 수 있어요.";
           videoInput.value = "";
           videoFile = null;
         }
