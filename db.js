@@ -137,6 +137,19 @@ export function findUserByUsername(username) {
   return db.prepare("SELECT * FROM users WHERE username = ?").get(username);
 }
 
+export function updateUserDisplayName(username, displayName) {
+  db.prepare(
+    `
+      UPDATE users
+      SET display_name = ?,
+          updated_at = datetime('now')
+      WHERE username = ?
+    `,
+  ).run(displayName, username);
+
+  return findUserByUsername(username);
+}
+
 export function createLocalUser({ username, password, displayName, email }) {
   const result = db.prepare(
     `
@@ -156,7 +169,7 @@ export function upsertOAuthUser({ provider, providerId, username, displayName, e
         UPDATE users
         SET username = ?,
             role = CASE WHEN role = 'admin' THEN role ELSE 'verified' END,
-            display_name = ?,
+            display_name = COALESCE(NULLIF(display_name, ''), ?),
             email = ?,
             avatar_url = ?,
             updated_at = datetime('now')

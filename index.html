@@ -112,6 +112,7 @@
           <div class="login-card compact-login">
             <p id="loginStateText">로그인하고<br />댓글과 공략글을</p>
             <button id="providerLoginOpenButton" type="button">로그인</button>
+            <button class="ghost-login-button" id="profileButton" type="button" hidden>닉네임 변경</button>
             <button class="ghost-login-button" id="logoutButton" type="button" hidden>로그아웃</button>
             <a href="#" id="roleText">회원가입</a>
           </div>
@@ -212,6 +213,22 @@
         <p class="auth-error" id="signupError" hidden></p>
         <button class="auth-primary-button" type="submit">회원가입</button>
         <button class="auth-secondary-button" id="signupToLoginButton" type="button">로그인으로 돌아가기</button>
+      </form>
+    </div>
+
+    <div class="auth-modal" id="profileModal" hidden>
+      <form class="auth-dialog login-dialog" id="profileForm" autocomplete="off">
+        <div class="login-dialog-head">
+          <h2>PROFILE</h2>
+          <button class="icon-button" id="profileCloseButton" type="button" aria-label="프로필 닫기">×</button>
+        </div>
+        <p class="auth-caption">사이트에서 표시할 닉네임을 정해주세요.</p>
+        <label class="auth-input-row" aria-label="닉네임">
+          <span class="auth-field-icon">NN</span>
+          <input id="profileDisplayNameInput" name="displayName" type="text" placeholder="닉네임 2~16자" minlength="2" maxlength="16" required />
+        </label>
+        <p class="auth-error" id="profileError" hidden></p>
+        <button class="auth-primary-button" type="submit">저장</button>
       </form>
     </div>
 

@@ -149,19 +149,24 @@ const searchInput = document.querySelector("#searchInput");
 const categoryButtons = [...document.querySelectorAll("[data-filter]")];
 const loginModal = document.querySelector("#loginModal");
 const signupModal = document.querySelector("#signupModal");
+const profileModal = document.querySelector("#profileModal");
 const loginForm = document.querySelector("#loginForm");
 const signupForm = document.querySelector("#signupForm");
+const profileForm = document.querySelector("#profileForm");
 const providerLoginOpenButton = document.querySelector("#providerLoginOpenButton");
 const kakaoLoginButton = document.querySelector("#kakaoLoginButton");
 const loginCloseButton = document.querySelector("#loginCloseButton");
+const profileCloseButton = document.querySelector("#profileCloseButton");
 const signupButton = document.querySelector("#signupButton");
 const signupCloseButton = document.querySelector("#signupCloseButton");
 const signupToLoginButton = document.querySelector("#signupToLoginButton");
+const profileButton = document.querySelector("#profileButton");
 const logoutButton = document.querySelector("#logoutButton");
 const loginStateText = document.querySelector("#loginStateText");
 const roleText = document.querySelector("#roleText");
 const loginError = document.querySelector("#loginError");
 const signupError = document.querySelector("#signupError");
+const profileError = document.querySelector("#profileError");
 const providerMessage = document.querySelector("#providerMessage");
 
 const boardInfo = {
@@ -206,6 +211,7 @@ const boardInfo = {
 let activeCategory = "전체";
 let guides = loadGuides();
 let voted = new Set(JSON.parse(localStorage.getItem(votedKey) || "[]"));
+let currentUser = { loggedIn: false, role: "guest" };
 
 const seedNotices = [
   {
@@ -273,15 +279,18 @@ async function fetchCurrentUser() {
 }
 
 function renderAuthState(user) {
+  currentUser = user || { loggedIn: false, role: "guest" };
   const isAdmin = Boolean(user?.isAdmin);
   const roleLabel = isAdmin ? "관리자" : user?.isVerified ? "인증 회원" : "일반 회원";
+  const displayName = user?.displayName || user?.username || "user";
   if (loginStateText) {
     loginStateText.innerHTML = user?.loggedIn
-      ? `${roleLabel}<br />${user.username || "user"}`
+      ? `${roleLabel}<br />${displayName}`
       : "로그인하고<br />댓글과 공략글을";
   }
   if (providerLoginOpenButton) providerLoginOpenButton.hidden = Boolean(user?.loggedIn);
   if (kakaoLoginButton) kakaoLoginButton.hidden = Boolean(user?.loggedIn);
+  if (profileButton) profileButton.hidden = !user?.loggedIn;
   if (logoutButton) logoutButton.hidden = !user?.loggedIn;
   if (roleText) {
     roleText.textContent = user?.loggedIn ? roleLabel : "회원가입";
@@ -316,6 +325,23 @@ function closeSignupModal() {
   if (!signupModal) return;
   signupModal.hidden = true;
   signupForm?.reset();
+}
+
+function openProfileModal() {
+  if (!profileModal) return;
+  profileModal.hidden = false;
+  if (profileError) profileError.hidden = true;
+  if (profileForm?.displayName) {
+    profileForm.displayName.value = currentUser?.displayName || currentUser?.username || "";
+    profileForm.displayName.focus();
+    profileForm.displayName.select();
+  }
+}
+
+function closeProfileModal() {
+  if (!profileModal) return;
+  profileModal.hidden = true;
+  profileForm?.reset();
 }
 
 function showProviderSoon(provider) {
@@ -371,6 +397,28 @@ async function submitSignup(event) {
 
   renderAuthState(await response.json());
   closeSignupModal();
+}
+
+async function submitProfile(event) {
+  event.preventDefault();
+  const formData = new FormData(profileForm);
+  const response = await fetch("/api/me/display-name", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      displayName: formData.get("displayName"),
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: "닉네임 저장 실패" }));
+    profileError.textContent = error.error || "닉네임 저장 실패";
+    profileError.hidden = false;
+    return;
+  }
+
+  renderAuthState(await response.json());
+  closeProfileModal();
 }
 
 async function logout() {
@@ -670,6 +718,9 @@ categoryButtons.forEach((button) => {
 providerLoginOpenButton?.addEventListener("click", openLoginModal);
 loginCloseButton?.addEventListener("click", closeLoginModal);
 loginForm?.addEventListener("submit", submitLogin);
+profileButton?.addEventListener("click", openProfileModal);
+profileCloseButton?.addEventListener("click", closeProfileModal);
+profileForm?.addEventListener("submit", submitProfile);
 logoutButton?.addEventListener("click", logout);
 signupButton?.addEventListener("click", () => {
   openSignupModal();
@@ -692,6 +743,9 @@ loginModal?.addEventListener("click", (event) => {
 });
 signupModal?.addEventListener("click", (event) => {
   if (event.target === signupModal) closeSignupModal();
+});
+profileModal?.addEventListener("click", (event) => {
+  if (event.target === profileModal) closeProfileModal();
 });
 
 window.addEventListener("focus", () => {

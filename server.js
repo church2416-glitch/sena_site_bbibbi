@@ -4,7 +4,15 @@ import crypto from "node:crypto";
 import dotenv from "dotenv";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createLocalUser, db, findUserByUsername, initDb, upsertOAuthUser, verifyPassword } from "./db.js";
+import {
+  createLocalUser,
+  db,
+  findUserByUsername,
+  initDb,
+  updateUserDisplayName,
+  upsertOAuthUser,
+  verifyPassword,
+} from "./db.js";
 
 const app = express();
 const port = 3000;
@@ -72,12 +80,26 @@ function readSession(req) {
 function getPublicUser(req) {
   const session = readSession(req);
   if (!session) return { loggedIn: false, role: "guest" };
+  const user = findUserByUsername(session.username);
+  const role = user?.role || session.role;
   return {
     loggedIn: true,
     username: session.username,
-    role: session.role,
-    isAdmin: session.role === "admin",
-    isVerified: session.role === "verified" || session.role === "admin",
+    displayName: user?.display_name || session.username,
+    role,
+    isAdmin: role === "admin",
+    isVerified: role === "verified" || role === "admin",
+  };
+}
+
+function serializeUser(user) {
+  return {
+    loggedIn: true,
+    username: user.username,
+    displayName: user.display_name || user.username,
+    role: user.role,
+    isAdmin: user.role === "admin",
+    isVerified: user.role === "verified" || user.role === "admin",
   };
 }
 
@@ -221,13 +243,7 @@ app.post("/api/login", (req, res) => {
   }
 
   setAuthCookie(res, user.username);
-  res.json({
-    loggedIn: true,
-    username: user.username,
-    role: user.role,
-    isAdmin: user.role === "admin",
-    isVerified: user.role === "verified" || user.role === "admin",
-  });
+  res.json(serializeUser(user));
 });
 
 app.post("/api/register", (req, res) => {
@@ -265,13 +281,7 @@ app.post("/api/register", (req, res) => {
     });
 
     setAuthCookie(res, user.username);
-    res.json({
-      loggedIn: true,
-      username: user.username,
-      role: user.role,
-      isAdmin: false,
-      isVerified: false,
-    });
+    res.json(serializeUser(user));
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "회원가입 처리 중 오류가 발생했습니다." });
@@ -281,6 +291,23 @@ app.post("/api/register", (req, res) => {
 app.post("/api/logout", (req, res) => {
   res.clearCookie(authCookieName);
   res.json({ loggedIn: false, role: "guest" });
+});
+
+app.patch("/api/me/display-name", (req, res) => {
+  const session = readSession(req);
+  if (!session) {
+    return res.status(401).json({ error: "로그인이 필요합니다." });
+  }
+
+  const displayName = String(req.body?.displayName || "").trim();
+  const displayNameLength = [...displayName].length;
+
+  if (displayNameLength < 2 || displayNameLength > 16) {
+    return res.status(400).json({ error: "닉네임은 2~16자로 입력해주세요." });
+  }
+
+  const user = updateUserDisplayName(session.username, displayName);
+  res.json(serializeUser(user));
 });
 
 app.get("/auth/kakao", (req, res) => {
