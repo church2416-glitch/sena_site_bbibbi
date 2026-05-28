@@ -280,6 +280,7 @@ notificationAudio.preload = "auto";
 notificationAudio.volume = notificationVolume;
 let notificationUnreadCountReady = false;
 let lastNotificationUnreadCount = 0;
+let importantNoticeLoaded = false;
 
 const seedNotices = [
   {
@@ -385,6 +386,7 @@ function renderAuthState(user) {
   if (user?.loggedIn) {
     loadNotificationBadge();
     connectNotificationStream();
+    loadImportantNotice();
   } else {
     closeNotificationStream();
   }
@@ -1121,6 +1123,7 @@ function closeImportantNotice() {
 
 function showImportantNotice(notice) {
   if (!importantNoticeModal || !notice?.enabled) return;
+  importantNoticeLoaded = true;
   const dismissKey = importantNoticeDismissKey(notice);
   if (localStorage.getItem(dismissKey) === "hidden") return;
 
@@ -1156,6 +1159,7 @@ function showImportantNotice(notice) {
 }
 
 async function loadImportantNotice() {
+  if (importantNoticeLoaded) return;
   try {
     const response = await fetch("/api/important-notice");
     if (!response.ok) return;
