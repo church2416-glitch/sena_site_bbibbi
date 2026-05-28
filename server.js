@@ -179,6 +179,27 @@ const uploadPostMedia = multer({
   { name: "images", maxCount: 6 },
   { name: "videos", maxCount: 3 },
 ]);
+const uploadNoticeImage = multer({
+  storage: multer.diskStorage({
+    destination(req, file, cb) {
+      const directory = path.join(uploadRoot, "notices");
+      fs.mkdirSync(directory, { recursive: true });
+      cb(null, directory);
+    },
+    filename(req, file, cb) {
+      const extension = extensionFromMime(file.mimetype || "") || path.extname(file.originalname).slice(1) || "png";
+      cb(null, `notice-${Date.now().toString(36)}-${crypto.randomBytes(5).toString("hex")}.${extension}`);
+    },
+  }),
+  limits: {
+    fileSize: maxPostImageSize,
+    files: 1,
+  },
+  fileFilter(req, file, cb) {
+    if (file.mimetype.startsWith("image/")) return cb(null, true);
+    return cb(new Error("unsupported_notice_image"));
+  },
+});
 
 initDb({ adminUser, adminPassword });
 
@@ -1857,6 +1878,25 @@ app.patch("/api/admin/important-notice", requireContentManager, (req, res) => {
   const settings = normalizeImportantNoticeSettings(req.body || {});
   writeSetting("importantNotice", settings);
   res.json({ ok: true, notice: settings });
+});
+
+app.post("/api/admin/important-notice/image", requireContentManager, (req, res) => {
+  uploadNoticeImage.single("image")(req, res, (err) => {
+    if (err) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(413).json({ error: "이미지는 8MB 이하로 업로드해주세요." });
+      }
+      return res.status(400).json({ error: "이미지 파일만 업로드할 수 있습니다." });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: "업로드할 이미지가 없습니다." });
+    }
+    res.status(201).json({
+      ok: true,
+      imageUrl: `/uploads/notices/${req.file.filename}`,
+      fileName: req.file.originalname,
+    });
+  });
 });
 
 app.get("/api/admin/dashboard", requireAdmin, (req, res) => {
