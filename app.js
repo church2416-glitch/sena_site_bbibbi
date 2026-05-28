@@ -344,6 +344,7 @@ function renderAuthState(user) {
 
 function openLoginModal() {
   if (!loginModal) return;
+  document.body.classList.remove("login-dismissed");
   loginModal.hidden = false;
   loginModal.removeAttribute("hidden");
   document.body.classList.add("auth-modal-open");
@@ -354,6 +355,7 @@ function openLoginModal() {
 
 function closeLoginModal() {
   if (!loginModal) return;
+  document.body.classList.add("login-dismissed");
   loginModal.hidden = true;
   document.body.classList.remove("auth-modal-open");
   loginForm?.reset();

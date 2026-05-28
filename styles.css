@@ -84,7 +84,8 @@ body.is-guest-locked .guest-login-fallback {
 }
 
 body:not(.is-guest-locked) .guest-login-fallback,
-body.auth-modal-open .guest-login-fallback {
+body.auth-modal-open .guest-login-fallback,
+body.is-guest-locked:not(.login-dismissed) .guest-login-fallback {
   display: none;
 }
 
@@ -3675,6 +3676,14 @@ p {
 }
 
 @media (max-width: 860px) {
+  body.is-guest-locked:not(.login-dismissed) #loginModal[hidden] {
+    display: grid !important;
+  }
+
+  body.is-guest-locked:not(.login-dismissed) {
+    overflow: hidden;
+  }
+
   body.is-guest-locked .app-shell {
     grid-template-columns: 1fr;
     align-content: start;
