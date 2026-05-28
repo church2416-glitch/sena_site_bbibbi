@@ -115,9 +115,9 @@ button {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 172px minmax(0, 650px) 220px;
-  gap: 14px;
-  width: min(1100px, 100%);
+  grid-template-columns: 172px minmax(0, 660px) 220px;
+  gap: 10px;
+  width: min(1080px, 100%);
   min-height: 100vh;
   margin: 0 auto;
   padding: 8px 12px 36px;
@@ -938,8 +938,8 @@ p {
 
 .guide-row {
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) auto;
-  gap: 10px;
+  grid-template-columns: 56px minmax(0, 1fr) 50px;
+  gap: 8px;
   align-items: center;
   min-height: 66px;
   border-top: 1px solid rgba(148, 116, 255, 0.08);
@@ -1000,8 +1000,8 @@ p {
   display: grid;
   justify-items: end;
   gap: 3px;
-  min-width: 52px;
-  max-width: 58px;
+  width: 50px;
+  overflow: hidden;
   color: var(--dim);
   font-size: 10px;
   line-height: 1.25;
@@ -1010,13 +1010,16 @@ p {
 }
 
 .vote-button {
-  max-width: 58px;
+  width: 50px;
   padding: 0;
+  overflow: hidden;
   border: 0;
   color: var(--purple-2);
   background: transparent;
   font-weight: 900;
   text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .vote-button.active {
