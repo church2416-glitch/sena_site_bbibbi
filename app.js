@@ -8,10 +8,10 @@ function makeId() {
 const seedGuides = [
   {
     id: makeId(),
-    title: "라운일 2공 길드전 족보 정리",
+    title: "라운일 2공 자유 게시판 정리",
     comments: 32,
     game: "세븐나이츠 리버스",
-    category: "길드전 족보",
+    category: "자유 게시판",
     summary: "라운일 방어덱 기준 공격 조합, 스킬 순서, 장비 세팅을 한 번에 확인합니다.",
     tags: ["길드전", "라운일"],
     attachment: "",
@@ -24,7 +24,7 @@ const seedGuides = [
     title: "초오린 상대할 때 세팅 보류해야 하는 경우",
     comments: 15,
     game: "세븐나이츠 리버스",
-    category: "길드전 족보",
+    category: "자유 게시판",
     summary: "같은 상대덱이라도 우리 진형과 펫 선택에 따라 보류해야 하는 패턴을 정리했습니다.",
     tags: ["길드전", "초오린"],
     attachment: "",
@@ -37,7 +37,7 @@ const seedGuides = [
     title: "밀프레 덱 장신구 세공 추천",
     comments: 8,
     game: "세븐나이츠 리버스",
-    category: "길드전 족보",
+    category: "자유 게시판",
     summary: "권능, 불사, 부활 반지 조합별로 안정적인 세공 방향을 비교했습니다.",
     tags: ["장비", "세공"],
     attachment: "",
@@ -60,12 +60,12 @@ const seedGuides = [
   },
   {
     id: makeId(),
-    title: "쫄작 덱 구성 질문",
+    title: "쫄작 덱 구성 파괴신",
     comments: 22,
     game: "세븐나이츠 리버스",
-    category: "질문",
+    category: "파괴신",
     summary: "현재 보유 영웅 기준으로 쫄작 안정성이 안 나와서 조합 조언을 구합니다.",
-    tags: ["질문", "쫄작"],
+    tags: ["파괴신", "쫄작"],
     attachment: "",
     votes: 4321,
     views: 4321,
@@ -175,25 +175,25 @@ const boardInfo = {
     title: "전체 게시판",
     desc: "지금 올라온 공략과 사람들이 주목하는 게시글들",
   },
-  "길드전 족보": {
-    title: "길드전 족보",
-    desc: "공격 조합, 방어덱, 스킬 순서를 빠르게 확인하는 게시글",
+  "자유 게시판": {
+    title: "자유 게시판",
+    desc: "자유롭게 글을 올리는 게시판",
   },
   "PVE 공략": {
     title: "PVE 공략",
-    desc: "성장 루트, 보스전, 쫄작처럼 반복 플레이에 필요한 공략",
+    desc: "일반적인 PVE 공략 공간",
   },
-  정보: {
-    title: "정보 게시판",
-    desc: "패치, 데이터, 시스템 분석을 모아보는 공간",
+  "PVP 공략": {
+    title: "PVP 공략",
+    desc: "총력전, 결투장 관련 토론장",
   },
-  질문: {
-    title: "질문 게시판",
-    desc: "막힌 구간과 선택지를 물어보고 답을 찾는 공간",
+  파괴신: {
+    title: "파괴신 게시판",
+    desc: "파괴신 관련 모든 토론장",
   },
-  게임: {
-    title: "게임 게시판",
-    desc: "게임별 소식과 플레이 경험을 나누는 공간",
+  공성전: {
+    title: "공성전 게시판",
+    desc: "공성전별 소식과 플레이 경험을 나누는 공간",
   },
   기술: {
     title: "기술 게시판",
@@ -205,7 +205,7 @@ const boardInfo = {
   },
   유머: {
     title: "유머 게시판",
-    desc: "게임하다 터진 순간과 짤로 남기고 싶은 장면",
+    desc: "공성전하다 터진 순간과 짤로 남기고 싶은 장면",
   },
 };
 
@@ -548,7 +548,7 @@ function renderGuides() {
     voteButton.classList.toggle("active", voted.has(guide.id));
     voteButton.addEventListener("click", () => toggleVote(guide.id));
 
-    status.textContent = guide.category === "질문" ? "질문" : "급상승";
+    status.textContent = guide.category === "파괴신" ? "파괴신" : "급상승";
     title.textContent = guide.title;
     comment.textContent = ` (${guide.comments || 0})`;
     summary.textContent = guide.summary;

@@ -173,7 +173,7 @@ function requireMember(req, res, next) {
 
   const user = findUserByUsername(session.username);
   if (!user) {
-    return res.status(401).json({ error: "회원 정보를 찾을 수 없습니다." });
+    return res.status(401).json({ error: "회원 PVP 공략를 찾을 수 없습니다." });
   }
 
   req.session = session;
