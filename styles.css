@@ -61,18 +61,19 @@ body.is-guest-locked .right-rail {
 
 .guest-login-fallback {
   position: fixed;
-  right: 16px;
-  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  right: 20px;
+  bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+  left: 20px;
   z-index: 38;
   display: none;
-  min-height: 48px;
+  min-height: 54px;
   padding: 0 18px;
   border: 1px solid rgba(89, 224, 202, 0.55);
-  border-radius: 999px;
+  border-radius: 8px;
   color: #06100f;
   background: linear-gradient(135deg, #67eadb, #8df3c4);
   box-shadow: 0 16px 40px rgba(64, 210, 163, 0.28);
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 1000;
 }
 
@@ -3676,32 +3677,13 @@ p {
 @media (max-width: 860px) {
   body.is-guest-locked .app-shell {
     grid-template-columns: 1fr;
-    align-content: center;
-    min-height: 100svh;
+    align-content: start;
+    min-height: 100dvh;
+    padding-bottom: 180px;
   }
 
   body.is-guest-locked .right-rail {
-    display: grid;
-    grid-column: auto;
-    padding-top: 0;
-  }
-
-  body.is-guest-locked .rail-login {
-    min-height: 180px;
-  }
-
-  body.is-guest-locked .login-card {
-    display: grid;
-  }
-
-  body.is-guest-locked .compact-login {
-    width: min(100%, 280px);
-    min-height: 154px;
-  }
-
-  body.is-guest-locked .compact-login button {
-    min-height: 46px;
-    font-size: 15px;
+    display: none;
   }
 
   .app-shell {
