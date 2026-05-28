@@ -38,6 +38,23 @@
   display: none !important;
 }
 
+body.is-guest-locked .main-area,
+body.is-guest-locked .sidebar .side-nav,
+body.is-guest-locked .sidebar .score-card,
+body.is-guest-locked .right-rail .notice-card {
+  display: none;
+}
+
+body.is-guest-locked .app-shell {
+  grid-template-columns: minmax(180px, 240px) minmax(280px, 420px);
+  justify-content: center;
+  min-height: 100vh;
+}
+
+body.is-guest-locked .right-rail {
+  align-self: center;
+}
+
 html {
   scroll-behavior: smooth;
 }

@@ -283,6 +283,7 @@ function renderAuthState(user) {
   const isAdmin = Boolean(user?.isAdmin);
   const roleLabel = isAdmin ? "관리자" : user?.isVerified ? "인증 회원" : "일반 회원";
   const displayName = user?.displayName || user?.username || "user";
+  document.body.classList.toggle("is-guest-locked", !user?.loggedIn);
   if (loginStateText) {
     loginStateText.innerHTML = user?.loggedIn
       ? `${roleLabel}<br />${displayName}`
@@ -297,6 +298,10 @@ function renderAuthState(user) {
   }
   document.body.classList.toggle("is-admin", isAdmin);
   document.body.classList.toggle("is-verified", Boolean(user?.isVerified));
+
+  if (!user?.loggedIn && new URLSearchParams(location.search).get("login") === "required") {
+    openLoginModal();
+  }
 }
 
 function openLoginModal() {

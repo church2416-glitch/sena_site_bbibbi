@@ -47,6 +47,7 @@ initDb({ adminUser, adminPassword });
 
 app.use(express.json({ limit: "100kb" }));
 app.use(cookieParser(sessionSecret));
+app.use(requireMemberForPrivatePages);
 app.use(express.static(__dirname));
 
 function signSession(username) {
@@ -90,6 +91,19 @@ function getPublicUser(req) {
     isAdmin: role === "admin",
     isVerified: role === "verified" || role === "admin",
   };
+}
+
+function requireMemberForPrivatePages(req, res, next) {
+  if (req.method !== "GET" && req.method !== "HEAD") return next();
+
+  const requestPath = req.path === "/" ? "/index.html" : req.path;
+  const publicPages = new Set(["/index.html"]);
+  const isHtmlPage = requestPath.endsWith(".html");
+
+  if (!isHtmlPage || publicPages.has(requestPath)) return next();
+  if (readSession(req)) return next();
+
+  res.redirect("/?login=required");
 }
 
 function serializeUser(user) {
