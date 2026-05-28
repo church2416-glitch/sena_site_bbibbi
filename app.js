@@ -258,6 +258,9 @@ let currentUser = { loggedIn: false, role: "guest" };
 let notificationStream = null;
 let notificationSoundEnabled = localStorage.getItem("bbibbi-notification-sound") !== "off";
 let notificationAudioContext = null;
+const notificationAudio = new Audio("assets/sound/notification-pling.mp3");
+notificationAudio.preload = "auto";
+notificationAudio.volume = 0.72;
 
 const seedNotices = [
   {
@@ -560,10 +563,25 @@ function getNotificationAudioContext() {
 async function unlockNotificationSound() {
   const context = getNotificationAudioContext();
   if (context?.state === "suspended") await context.resume().catch(() => {});
+  if (notificationAudio.dataset.unlocked) return;
+  const originalVolume = notificationAudio.volume;
+  notificationAudio.volume = 0;
+  await notificationAudio.play().then(() => {
+    notificationAudio.pause();
+    notificationAudio.currentTime = 0;
+    notificationAudio.dataset.unlocked = "true";
+  }).catch(() => {});
+  notificationAudio.volume = originalVolume;
 }
 
 function playNotificationSound() {
   if (!notificationSoundEnabled) return;
+  const audio = notificationAudio.cloneNode(true);
+  audio.volume = notificationAudio.volume;
+  audio.play().catch(() => playFallbackNotificationTone());
+}
+
+function playFallbackNotificationTone() {
   const context = getNotificationAudioContext();
   if (!context || context.state !== "running") return;
 

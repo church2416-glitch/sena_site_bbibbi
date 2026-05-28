@@ -1,0 +1,5 @@
+Notification sound: Pling
+Artist: KevanGC
+Source: https://soundbible.com/1645-Pling.html
+Requested reference: https://www.mewpot.com/sound-effects/495
+License note: SoundBible lists this sound as Public Domain. Mewpot lists it as external/free with credit information.
