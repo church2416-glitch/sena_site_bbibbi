@@ -108,7 +108,7 @@
           <div class="login-card compact-login">
             <p id="loginStateText">로그인하고<br />댓글과 공략글을</p>
             <button id="providerLoginOpenButton" type="button">로그인</button>
-            <button class="ghost-login-button" id="profileButton" type="button" hidden>닉네임 변경</button>
+            <button class="ghost-login-button" id="profileButton" type="button" hidden>내 정보</button>
             <button class="ghost-login-button" id="logoutButton" type="button" hidden>로그아웃</button>
             <a href="#" id="roleText">회원가입</a>
           </div>
@@ -215,18 +215,86 @@
     </div>
 
     <div class="auth-modal" id="profileModal" hidden>
-      <form class="auth-dialog login-dialog" id="profileForm" autocomplete="off">
+      <form class="auth-dialog login-dialog account-dialog" id="profileForm" autocomplete="off">
         <div class="login-dialog-head">
-          <h2>PROFILE</h2>
-          <button class="icon-button" id="profileCloseButton" type="button" aria-label="프로필 닫기">×</button>
+          <h2>내 정보</h2>
+          <button class="icon-button" id="profileCloseButton" type="button" aria-label="내 정보 닫기">×</button>
         </div>
-        <p class="auth-caption">사이트에서 표시할 닉네임을 정해주세요.</p>
-        <label class="auth-input-row" aria-label="닉네임">
-          <span class="auth-field-icon">NN</span>
-          <input id="profileDisplayNameInput" name="displayName" type="text" placeholder="닉네임 2~16자" minlength="2" maxlength="16" required />
-        </label>
-        <p class="auth-error" id="profileError" hidden></p>
-        <button class="auth-primary-button" type="submit">저장</button>
+        <section class="account-summary-card" aria-label="계정 요약">
+          <div class="account-avatar" id="accountAvatar">?</div>
+          <div>
+            <strong id="accountName">-</strong>
+            <span id="accountMeta">-</span>
+          </div>
+          <div class="account-stat-grid">
+            <span><b id="accountStatPosts">0</b>글</span>
+            <span><b id="accountStatViews">0</b>조회</span>
+            <span><b id="accountStatVotes">0</b>추천</span>
+            <span><b id="accountStatComments">0</b>댓글</span>
+          </div>
+        </section>
+
+        <section class="account-section">
+          <div class="account-section-head">
+            <h3>기본정보</h3>
+          </div>
+          <dl class="account-info-grid">
+            <div><dt>아이디</dt><dd id="accountUsername">-</dd></div>
+            <div><dt>이메일</dt><dd id="accountEmail">-</dd></div>
+            <div><dt>로그인</dt><dd id="accountProvider">-</dd></div>
+            <div><dt>권한</dt><dd id="accountRole">-</dd></div>
+            <div><dt>가입일</dt><dd id="accountCreatedAt">-</dd></div>
+          </dl>
+        </section>
+
+        <section class="account-section">
+          <div class="account-section-head">
+            <h3>닉네임 설정</h3>
+          </div>
+          <label class="auth-input-row" aria-label="닉네임">
+            <span class="auth-field-icon">NN</span>
+            <input id="profileDisplayNameInput" name="displayName" type="text" placeholder="닉네임 2~16자" minlength="2" maxlength="16" required />
+          </label>
+          <p class="auth-error" id="profileError" hidden></p>
+          <button class="auth-primary-button" type="submit">저장</button>
+        </section>
+
+        <section class="account-section">
+          <div class="account-section-head">
+            <h3>이용 내역</h3>
+          </div>
+          <div class="account-tabs">
+            <section>
+              <h4>내가 쓴 글</h4>
+              <div class="account-list" id="accountPostList">
+                <p class="account-empty">불러오는 중...</p>
+              </div>
+            </section>
+            <section>
+              <h4>좋아요 누른 글</h4>
+              <div class="account-list" id="accountLikedList">
+                <p class="account-empty">불러오는 중...</p>
+              </div>
+            </section>
+            <section>
+              <h4>댓글</h4>
+              <div class="account-list" id="accountCommentList">
+                <p class="account-empty">댓글 DB 준비 후 표시됩니다.</p>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="account-section">
+          <div class="account-section-head">
+            <h3>허용 및 설정</h3>
+          </div>
+          <div class="account-permission-list">
+            <span><b>게시글 작성</b><em id="accountPostPermission">ON</em></span>
+            <span><b>관리자 메뉴</b><em id="accountAdminPermission">OFF</em></span>
+            <span><b>알림 수신</b><em>준비중</em></span>
+          </div>
+        </section>
       </form>
     </div>
 

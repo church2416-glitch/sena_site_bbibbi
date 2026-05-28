@@ -693,6 +693,45 @@ app.patch("/api/me/display-name", (req, res) => {
   res.json(serializeUser(user));
 });
 
+app.get("/api/me/activity", requireMember, (req, res) => {
+  const user = req.user;
+  const stats = db
+    .prepare(
+      `
+        SELECT
+          COUNT(*) AS postCount,
+          COALESCE(SUM(comments), 0) AS commentCount,
+          COALESCE(SUM(votes), 0) AS voteCount,
+          COALESCE(SUM(views), 0) AS viewCount
+        FROM posts
+        WHERE author_id = ?
+      `,
+    )
+    .get(user.id);
+  const recentPosts = selectPostRows("posts.author_id = ?", [user.id]).slice(0, 8).map(serializePost);
+
+  res.json({
+    user: {
+      username: user.username,
+      displayName: user.display_name || user.username,
+      email: user.email || "",
+      provider: user.provider || "local",
+      role: user.role,
+      createdAt: user.created_at,
+      updatedAt: user.updated_at,
+      isVerified: user.role === "verified" || user.role === "admin",
+      isAdmin: user.role === "admin",
+    },
+    stats: {
+      postCount: Number(stats.postCount) || 0,
+      commentCount: Number(stats.commentCount) || 0,
+      voteCount: Number(stats.voteCount) || 0,
+      viewCount: Number(stats.viewCount) || 0,
+    },
+    recentPosts,
+  });
+});
+
 app.get("/api/posts", requireMember, (req, res) => {
   res.json(selectPostRows().map(serializePost));
 });

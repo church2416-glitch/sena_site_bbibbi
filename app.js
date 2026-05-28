@@ -171,6 +171,23 @@ const loginError = document.querySelector("#loginError");
 const signupError = document.querySelector("#signupError");
 const profileError = document.querySelector("#profileError");
 const providerMessage = document.querySelector("#providerMessage");
+const accountAvatar = document.querySelector("#accountAvatar");
+const accountName = document.querySelector("#accountName");
+const accountMeta = document.querySelector("#accountMeta");
+const accountStatPosts = document.querySelector("#accountStatPosts");
+const accountStatViews = document.querySelector("#accountStatViews");
+const accountStatVotes = document.querySelector("#accountStatVotes");
+const accountStatComments = document.querySelector("#accountStatComments");
+const accountUsername = document.querySelector("#accountUsername");
+const accountEmail = document.querySelector("#accountEmail");
+const accountProvider = document.querySelector("#accountProvider");
+const accountRole = document.querySelector("#accountRole");
+const accountCreatedAt = document.querySelector("#accountCreatedAt");
+const accountPostList = document.querySelector("#accountPostList");
+const accountLikedList = document.querySelector("#accountLikedList");
+const accountCommentList = document.querySelector("#accountCommentList");
+const accountPostPermission = document.querySelector("#accountPostPermission");
+const accountAdminPermission = document.querySelector("#accountAdminPermission");
 const sideBoardLinks = [...document.querySelectorAll("[data-board-link]")];
 const boardPulseScore = document.querySelector("#boardPulseScore");
 const boardVoteTotal = document.querySelector("#boardVoteTotal");
@@ -386,16 +403,15 @@ function openProfileModal() {
   if (profileError) profileError.hidden = true;
   if (profileForm?.displayName) {
     profileForm.displayName.value = currentUser?.displayName || currentUser?.username || "";
-    profileForm.displayName.focus();
-    profileForm.displayName.select();
   }
+  loadAccountDashboard();
 }
 
 function closeProfileModal() {
   if (!profileModal) return;
   profileModal.hidden = true;
   document.body.classList.remove("auth-modal-open");
-  profileForm?.reset();
+  if (profileError) profileError.hidden = true;
 }
 
 function showProviderSoon(provider) {
@@ -453,6 +469,112 @@ async function submitSignup(event) {
   closeSignupModal();
 }
 
+function setAccountText(node, value) {
+  if (node) node.textContent = value || "-";
+}
+
+function getAccountRoleLabel(user) {
+  if (user?.isAdmin || user?.role === "admin") return "관리자";
+  if (user?.isVerified || user?.role === "verified") return "인증 회원";
+  return "일반 회원";
+}
+
+function getProviderLabel(provider) {
+  const labels = {
+    kakao: "카카오",
+    google: "구글",
+    naver: "네이버",
+    local: "일반 계정",
+  };
+  return labels[provider] || provider || "일반 계정";
+}
+
+function isVotedGuide(guide) {
+  return voted.has(guide.id) || voted.has(String(guide.id)) || voted.has(Number(guide.id));
+}
+
+function renderAccountPostList(container, items, emptyText, metaBuilder) {
+  if (!container) return;
+  container.innerHTML = "";
+
+  if (!items.length) {
+    const empty = document.createElement("p");
+    empty.className = "account-empty";
+    empty.textContent = emptyText;
+    container.append(empty);
+    return;
+  }
+
+  items.forEach((post) => {
+    const link = document.createElement("a");
+    const title = document.createElement("strong");
+    const meta = document.createElement("small");
+
+    link.className = "account-history-item";
+    link.href = `post.html?id=${encodeURIComponent(post.id)}`;
+    title.textContent = post.title || "제목 없음";
+    meta.textContent = metaBuilder(post);
+    link.append(title, meta);
+    container.append(link);
+  });
+}
+
+async function loadAccountDashboard() {
+  if (!profileModal || profileModal.hidden || !currentUser?.loggedIn) return;
+
+  setAccountText(accountName, currentUser.displayName || currentUser.username);
+  setAccountText(accountMeta, currentUser.email || getProviderLabel(currentUser.provider));
+  if (accountAvatar) accountAvatar.textContent = (currentUser.displayName || currentUser.username || "?").slice(0, 1).toUpperCase();
+  renderAccountPostList(accountPostList, [], "불러오는 중...", () => "");
+  renderAccountPostList(accountLikedList, [], "불러오는 중...", () => "");
+
+  try {
+    const response = await fetch("/api/me/activity");
+    if (!response.ok) throw new Error("activity failed");
+    const activity = await response.json();
+    const user = activity.user || currentUser;
+    const stats = activity.stats || {};
+    const recentPosts = Array.isArray(activity.recentPosts) ? activity.recentPosts : [];
+    const likedPosts = guides.filter(isVotedGuide).slice(0, 8);
+    const displayName = user.displayName || user.username || currentUser.displayName || currentUser.username || "-";
+
+    setAccountText(accountName, displayName);
+    setAccountText(accountMeta, [user.email, getProviderLabel(user.provider)].filter(Boolean).join(" · "));
+    if (accountAvatar) accountAvatar.textContent = displayName.slice(0, 1).toUpperCase();
+    setAccountText(accountStatPosts, formatNumber(Number(stats.postCount) || 0));
+    setAccountText(accountStatViews, formatNumber(Number(stats.viewCount) || 0));
+    setAccountText(accountStatVotes, formatNumber(Number(stats.voteCount) || 0));
+    setAccountText(accountStatComments, formatNumber(Number(stats.commentCount) || 0));
+    setAccountText(accountUsername, user.username || currentUser.username);
+    setAccountText(accountEmail, user.email || "등록된 이메일 없음");
+    setAccountText(accountProvider, getProviderLabel(user.provider));
+    setAccountText(accountRole, getAccountRoleLabel(user));
+    setAccountText(accountCreatedAt, formatFeedDate(user.createdAt));
+    setAccountText(accountPostPermission, user.isVerified || user.isAdmin ? "ON" : "대기");
+    setAccountText(accountAdminPermission, user.isAdmin ? "ON" : "OFF");
+
+    renderAccountPostList(
+      accountPostList,
+      recentPosts,
+      "아직 작성한 글이 없습니다.",
+      (post) => `${formatFeedDate(post.createdAt)} · 조회 ${formatNumber(Number(post.views) || 0)} · 추천 ${formatNumber(Number(post.votes) || 0)}`,
+    );
+    renderAccountPostList(
+      accountLikedList,
+      likedPosts,
+      "이 기기에서 좋아요 누른 글이 없습니다.",
+      (post) => `${post.category || "게시글"} · 추천 ${formatNumber(Number(post.votes) || 0)}`,
+    );
+
+    if (accountCommentList) {
+      accountCommentList.innerHTML = '<p class="account-empty">댓글 기록은 댓글 DB 연결 후 표시됩니다.</p>';
+    }
+  } catch {
+    renderAccountPostList(accountPostList, [], "내 정보를 불러오지 못했습니다.", () => "");
+    renderAccountPostList(accountLikedList, [], "내 정보를 불러오지 못했습니다.", () => "");
+  }
+}
+
 async function submitProfile(event) {
   event.preventDefault();
   const formData = new FormData(profileForm);
@@ -472,7 +594,11 @@ async function submitProfile(event) {
   }
 
   renderAuthState(await response.json());
-  closeProfileModal();
+  if (profileError) {
+    profileError.textContent = "닉네임이 저장되었습니다.";
+    profileError.hidden = false;
+  }
+  loadAccountDashboard();
 }
 
 async function logout() {
