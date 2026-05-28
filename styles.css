@@ -1707,7 +1707,9 @@ p {
 
 .legal-card h1,
 .legal-card h2,
-.legal-card p {
+.legal-card h3,
+.legal-card p,
+.legal-card ul {
   margin: 0;
 }
 
@@ -1723,9 +1725,32 @@ p {
   font-size: 16px;
 }
 
-.legal-card p {
+.legal-card h3 {
+  margin: 14px 0 7px;
+  color: #d9d1ff;
+  font-size: 14px;
+}
+
+.legal-card p,
+.legal-card li {
   color: #c9c4df;
   line-height: 1.8;
+}
+
+.legal-card ul {
+  display: grid;
+  gap: 5px;
+  padding-left: 20px;
+}
+
+.legal-card a {
+  color: #6fe0cd;
+  font-weight: 900;
+}
+
+.legal-date {
+  color: #aaa1c9 !important;
+  font-weight: 900;
 }
 
 .upload-brand {
