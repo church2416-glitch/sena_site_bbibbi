@@ -146,7 +146,15 @@ const boardTitle = document.querySelector("#boardTitle");
 const boardDesc = document.querySelector("#boardDesc");
 const boardCount = document.querySelector("#boardCount");
 const searchInput = document.querySelector("#searchInput");
-const categoryButtons = [...document.querySelectorAll("[data-filter]")];
+const categoryStrip = document.querySelector(".category-strip");
+let categoryButtons = [...document.querySelectorAll("[data-filter]")];
+const mainArea = document.querySelector(".main-area");
+const hero = document.querySelector(".hero");
+const heroImage = document.querySelector(".hero img");
+const heroKicker = document.querySelector(".hero-copy p");
+const heroTitle = document.querySelector(".hero-copy h1");
+const heroSubtitle = document.querySelector(".hero-copy span");
+const heroAction = document.querySelector(".hero-copy a");
 const loginModal = document.querySelector("#loginModal");
 const signupModal = document.querySelector("#signupModal");
 const profileModal = document.querySelector("#profileModal");
@@ -279,6 +287,48 @@ const boardCategoryGroups = {
   공성전: "pve",
   기술: "pve",
 };
+
+const boardTabSets = {
+  overview: [{ filter: "전체", label: "전체 게시판" }],
+  pvp: [
+    { filter: "PVP 게시판", label: "PVP 게시판" },
+    { filter: "PVP 공략", label: "PVP 공략" },
+  ],
+  pve: [
+    { filter: "PVE 공략", label: "PVE 공략" },
+    { filter: "파괴신", label: "파괴신" },
+    { filter: "공성전", label: "공성전" },
+    { filter: "기술", label: "기술" },
+  ],
+};
+
+const heroModes = {
+  overview: {
+    image: "assets/common/singularity-hero.png",
+    kicker: "삐삐,",
+    title: "삐삐인데요...",
+    subtitle: "삐삐 커뮤니티",
+    action: "길드전 가이드 보기",
+    href: "guild-war.html",
+  },
+  pvp: {
+    image: "assets/common/guide-hero.png",
+    kicker: "BBITSENA · PVP BOARD",
+    title: "PVP 게시판",
+    subtitle: "결투장 조합과 메타 이야기를 확인하세요",
+    action: "공략 작성하기",
+    href: "upload.html",
+  },
+  pve: {
+    image: "assets/common/guide-hero.png",
+    kicker: "BBITSENA · PVE STRATEGY",
+    title: "PVE 게시판",
+    subtitle: "레이드, 파괴신, 공성전 공략을 모아 확인하세요",
+    action: "공략 작성하기",
+    href: "upload.html",
+  },
+};
+
 function normalizeBoard(value) {
   return boardAliases[value] || value;
 }
@@ -286,6 +336,58 @@ function normalizeBoard(value) {
 function getBoardGroup(category) {
   if (category === "전체") return "overview";
   return boardCategoryGroups[category] || "";
+}
+
+function setActiveCategory(category, { replace = false, scroll = false } = {}) {
+  activeCategory = normalizeBoard(category);
+  const nextUrl = `?board=${encodeURIComponent(activeCategory)}`;
+  if (replace) {
+    history.replaceState(null, "", nextUrl);
+  } else {
+    history.pushState(null, "", nextUrl);
+  }
+  renderGuides();
+  if (scroll) {
+    document.querySelector("#guides")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+function renderCategoryTabs() {
+  if (!categoryStrip) return;
+  const activeGroup = getBoardGroup(activeCategory) || "overview";
+  const tabs = boardTabSets[activeGroup] || boardTabSets.overview;
+
+  categoryStrip.innerHTML = "";
+  categoryButtons = tabs.map((tab) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.filter = tab.filter;
+    button.dataset.filterGroup = activeGroup;
+    button.textContent = tab.label;
+    button.classList.toggle("active", normalizeBoard(tab.filter) === activeCategory);
+    button.addEventListener("click", () => setActiveCategory(tab.filter));
+    categoryStrip.append(button);
+    return button;
+  });
+}
+
+function renderHeroMode() {
+  const activeGroup = getBoardGroup(activeCategory) || "overview";
+  const mode = heroModes[activeGroup] || heroModes.overview;
+  const isBoardMode = activeGroup !== "overview";
+
+  document.body.classList.toggle("board-page-open", isBoardMode);
+  mainArea?.classList.toggle("board-page-mode", isBoardMode);
+  hero?.classList.toggle("board-hero", isBoardMode);
+
+  if (heroImage) heroImage.src = mode.image;
+  if (heroKicker) heroKicker.textContent = mode.kicker;
+  if (heroTitle) heroTitle.textContent = mode.title;
+  if (heroSubtitle) heroSubtitle.textContent = mode.subtitle;
+  if (heroAction) {
+    heroAction.textContent = mode.action;
+    heroAction.href = mode.href;
+  }
 }
 
 let activeCategory = boardInfo[normalizeBoard(initialBoard)] && normalizeBoard(initialBoard) !== "공지사항"
@@ -1010,7 +1112,10 @@ function renderGuides() {
   guideList.innerHTML = "";
   const visibleGuides = getFilteredGuides();
   const currentBoard = boardInfo[activeCategory] || boardInfo.전체;
+  const activeGroup = getBoardGroup(activeCategory) || "overview";
 
+  renderHeroMode();
+  renderCategoryTabs();
   boardTitle.textContent = currentBoard.title;
   boardDesc.textContent = currentBoard.desc;
   boardCount.textContent = `${visibleGuides.length}개`;
@@ -1020,14 +1125,7 @@ function renderGuides() {
     const isActive = linkBoard === activeCategory || (linkGroup && linkGroup === getBoardGroup(activeCategory));
     link.classList.toggle("active", isActive);
   });
-  categoryButtons.forEach((button) => {
-    const filter = normalizeBoard(button.dataset.filter);
-    const filterGroup = button.dataset.filterGroup || getBoardGroup(filter);
-    const activeGroup = getBoardGroup(activeCategory) || "overview";
-    const isVisible = filterGroup === activeGroup;
-    button.hidden = !isVisible;
-    button.classList.toggle("active", filter === activeCategory);
-  });
+  categoryStrip?.classList.toggle("board-tabs", activeGroup !== "overview");
   renderBoardPulse(visibleGuides);
 
   if (!visibleGuides.length) {
@@ -1358,21 +1456,10 @@ async function toggleVote(id) {
 
 searchInput.addEventListener("input", renderGuides);
 
-categoryButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    activeCategory = normalizeBoard(button.dataset.filter);
-    history.pushState(null, "", `?board=${encodeURIComponent(activeCategory)}`);
-    renderGuides();
-  });
-});
-
 sideBoardLinks.forEach((link) => {
   link.addEventListener("click", (event) => {
     event.preventDefault();
-    activeCategory = normalizeBoard(link.dataset.boardLink);
-    history.pushState(null, "", `?board=${encodeURIComponent(activeCategory)}`);
-    renderGuides();
-    document.querySelector("#guides")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setActiveCategory(link.dataset.boardLink, { scroll: true });
   });
 });
 
