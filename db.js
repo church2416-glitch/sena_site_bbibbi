@@ -51,6 +51,7 @@ export function initDb({ adminUser, adminPassword }) {
       comments INTEGER NOT NULL DEFAULT 0,
       votes INTEGER NOT NULL DEFAULT 0,
       views INTEGER NOT NULL DEFAULT 0,
+      sort_order INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'published',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -176,6 +177,7 @@ export function initDb({ adminUser, adminPassword }) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_posts_category_created ON posts(category, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_posts_status_order ON posts(status, sort_order DESC, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_media_post ON post_media(post_id, sort_order);
     CREATE INDEX IF NOT EXISTS idx_post_votes_user ON post_votes(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_post_comments_post ON post_comments(post_id, created_at ASC);
@@ -215,6 +217,7 @@ function migratePostsTable() {
   addColumn("attachment", "TEXT");
   addColumn("media_json", "TEXT NOT NULL DEFAULT '{}'");
   addColumn("comments", "INTEGER NOT NULL DEFAULT 0");
+  addColumn("sort_order", "INTEGER NOT NULL DEFAULT 0");
 }
 
 function migrateCommentsTable() {

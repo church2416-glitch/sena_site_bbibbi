@@ -1946,6 +1946,69 @@ p {
   border-top: 0;
 }
 
+.guide-row {
+  position: relative;
+}
+
+.guide-row:hover {
+  background: rgba(124, 92, 255, 0.035);
+}
+
+.guide-admin-menu {
+  position: fixed;
+  z-index: 1200;
+  display: grid;
+  width: 210px;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid rgba(139, 105, 255, 0.35);
+  border-radius: 10px;
+  background: rgba(14, 13, 24, 0.98);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.42), 0 0 24px rgba(124, 92, 255, 0.15);
+}
+
+.guide-admin-menu[hidden] {
+  display: none;
+}
+
+.guide-admin-menu strong {
+  padding: 2px 4px 5px;
+  color: #f5f1ff;
+  font-size: 12px;
+}
+
+.guide-admin-menu select,
+.guide-admin-menu button {
+  width: 100%;
+  min-height: 32px;
+  border: 1px solid rgba(139, 105, 255, 0.22);
+  border-radius: 7px;
+  color: #efeaff;
+  background: rgba(22, 21, 34, 0.96);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: left;
+}
+
+.guide-admin-menu button {
+  padding: 0 10px;
+}
+
+.guide-admin-menu select {
+  padding: 0 8px;
+}
+
+.guide-admin-menu button:hover,
+.guide-admin-menu select:focus {
+  border-color: var(--accent);
+  background: rgba(124, 92, 255, 0.2);
+}
+
+.guide-admin-menu .danger {
+  border-color: rgba(255, 105, 135, 0.34);
+  color: #ffb4c3;
+}
+
 .status {
   justify-self: start;
   padding: 5px 7px;

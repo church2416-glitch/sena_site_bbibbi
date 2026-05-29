@@ -233,6 +233,20 @@ const importantNoticeHideTodayButton = document.querySelector("#importantNoticeH
 const importantNoticeActionLink = document.querySelector("#importantNoticeActionLink");
 
 const popularBoardCategory = "__popular";
+const adminManageCategories = [
+  "공지사항",
+  "PVP 게시판",
+  "PVP 공략",
+  "PVE 공략",
+  "파괴신",
+  "공성전",
+  "기술",
+  "잡담",
+  "유머",
+  "임시 채널1",
+];
+let guideAdminMenu = null;
+let guideAdminMenuGuide = null;
 
 const boardInfo = {
   [popularBoardCategory]: {
@@ -642,6 +656,15 @@ function renderAuthState(user) {
   if (!user?.loggedIn && window.matchMedia("(max-width: 860px)").matches) {
     window.setTimeout(openLoginModal, 80);
   }
+}
+
+function canQuickManagePosts() {
+  return Boolean(
+    currentUser?.canManageContent
+      || currentUser?.isSuperAdmin
+      || currentUser?.role === "superadmin"
+      || currentUser?.role === "admin",
+  );
 }
 
 function openLoginModal() {
@@ -1297,7 +1320,132 @@ function getFilteredGuides() {
     });
   }
 
-  return filteredGuides;
+  return filteredGuides.sort((left, right) => {
+    const orderDiff = Number(right.sortOrder || 0) - Number(left.sortOrder || 0);
+    if (orderDiff) return orderDiff;
+    return new Date(right.createdAt || 0) - new Date(left.createdAt || 0);
+  });
+}
+
+function ensureGuideAdminMenu() {
+  if (guideAdminMenu) return guideAdminMenu;
+  const menu = document.createElement("div");
+  const title = document.createElement("strong");
+  const select = document.createElement("select");
+  const moveButton = document.createElement("button");
+  const editButton = document.createElement("button");
+  const topButton = document.createElement("button");
+  const resetButton = document.createElement("button");
+  const hideButton = document.createElement("button");
+  const deleteButton = document.createElement("button");
+
+  menu.className = "guide-admin-menu";
+  menu.hidden = true;
+  title.textContent = "게시글 관리";
+  select.dataset.adminMenuCategory = "true";
+  adminManageCategories.forEach((category) => {
+    const option = document.createElement("option");
+    option.value = category;
+    option.textContent = category;
+    select.append(option);
+  });
+
+  moveButton.type = "button";
+  moveButton.textContent = "선택 게시판으로 이동";
+  moveButton.dataset.adminAction = "move";
+  editButton.type = "button";
+  editButton.textContent = "수정 화면 열기";
+  editButton.dataset.adminAction = "edit";
+  topButton.type = "button";
+  topButton.textContent = "목록 맨 위로";
+  topButton.dataset.adminAction = "top";
+  resetButton.type = "button";
+  resetButton.textContent = "순서 고정 해제";
+  resetButton.dataset.adminAction = "reset";
+  hideButton.type = "button";
+  hideButton.textContent = "숨기기";
+  hideButton.dataset.adminAction = "hide";
+  deleteButton.type = "button";
+  deleteButton.textContent = "삭제";
+  deleteButton.dataset.adminAction = "delete";
+  deleteButton.className = "danger";
+
+  menu.append(title, select, moveButton, editButton, topButton, resetButton, hideButton, deleteButton);
+  menu.addEventListener("click", handleGuideAdminMenuClick);
+  document.body.append(menu);
+  guideAdminMenu = menu;
+  return menu;
+}
+
+function openGuideAdminMenu(guide, event) {
+  if (!canQuickManagePosts()) return;
+  event.preventDefault();
+  event.stopPropagation();
+  guideAdminMenuGuide = guide;
+  const menu = ensureGuideAdminMenu();
+  const select = menu.querySelector("[data-admin-menu-category]");
+  if (select) select.value = adminManageCategories.includes(normalizeBoard(guide.category)) ? normalizeBoard(guide.category) : adminManageCategories[0];
+  menu.hidden = false;
+  const padding = 12;
+  const rect = menu.getBoundingClientRect();
+  const left = Math.min(event.clientX, window.innerWidth - rect.width - padding);
+  const top = Math.min(event.clientY, window.innerHeight - rect.height - padding);
+  menu.style.left = `${Math.max(padding, left)}px`;
+  menu.style.top = `${Math.max(padding, top)}px`;
+}
+
+function closeGuideAdminMenu() {
+  if (guideAdminMenu) guideAdminMenu.hidden = true;
+  guideAdminMenuGuide = null;
+}
+
+async function quickManagePost(id, payload) {
+  const response = await fetch(`/api/admin/posts/${encodeURIComponent(id)}/quick`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || "게시글을 변경하지 못했습니다.");
+  }
+  return response.json();
+}
+
+async function handleGuideAdminMenuClick(event) {
+  const button = event.target.closest("[data-admin-action]");
+  if (!button || !guideAdminMenuGuide) return;
+  const guide = guideAdminMenuGuide;
+  const action = button.dataset.adminAction;
+  try {
+    if (action === "edit") {
+      location.href = `post.html?id=${encodeURIComponent(guide.id)}`;
+      return;
+    }
+    if (action === "move") {
+      const category = guideAdminMenu.querySelector("[data-admin-menu-category]")?.value || "";
+      const updated = await quickManagePost(guide.id, { category, status: "published" });
+      guides = guides.map((item) => (item.id === guide.id ? { ...item, ...updated } : item));
+    } else if (action === "top") {
+      const updated = await quickManagePost(guide.id, { orderAction: "top" });
+      guides = guides.map((item) => (item.id === guide.id ? { ...item, ...updated } : item));
+    } else if (action === "reset") {
+      const updated = await quickManagePost(guide.id, { orderAction: "reset" });
+      guides = guides.map((item) => (item.id === guide.id ? { ...item, ...updated } : item));
+    } else if (action === "hide") {
+      if (!confirm("이 게시글을 목록에서 숨길까요?")) return;
+      await quickManagePost(guide.id, { status: "hidden" });
+      guides = guides.filter((item) => item.id !== guide.id);
+    } else if (action === "delete") {
+      if (!confirm("이 게시글을 삭제 처리할까요?")) return;
+      await quickManagePost(guide.id, { status: "deleted" });
+      guides = guides.filter((item) => item.id !== guide.id);
+    }
+    closeGuideAdminMenu();
+    renderGuides();
+  } catch (error) {
+    alert(error.message || "게시글 관리에 실패했습니다.");
+  }
 }
 
 function renderGuides() {
@@ -1349,6 +1497,8 @@ function renderGuides() {
     const views = document.createElement("span");
 
     row.className = "guide-row";
+    row.dataset.postId = guide.id;
+    row.addEventListener("contextmenu", (event) => openGuideAdminMenu(guide, event));
     status.className = "status";
     main.className = "guide-main";
     main.href = `post.html?id=${encodeURIComponent(guide.id)}`;
@@ -1735,7 +1885,11 @@ heroPrevButton?.addEventListener("click", () => setHeroSlide(heroSlideIndex - 1)
 heroNextButton?.addEventListener("click", () => setHeroSlide(heroSlideIndex + 1));
 logoutButton?.addEventListener("click", logout);
 document.addEventListener("click", () => {
+  closeGuideAdminMenu();
   if (!notificationPanel?.hidden) toggleNotificationPanel(false);
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeGuideAdminMenu();
 });
 signupButton?.addEventListener("click", () => {
   openSignupModal();

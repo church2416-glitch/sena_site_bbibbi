@@ -998,6 +998,7 @@ function serializePost(row) {
     media: sanitizeStoredMedia(safeJsonParse(row.media_json, {})),
     votes: row.votes || 0,
     views: row.views || 0,
+    sortOrder: row.sort_order || 0,
     status: row.status,
     createdAt: row.created_at,
     author: row.author_name || row.author_username || "익명",
@@ -1585,7 +1586,7 @@ function selectPostRows(where = "posts.status = 'published'", params = []) {
         FROM posts
         LEFT JOIN users ON users.id = posts.author_id
         WHERE ${where}
-        ORDER BY datetime(posts.created_at) DESC
+        ORDER BY posts.sort_order DESC, datetime(posts.created_at) DESC
       `,
     )
     .all(...params);
@@ -3003,6 +3004,49 @@ app.delete("/api/admin/users/:id", requireUserManager, (req, res) => {
 
 app.get("/api/admin/posts", requireContentManager, (req, res) => {
   res.json(selectPostRows("1 = 1").map(serializePost));
+});
+
+app.patch("/api/admin/posts/:id/quick", requireContentManager, (req, res) => {
+  const id = String(req.params.id || "");
+  const status = String(req.body?.status || "").trim();
+  const allowedStatuses = new Set(["published", "hidden", "deleted"]);
+  const hasStatus = Object.prototype.hasOwnProperty.call(req.body || {}, "status");
+  const category = String(req.body?.category || "").trim();
+  const orderAction = String(req.body?.orderAction || "").trim();
+  if (hasStatus && !allowedStatuses.has(status)) {
+    return res.status(400).json({ error: "상태 값이 올바르지 않습니다." });
+  }
+  if (category && category.length > 30) {
+    return res.status(400).json({ error: "게시판 이름이 너무 깁니다." });
+  }
+
+  const updates = [];
+  const params = [];
+  if (hasStatus) {
+    updates.push("status = ?");
+    params.push(status);
+  }
+  if (category) {
+    updates.push("category = ?");
+    params.push(category);
+  }
+  if (orderAction === "top") {
+    updates.push("sort_order = unixepoch('now')");
+  } else if (orderAction === "reset") {
+    updates.push("sort_order = 0");
+  } else if (orderAction) {
+    return res.status(400).json({ error: "정렬 명령이 올바르지 않습니다." });
+  }
+  if (!updates.length) {
+    return res.status(400).json({ error: "변경할 내용이 없습니다." });
+  }
+
+  updates.push("updated_at = datetime('now')");
+  params.push(id);
+  const result = db.prepare(`UPDATE posts SET ${updates.join(", ")} WHERE id = ?`).run(...params);
+  if (!result.changes) return res.status(404).json({ error: "게시글을 찾을 수 없습니다." });
+  const post = selectPostRows("posts.id = ?", [id])[0];
+  res.json(serializePost(post));
 });
 
 app.patch("/api/admin/posts/:id", requireContentManager, (req, res) => {
