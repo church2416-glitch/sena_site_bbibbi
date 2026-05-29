@@ -2049,8 +2049,13 @@ p {
 .notice-table th:nth-child(1),
 .notice-table th:nth-child(3),
 .notice-table th:nth-child(4) {
-  width: 92px;
+  width: 120px;
   text-align: center;
+}
+
+.notice-table td:nth-child(4),
+.notice-table th:nth-child(4) {
+  width: 180px;
 }
 
 .notice-table a {

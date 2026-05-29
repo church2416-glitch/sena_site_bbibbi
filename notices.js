@@ -59,8 +59,8 @@ function renderNotices(items) {
     const row = document.createElement("tr");
     const number = document.createElement("td");
     const titleCell = document.createElement("td");
-    const date = document.createElement("td");
-    const views = document.createElement("td");
+    const author = document.createElement("td");
+    const meta = document.createElement("td");
     const badge = document.createElement("span");
     const link = document.createElement("a");
 
@@ -71,9 +71,9 @@ function renderNotices(items) {
     link.href = `post.html?id=${encodeURIComponent(item.id)}`;
     link.textContent = item.title || "제목 없음";
     titleCell.append(link);
-    date.textContent = formatDate(item.createdAt || item.date);
-    views.textContent = formatNumber(item.views);
-    row.append(number, titleCell, date, views);
+    author.textContent = item.author || item.authorUsername || "관리자";
+    meta.textContent = `${formatDate(item.createdAt || item.date)} · 조회 ${formatNumber(item.views)}`;
+    row.append(number, titleCell, author, meta);
     noticePageList.append(row);
   });
 

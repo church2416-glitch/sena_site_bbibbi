@@ -274,7 +274,9 @@ function normalizeBoard(value) {
   return boardAliases[value] || value;
 }
 
-let activeCategory = boardInfo[normalizeBoard(initialBoard)] ? normalizeBoard(initialBoard) : "공지사항";
+let activeCategory = boardInfo[normalizeBoard(initialBoard)] && normalizeBoard(initialBoard) !== "공지사항"
+  ? normalizeBoard(initialBoard)
+  : "전체";
 let guides = loadGuides();
 let voted = new Set(JSON.parse(localStorage.getItem(votedKey) || "[]"));
 let currentUser = { loggedIn: false, role: "guest" };
@@ -1321,7 +1323,7 @@ sideBoardLinks.forEach((link) => {
 
 window.addEventListener("popstate", () => {
   const board = normalizeBoard(new URLSearchParams(location.search).get("board"));
-  activeCategory = boardInfo[board] ? board : "공지사항";
+  activeCategory = boardInfo[board] && board !== "공지사항" ? board : "전체";
   renderGuides();
 });
 
