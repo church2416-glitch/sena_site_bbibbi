@@ -597,6 +597,44 @@ function writeSetting(key, value) {
   ).run(key, JSON.stringify(value));
 }
 
+function readGuildWarSheetsState() {
+  const rows = db.prepare(
+    `
+      SELECT sheet_type, payload_json
+      FROM guild_war_sheets
+      WHERE published = 1
+      ORDER BY updated_at DESC, id DESC
+    `,
+  ).all();
+  const state = {};
+  rows.forEach((row) => {
+    if (state[row.sheet_type]) return;
+    state[row.sheet_type] = safeJsonParse(row.payload_json, null);
+  });
+  return state;
+}
+
+function saveGuildWarSheetsState(state, authorId) {
+  const allowedTypes = ["attack", "defense"];
+  const insertSheet = db.prepare(
+    `
+      INSERT INTO guild_war_sheets (sheet_type, title, payload_json, author_id, published, updated_at)
+      VALUES (?, ?, ?, ?, 1, datetime('now'))
+    `,
+  );
+  const removeSheet = db.prepare("DELETE FROM guild_war_sheets WHERE sheet_type = ?");
+  const save = db.transaction(() => {
+    allowedTypes.forEach((sheetType) => {
+      const sheet = state?.[sheetType];
+      if (!sheet || typeof sheet !== "object") return;
+      const title = String(sheet.title || (sheetType === "attack" ? "공격 족보" : "방어 족보")).slice(0, 80);
+      removeSheet.run(sheetType);
+      insertSheet.run(sheetType, title, JSON.stringify(sheet), authorId || null);
+    });
+  });
+  save();
+}
+
 function getKstDateStamp(date = new Date()) {
   const kstDate = new Date(date.getTime() + 9 * 60 * 60 * 1000);
   const year = kstDate.getUTCFullYear();
@@ -2140,6 +2178,19 @@ app.get("/api/admin/db-status", requireAdmin, (req, res) => {
 
 app.get("/api/guild-war/season", (req, res) => {
   res.json({ ok: true, settings: getGuildSeasonSettings() });
+});
+
+app.get("/api/guild-war/sheets", (req, res) => {
+  res.json({ ok: true, state: readGuildWarSheetsState() });
+});
+
+app.put("/api/admin/guild-war/sheets", requireGuildManager, (req, res) => {
+  const state = req.body?.state;
+  if (!state || typeof state !== "object") {
+    return res.status(400).json({ error: "저장할 족보 데이터가 없습니다." });
+  }
+  saveGuildWarSheetsState(state, req.user?.id);
+  res.json({ ok: true, state: readGuildWarSheetsState() });
 });
 
 app.get("/api/important-notice", (req, res) => {

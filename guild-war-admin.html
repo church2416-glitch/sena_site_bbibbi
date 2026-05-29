@@ -350,9 +350,15 @@
         saveState.textContent = "자동 저장됨";
       }
 
-      GuildWar.fillAdminForm(form, currentSheet(), activeMode, activePlanIndex);
-      renderTargetManager();
-      renderAdminPage();
+      async function initializeAdminPage() {
+        saveState.textContent = "서버 불러오는 중";
+        guildState = await GuildWar.loadRemoteState(guildState);
+        GuildWar.saveState(guildState);
+        GuildWar.fillAdminForm(form, currentSheet(), activeMode, activePlanIndex);
+        renderTargetManager();
+        renderAdminPage();
+        saveState.textContent = "저장 대기";
+      }
 
       form.addEventListener("input", saveDraft);
       form.addEventListener("change", saveDraft);
@@ -465,11 +471,17 @@
         saveState.textContent = "자동 저장됨";
       });
 
-      form.addEventListener("submit", (event) => {
+      form.addEventListener("submit", async (event) => {
         event.preventDefault();
-        guildState[activeMode] = GuildWar.readAdminForm(form, GuildWar.sheetDefaults[activeMode], guildState[activeMode], activePlanIndex);
-        GuildWar.saveState(guildState);
-        saveState.textContent = "저장 완료";
+        try {
+          saveState.textContent = "서버 저장 중";
+          guildState[activeMode] = GuildWar.readAdminForm(form, GuildWar.sheetDefaults[activeMode], guildState[activeMode], activePlanIndex);
+          GuildWar.saveState(guildState);
+          guildState = await GuildWar.saveRemoteState(guildState);
+          saveState.textContent = "서버 저장 완료";
+        } catch (error) {
+          saveState.textContent = error.message || "서버 저장 실패";
+        }
       });
 
       document.querySelector("#resetGuild").addEventListener("click", () => {
@@ -479,6 +491,8 @@
         renderAdminPage();
         saveState.textContent = "초기화 완료";
       });
+
+      initializeAdminPage();
     </script>
     <script src="notification-client.js"></script>
   </body>

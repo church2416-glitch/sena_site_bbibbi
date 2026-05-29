@@ -266,6 +266,38 @@ const GuildWar = (() => {
     localStorage.setItem(storageKey, JSON.stringify(normalizeState(state)));
   }
 
+  async function loadRemoteState(fallbackState = loadState()) {
+    try {
+      const response = await fetch("/api/guild-war/sheets", { headers: { Accept: "application/json" } });
+      if (!response.ok) return normalizeState(fallbackState);
+      const data = await response.json();
+      return normalizeState({
+        ...fallbackState,
+        ...(data.state || {}),
+      });
+    } catch {
+      return normalizeState(fallbackState);
+    }
+  }
+
+  async function saveRemoteState(state) {
+    const normalized = normalizeState(state);
+    const response = await fetch("/api/admin/guild-war/sheets", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ state: normalized }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || "족보 저장에 실패했습니다.");
+    }
+    saveState(data.state || normalized);
+    return normalizeState(data.state || normalized);
+  }
+
   function resetState() {
     localStorage.removeItem(storageKey);
     return normalizeState();
@@ -1005,6 +1037,8 @@ const GuildWar = (() => {
     sheetDefaults,
     loadState,
     saveState,
+    loadRemoteState,
+    saveRemoteState,
     resetState,
     renderModeTabs,
     renderTargetSelect,

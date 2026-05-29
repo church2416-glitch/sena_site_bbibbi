@@ -127,7 +127,7 @@
     <script src="theme.js"></script>
     <script src="guild-war.js"></script>
     <script>
-      const guildState = GuildWar.loadState();
+      let guildState = GuildWar.loadState();
       let activeMode = "attack";
       let activePlanIndex = 0;
 
@@ -159,6 +159,12 @@
         }
       }
 
+      async function loadGuildWarSheets() {
+        guildState = await GuildWar.loadRemoteState(guildState);
+        GuildWar.saveState(guildState);
+        renderPublicPage();
+      }
+
       document.querySelector("#copySummary").addEventListener("click", async () => {
         const copied = await GuildWar.copySummary(GuildWar.getActivePlanTarget(guildState[activeMode], activeMode, activePlanIndex), activeMode);
         document.querySelector("#copyState").textContent = copied ? "복사 완료" : "복사 권한 없음";
@@ -184,7 +190,7 @@
       });
 
       renderPublicPage();
-      loadSeasonSettings();
+      loadGuildWarSheets().then(loadSeasonSettings);
     </script>
     <script src="notification-client.js"></script>
   </body>
