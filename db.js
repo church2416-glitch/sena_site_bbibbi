@@ -177,7 +177,6 @@ export function initDb({ adminUser, adminPassword }) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_posts_category_created ON posts(category, created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_posts_status_order ON posts(status, sort_order DESC, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_media_post ON post_media(post_id, sort_order);
     CREATE INDEX IF NOT EXISTS idx_post_votes_user ON post_votes(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_post_comments_post ON post_comments(post_id, created_at ASC);
@@ -218,6 +217,7 @@ function migratePostsTable() {
   addColumn("media_json", "TEXT NOT NULL DEFAULT '{}'");
   addColumn("comments", "INTEGER NOT NULL DEFAULT 0");
   addColumn("sort_order", "INTEGER NOT NULL DEFAULT 0");
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_posts_status_order ON posts(status, sort_order DESC, created_at DESC)").run();
 }
 
 function migrateCommentsTable() {
