@@ -270,6 +270,7 @@ const boardAliases = {
   "데미지 고급": "임시 채널1",
   "아이템 고급": "임시 채널2",
 };
+const overviewExcludedCategories = new Set(["공지사항"]);
 function normalizeBoard(value) {
   return boardAliases[value] || value;
 }
@@ -955,7 +956,9 @@ function getFilteredGuides() {
       .toLowerCase();
     const matchesQuery = !query || haystack.includes(query);
     const guideCategory = normalizeBoard(guide.category);
-    const matchesCategory = activeCategory === "전체" || guideCategory === activeCategory;
+    const matchesCategory = activeCategory === "전체"
+      ? !overviewExcludedCategories.has(guideCategory)
+      : guideCategory === activeCategory;
     return matchesQuery && matchesCategory;
   });
 
