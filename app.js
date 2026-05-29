@@ -147,6 +147,10 @@ const boardDesc = document.querySelector("#boardDesc");
 const boardCount = document.querySelector("#boardCount");
 const searchInput = document.querySelector("#searchInput");
 const categoryStrip = document.querySelector(".category-strip");
+const boardPager = document.createElement("nav");
+boardPager.className = "board-pager";
+boardPager.setAttribute("aria-label", "게시글 페이지");
+guideList?.after(boardPager);
 let categoryButtons = [...document.querySelectorAll("[data-filter]")];
 const mainArea = document.querySelector(".main-area");
 const hero = document.querySelector(".hero");
@@ -340,6 +344,7 @@ function getBoardGroup(category) {
 
 function setActiveCategory(category, { replace = false, scroll = false } = {}) {
   activeCategory = normalizeBoard(category);
+  boardPage = 1;
   const nextUrl = `?board=${encodeURIComponent(activeCategory)}`;
   if (replace) {
     history.replaceState(null, "", nextUrl);
@@ -395,6 +400,8 @@ let activeCategory = boardInfo[normalizeBoard(initialBoard)] && normalizeBoard(i
   : "전체";
 let guides = loadGuides();
 let voted = new Set(JSON.parse(localStorage.getItem(votedKey) || "[]"));
+let boardPage = 1;
+const boardPageSize = 10;
 let currentUser = { loggedIn: false, role: "guest" };
 let notificationStream = null;
 let notificationSoundEnabled = localStorage.getItem("bbibbi-notification-sound") !== "off";
@@ -1120,6 +1127,10 @@ function renderGuides() {
   const visibleGuides = getFilteredGuides();
   const currentBoard = boardInfo[activeCategory] || boardInfo.전체;
   const activeGroup = getBoardGroup(activeCategory) || "overview";
+  const totalPages = Math.max(1, Math.ceil(visibleGuides.length / boardPageSize));
+  boardPage = Math.min(Math.max(1, boardPage), totalPages);
+  const pageStart = (boardPage - 1) * boardPageSize;
+  const pageGuides = visibleGuides.slice(pageStart, pageStart + boardPageSize);
 
   renderHeroMode();
   renderCategoryTabs();
@@ -1134,6 +1145,7 @@ function renderGuides() {
   });
   categoryStrip?.classList.toggle("board-tabs", activeGroup !== "overview");
   renderBoardPulse(visibleGuides);
+  renderBoardPager(visibleGuides.length, totalPages);
 
   if (!visibleGuides.length) {
     const empty = document.createElement("p");
@@ -1144,7 +1156,7 @@ function renderGuides() {
     return;
   }
 
-  visibleGuides.forEach((guide) => {
+  pageGuides.forEach((guide) => {
     const row = document.createElement("article");
     const status = document.createElement("span");
     const main = document.createElement("a");
@@ -1194,6 +1206,42 @@ function renderGuides() {
   });
 
   renderSideLists();
+}
+
+function renderBoardPager(totalItems, totalPages) {
+  if (!boardPager) return;
+  boardPager.innerHTML = "";
+  boardPager.hidden = totalItems <= boardPageSize;
+  if (boardPager.hidden) return;
+
+  const makeButton = (label, page, options = {}) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.disabled = options.disabled || false;
+    button.classList.toggle("active", options.active || false);
+    button.addEventListener("click", () => {
+      if (button.disabled || boardPage === page) return;
+      boardPage = page;
+      renderGuides();
+      document.querySelector("#guides")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return button;
+  };
+
+  const status = document.createElement("span");
+  status.textContent = `${boardPage} / ${totalPages}`;
+  boardPager.append(
+    makeButton("이전", Math.max(1, boardPage - 1), { disabled: boardPage === 1 }),
+    status,
+  );
+
+  const pages = new Set([1, totalPages, boardPage - 1, boardPage, boardPage + 1].filter((page) => page >= 1 && page <= totalPages));
+  [...pages].sort((a, b) => a - b).forEach((page) => {
+    boardPager.append(makeButton(String(page), page, { active: page === boardPage }));
+  });
+
+  boardPager.append(makeButton("다음", Math.min(totalPages, boardPage + 1), { disabled: boardPage === totalPages }));
 }
 
 function renderBoardPulse(items) {
@@ -1462,7 +1510,10 @@ async function toggleVote(id) {
   renderGuides();
 }
 
-searchInput.addEventListener("input", renderGuides);
+searchInput.addEventListener("input", () => {
+  boardPage = 1;
+  renderGuides();
+});
 
 sideBoardLinks.forEach((link) => {
   link.addEventListener("click", (event) => {
@@ -1474,6 +1525,7 @@ sideBoardLinks.forEach((link) => {
 window.addEventListener("popstate", () => {
   const board = normalizeBoard(new URLSearchParams(location.search).get("board"));
   activeCategory = boardInfo[board] && board !== "공지사항" ? board : "전체";
+  boardPage = 1;
   renderGuides();
 });
 

@@ -1757,6 +1757,50 @@ p {
   display: grid;
 }
 
+.board-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-top: 16px;
+}
+
+.board-pager[hidden] {
+  display: none;
+}
+
+.board-pager button,
+.board-pager span {
+  min-width: 34px;
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.28);
+  border-radius: 7px;
+  color: #d7d0f1;
+  background: rgba(12, 13, 22, 0.82);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.board-pager span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+
+.board-pager button:hover:not(:disabled),
+.board-pager button.active {
+  border-color: var(--accent-strong);
+  color: #fff;
+  background: var(--accent-weak);
+}
+
+.board-pager button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .guide-row {
   display: grid;
   grid-template-columns: 56px minmax(0, 1fr) 118px;
