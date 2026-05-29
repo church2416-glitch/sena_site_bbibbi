@@ -5129,6 +5129,40 @@ p {
   font-weight: 900;
 }
 
+.admin-coupon-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.admin-coupon-form label {
+  display: grid;
+  gap: 7px;
+  color: #555;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-coupon-form textarea {
+  min-height: 96px;
+  border: 1px solid #d8d8d8;
+  border-radius: 4px;
+  color: #222;
+  background: #fff;
+  resize: vertical;
+}
+
+.admin-coupon-form button {
+  min-height: 38px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 3px;
+  color: white;
+  background: #ff342f;
+  font-weight: 900;
+}
+
 .admin-audit-row {
   display: grid;
   gap: 4px;

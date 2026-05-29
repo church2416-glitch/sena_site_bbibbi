@@ -55,6 +55,9 @@ const mainHeroImageName = document.querySelector("#mainHeroImageName");
 const mainHeroImageUrl = document.querySelector("#mainHeroImageUrl");
 const mainHeroInterval = document.querySelector("#mainHeroInterval");
 const mainHeroSaveState = document.querySelector("#mainHeroSaveState");
+const adminCouponForm = document.querySelector("#adminCouponForm");
+const adminCouponCodes = document.querySelector("#adminCouponCodes");
+const adminCouponSaveState = document.querySelector("#adminCouponSaveState");
 
 const viewTitles = {
   dashboard: "대시보드",
@@ -487,6 +490,33 @@ async function saveMainHeroSettings(event) {
   setText(mainHeroSaveState, "저장됨");
 }
 
+async function saveAdminCouponCodes(event) {
+  event.preventDefault();
+  if (!adminCouponCodes?.value.trim()) {
+    setText(adminCouponSaveState, "입력 필요");
+    return;
+  }
+  setText(adminCouponSaveState, "업로드 중");
+  const response = await fetch("/api/coupon/codes", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ codes: adminCouponCodes.value }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    setText(adminCouponSaveState, data.error || "실패");
+    return;
+  }
+  adminCouponCodes.value = "";
+  setText(adminCouponSaveState, `${formatNumber(data.added || 0)}개 저장`);
+  const dbResponse = await fetch("/api/admin/db-status");
+  if (dbResponse.ok) {
+    const dbStatus = await dbResponse.json();
+    renderDatabaseTable(dbStatus.counts || {});
+    renderAuditList(dbStatus.recentAudit || []);
+  }
+}
+
 function renderUsers(users) {
   if (!recentUsers) return;
   recentUsers.innerHTML = "";
@@ -722,6 +752,7 @@ importantNoticeImageFile?.addEventListener("change", () => {
   }
 });
 mainHeroForm?.addEventListener("submit", saveMainHeroSettings);
+adminCouponForm?.addEventListener("submit", saveAdminCouponCodes);
 mainHeroImageFile?.addEventListener("change", () => {
   const files = [...(mainHeroImageFile.files || [])];
   const totalKb = files.reduce((sum, file) => sum + file.size / 1024, 0);
