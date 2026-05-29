@@ -1079,14 +1079,18 @@ function formatFeedDate(value) {
     return `${match[1]}.${match[2]}.${match[3]} ${match[4]}:${match[5]}`;
   }
 
-  const date = new Date(raw);
+  const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(raw) ? raw.replace(" ", "T") + "Z" : raw;
+  const date = new Date(normalized);
   if (!Number.isNaN(date.getTime())) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const hour = String(date.getHours()).padStart(2, "0");
-    const minute = String(date.getMinutes()).padStart(2, "0");
-    return `${year}.${month}.${day} ${hour}:${minute}`;
+    return new Intl.DateTimeFormat("ko-KR", {
+      timeZone: "Asia/Seoul",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(date).replace(/\.\s?/g, ".").replace(/\.$/, "");
   }
 
   return raw;
@@ -1170,7 +1174,7 @@ function renderGuides() {
     title.textContent = guide.title;
     comment.textContent = ` (${guide.comments || 0})`;
     summary.textContent = guide.summary;
-    time.textContent = guide.createdAt;
+    time.textContent = formatFeedDate(guide.createdAt);
     views.textContent = `조회 ${formatNumber(guide.views || guide.votes)}`;
     appendNameWithRole(author, guide.author || guide.authorUsername || "익명", guide.authorRole);
 
@@ -1280,7 +1284,8 @@ function renderSideLists() {
 
 function importantNoticeDismissKey(notice) {
   const stamp = String(notice.updatedAt || notice.title || "default").slice(0, 32);
-  return `bbibbi-important-notice:${stamp}:${new Date().toISOString().slice(0, 10)}`;
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());
+  return `bbibbi-important-notice:${stamp}:${today}`;
 }
 
 function closeImportantNotice() {

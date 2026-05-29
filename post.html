@@ -173,6 +173,28 @@
         return number.toLocaleString("ko-KR");
       }
 
+      function formatKstDate(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "";
+        const loungeStamp = raw.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/);
+        const normalized = loungeStamp
+          ? `${loungeStamp[1]}-${loungeStamp[2]}-${loungeStamp[3]}T${loungeStamp[4]}:${loungeStamp[5]}:${loungeStamp[6]}+09:00`
+          : /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(raw)
+            ? raw.replace(" ", "T") + "Z"
+            : raw;
+        const date = new Date(normalized);
+        if (Number.isNaN(date.getTime())) return raw;
+        return new Intl.DateTimeFormat("ko-KR", {
+          timeZone: "Asia/Seoul",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }).format(date).replace(/\.\s?/g, ".").replace(/\.$/, "");
+      }
+
       function loadGuides() {
         try {
           return JSON.parse(localStorage.getItem(storageKey) || "[]");
@@ -689,7 +711,7 @@
           link.href = `post.html?id=${encodeURIComponent(item.id)}`;
           link.className = item.id === currentId ? "active" : "";
           title.textContent = item.title || "제목 없음";
-          meta.textContent = `${normalizeBoard(item.category) || "게시글"} · ${item.createdAt || "알 수 없음"} · 추천 ${formatNumber(item.votes)}`;
+          meta.textContent = `${normalizeBoard(item.category) || "게시글"} · ${formatKstDate(item.createdAt) || "알 수 없음"} · 추천 ${formatNumber(item.votes)}`;
           link.append(title, meta);
           list.append(link);
         });
@@ -729,7 +751,7 @@
 
           item.className = comment.parentId ? "comment-item comment-reply" : "comment-item";
           appendNameWithRole(author, comment.author || "익명", comment.authorRole);
-          date.textContent = comment.createdAt || "";
+          date.textContent = formatKstDate(comment.createdAt);
           content.textContent = comment.content || "";
           voteButton.className = "comment-vote-button";
           voteButton.classList.toggle("active", Boolean(comment.voted));
@@ -819,7 +841,7 @@
         setText("#postSummary", guide.summary || "요약이 없습니다.");
         setText("#postGame", guide.game || "미지정");
         appendNameWithRole(document.querySelector("#postAuthor"), guide.author || guide.displayName || "익명", guide.authorRole);
-        setText("#postDate", guide.createdAt || "알 수 없음");
+        setText("#postDate", formatKstDate(guide.createdAt) || "알 수 없음");
         renderVoteState(guide);
         setText("#postViews", formatNumber(guide.views));
         setText("#sideAuthor", `작성자 ${guide.author || guide.displayName || "익명"}`);
@@ -828,7 +850,7 @@
         const noticeHeroMeta = document.querySelector("#noticeHeroMeta");
         if (noticeHeroMeta) {
           noticeHeroMeta.hidden = !isNotice;
-          noticeHeroMeta.textContent = isNotice ? `${guide.createdAt || "날짜 없음"} · VIEW ${formatNumber(guide.views)}` : "";
+          noticeHeroMeta.textContent = isNotice ? `${formatKstDate(guide.createdAt) || "날짜 없음"} · VIEW ${formatNumber(guide.views)}` : "";
         }
         const listTitle = document.querySelector(".post-list-section .section-title h2");
         const listDesc = document.querySelector(".post-list-section .section-title p");

@@ -2357,14 +2357,14 @@ app.get("/api/admin/dashboard", requireAdmin, (req, res) => {
     .prepare(
       `
         WITH days(day) AS (
-          SELECT date('now', '-6 days')
+          SELECT date('now', '+9 hours', '-6 days')
           UNION ALL
-          SELECT date(day, '+1 day') FROM days WHERE day < date('now')
+          SELECT date(day, '+1 day') FROM days WHERE day < date('now', '+9 hours')
         )
         SELECT
           day,
-          (SELECT COUNT(*) FROM users WHERE date(created_at) = day) AS users,
-          (SELECT COUNT(*) FROM posts WHERE date(created_at) = day) AS posts
+          (SELECT COUNT(*) FROM users WHERE date(created_at, '+9 hours') = day) AS users,
+          (SELECT COUNT(*) FROM posts WHERE date(created_at, '+9 hours') = day) AS posts
         FROM days
         ORDER BY day
       `,

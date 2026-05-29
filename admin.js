@@ -138,9 +138,11 @@ function formatNumber(value) {
 }
 
 function formatDate(value) {
-  const date = new Date(value);
+  const raw = String(value || "").trim();
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? `${raw}T00:00:00+09:00` : /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(raw) ? raw.replace(" ", "T") + "Z" : raw;
+  const date = new Date(normalized);
   if (Number.isNaN(date.getTime())) return value || "-";
-  return date.toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" });
+  return new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "2-digit", day: "2-digit" }).format(date);
 }
 
 function setText(target, value) {
