@@ -3127,7 +3127,7 @@ p {
 
 .notice-table td:nth-child(3),
 .notice-table th:nth-child(3) {
-  width: 140px;
+  width: 190px;
 }
 
 .notice-table td:nth-child(4),
@@ -3204,6 +3204,12 @@ p {
   min-width: 0;
   line-height: 1.2;
   white-space: nowrap;
+}
+
+.notice-table td.role-name {
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .role-name .role-icon {
