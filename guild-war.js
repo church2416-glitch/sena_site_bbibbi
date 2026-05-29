@@ -92,10 +92,6 @@ const GuildWar = (() => {
     부활: "부활세공",
   };
   const legacyDefaultGearValues = new Set([
-    "추적자",
-    "수문장",
-    "수호자",
-    "선봉장",
     "초월자",
     "방어무시",
     "받는 피해 감소",
