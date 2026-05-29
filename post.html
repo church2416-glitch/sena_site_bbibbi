@@ -371,8 +371,27 @@
         renderPostMedia(body, guide.media || {});
       }
 
+      function isReservedMediaAsset(image = {}) {
+        const haystack = `${image.name || ""} ${image.src || ""}`.toLowerCase();
+        const reservedTokens = [
+          "bbitsena",
+          "logo",
+          "role",
+          "assets/common/",
+          "관리자",
+          "기본",
+          "일반",
+          "정예",
+          "최고관리자",
+        ];
+        return reservedTokens.some((token) => haystack.includes(token.toLowerCase()));
+      }
+
       function renderPostMedia(body, media) {
-        const hasImages = Array.isArray(media.images) && media.images.length;
+        const images = Array.isArray(media.images)
+          ? media.images.filter((image) => !isReservedMediaAsset(image))
+          : [];
+        const hasImages = images.length;
         const hasYoutube = Boolean(media.youtubeEmbed);
         const videos = Array.isArray(media.videos) && media.videos.length
           ? media.videos
@@ -396,7 +415,7 @@
         }
 
         if (hasImages) {
-          media.images.forEach((image) => {
+          images.forEach((image) => {
             const figure = document.createElement("figure");
             const img = document.createElement("img");
             const caption = document.createElement("figcaption");
