@@ -1955,9 +1955,9 @@ p {
   display: grid;
   gap: 14px;
   padding: 16px;
-  border: 1px solid #f0d89b;
+  border: 1px solid rgba(255, 218, 94, 0.24);
   border-radius: 8px;
-  background: #fff9eb;
+  background: rgba(10, 11, 19, 0.92);
 }
 
 .pve-guide-editor[hidden] {
@@ -1975,7 +1975,7 @@ p {
 .pve-editor-head span,
 .pve-guide-view-head span,
 .pve-mini-section h3 {
-  color: #c28b16;
+  color: #f8ec93;
   font-size: 11px;
   font-weight: 1000;
 }
@@ -1983,12 +1983,12 @@ p {
 .pve-editor-head h2,
 .pve-guide-view-head h2 {
   margin: 4px 0 0;
-  color: #1f2330;
+  color: #fff;
   font-size: 20px;
 }
 
 .pve-editor-head small {
-  color: #7d8290;
+  color: #bcb6d4;
   font-size: 11px;
   font-weight: 800;
 }
@@ -2045,7 +2045,7 @@ p {
 .pve-note-field {
   display: grid;
   gap: 7px;
-  color: #9a6d0f;
+  color: #f8ec93;
   font-size: 11px;
   font-weight: 1000;
 }
@@ -2054,6 +2054,9 @@ p {
 .pve-guide-editor label select,
 .pve-guide-editor label textarea {
   min-width: 0;
+  border-color: rgba(137, 106, 255, 0.24);
+  color: #f6f2ff;
+  background: rgba(14, 16, 27, 0.96);
 }
 
 .pve-mini-section {
