@@ -1076,13 +1076,13 @@ function formatFeedDate(value) {
   const raw = String(value || "").trim();
   const match = raw.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/);
   if (match) {
-    return `${match[1]}.${match[2]}.${match[3]} ${match[4]}:${match[5]}`;
+    return `${match[1]}-${match[2]}-${match[3]} ${match[4]}:${match[5]}`;
   }
 
   const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(raw) ? raw.replace(" ", "T") + "Z" : raw;
   const date = new Date(normalized);
   if (!Number.isNaN(date.getTime())) {
-    return new Intl.DateTimeFormat("ko-KR", {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Seoul",
       year: "numeric",
       month: "2-digit",
@@ -1090,7 +1090,8 @@ function formatFeedDate(value) {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
-    }).format(date).replace(/\.\s?/g, ".").replace(/\.$/, "");
+    }).formatToParts(date).map((part) => [part.type, part.value]));
+    return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
   }
 
   return raw;

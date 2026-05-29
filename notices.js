@@ -48,7 +48,7 @@ function parseNoticeDate(value) {
 function formatDate(value) {
   const date = parseNoticeDate(value);
   if (!date) return "-";
-  return new Intl.DateTimeFormat("ko-KR", {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Seoul",
     year: "numeric",
     month: "2-digit",
@@ -56,7 +56,8 @@ function formatDate(value) {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-  }).format(date).replace(/\.\s?/g, ".").replace(/\.$/, "");
+  }).formatToParts(date).map((part) => [part.type, part.value]));
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
 }
 
 function renderEmptyNotice() {
