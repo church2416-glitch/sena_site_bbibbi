@@ -144,13 +144,24 @@
             </div>
           </section>
           <datalist id="petOptions"></datalist>
+          <datalist id="gearSetOptions">
+            <option value="선봉장"></option>
+            <option value="추적자"></option>
+            <option value="성기사"></option>
+            <option value="수문장"></option>
+            <option value="수호자"></option>
+            <option value="암살자"></option>
+            <option value="복수자"></option>
+            <option value="주술사"></option>
+            <option value="조율자"></option>
+          </datalist>
 
           <section class="gear-editor" aria-label="장비 입력">
             <div class="mini-label">장비 입력</div>
             <fieldset class="gear-editor-row">
               <legend>장비 1</legend>
               <select name="gearHero0" data-character-select data-gear-hero readonly disabled data-placeholder="영웅"></select>
-              <input name="gearSet0" maxlength="18" placeholder="세트" />
+              <input name="gearSet0" maxlength="18" placeholder="세트" list="gearSetOptions" />
               <input name="gearWeapon0" maxlength="18" placeholder="무기" />
               <input name="gearArmor0" maxlength="18" placeholder="방어구" />
               <div class="accessory-editor">
@@ -185,7 +196,7 @@
             <fieldset class="gear-editor-row">
               <legend>장비 2</legend>
               <select name="gearHero1" data-character-select data-gear-hero readonly disabled data-placeholder="영웅"></select>
-              <input name="gearSet1" maxlength="18" placeholder="세트" />
+              <input name="gearSet1" maxlength="18" placeholder="세트" list="gearSetOptions" />
               <input name="gearWeapon1" maxlength="18" placeholder="무기" />
               <input name="gearArmor1" maxlength="18" placeholder="방어구" />
               <div class="accessory-editor">
@@ -220,7 +231,7 @@
             <fieldset class="gear-editor-row">
               <legend>장비 3</legend>
               <select name="gearHero2" data-character-select data-gear-hero readonly disabled data-placeholder="영웅"></select>
-              <input name="gearSet2" maxlength="18" placeholder="세트" />
+              <input name="gearSet2" maxlength="18" placeholder="세트" list="gearSetOptions" />
               <input name="gearWeapon2" maxlength="18" placeholder="무기" />
               <input name="gearArmor2" maxlength="18" placeholder="방어구" />
               <div class="accessory-editor">
