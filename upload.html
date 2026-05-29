@@ -55,6 +55,7 @@
                 <option value="PVE 공략">PVE 공략</option>
                 <option value="파괴신">파괴신</option>
                 <option value="공성전">공성전</option>
+                <option value="돌발레이드">돌발레이드</option>
                 <option value="기술">기술</option>
                 <option value="임시 채널1">임시 채널1</option>
                 <option value="임시 채널2">임시 채널2</option>
@@ -85,7 +86,8 @@
               </label>
               <label>
                 <span id="strategyBossLabel">보스 / 콘텐츠</span>
-                <input data-pve-field="boss" id="strategyBossInput" type="text" maxlength="40" placeholder="레오니드, 파멸의 눈동자" />
+                <input data-pve-field="boss" id="strategyBossInput" type="text" maxlength="40" list="strategyBossOptions" placeholder="레오니드, 파멸의 눈동자" />
+                <datalist id="strategyBossOptions"></datalist>
               </label>
               <label>
                 <span id="strategyPowerLabel">권장 전투력</span>
@@ -250,6 +252,7 @@
       const strategySpecTitle = document.querySelector("#strategySpecTitle");
       const strategyMainPetInput = document.querySelector("#strategyMainPetInput");
       const strategySubPetInput = document.querySelector("#strategySubPetInput");
+      const strategyBossOptions = document.querySelector("#strategyBossOptions");
       let imageFiles = [];
       let videoFiles = [];
       let isUploading = false;
@@ -257,7 +260,7 @@
       let draftTimer = null;
       const maxImageSize = 8 * 1024 * 1024;
       const maxVideoSize = 500 * 1024 * 1024;
-      const strategyCategories = new Set(["PVE 공략", "파괴신", "공성전", "PVP 게시판", "PVP 공략"]);
+      const strategyCategories = new Set(["PVE 공략", "파괴신", "공성전", "돌발레이드", "PVP 게시판", "PVP 공략"]);
       const pvpCategories = new Set(["PVP 게시판", "PVP 공략"]);
       const strategyModeConfig = {
         pve: {
@@ -271,12 +274,12 @@
           heroTitle: "핵심 영웅",
           specTitle: "스펙 체크",
           noteLabel: "운영 메모",
-          bossPlaceholder: "레오니드, 파멸의 눈동자",
+          bossPlaceholder: "아스트레아, 칼리스트라, 레오니드",
           powerPlaceholder: "20턴 SS 500만, 관우 6초 필수",
           formationPlaceholder: "앞열 탱커 / 뒷열 딜러 4",
           notePlaceholder: "스킬 순서, 주의할 패턴, 대체 영웅 등을 적어주세요.",
           heroRolePlaceholder: "역할 / 대체",
-          typeOptions: ["일반 레이드", "돌발 레이드", "파괴신", "공성전"],
+          typeOptions: ["PVE 공략", "파괴신", "공성전", "돌발레이드"],
           specLabels: ["공격력", "방어", "속공", "치명", "막기", "기타"],
         },
         pvp: {
@@ -317,6 +320,12 @@
       const accessoryRefines = ["", "세공", "권불", "불권", "부불", "불부", "권기", "기권"];
       const accessoryGrades = ["", "6", "5", "4", "6/6", "6/5", "6/4"];
       const petCatalog = ["루", "크리", "이린", "리첼", "파이크", "델로", "윈디", "제브", "유", "요랑", "연지", "카람", "제오", "멜페로"];
+      const pveContentOptions = {
+        돌발레이드: ["아스트레아", "칼리스트라", "레오니드"],
+        공성전: ["수호자의성", "포디나의성", "불멸의성", "죽음의성", "고대용의성", "혹한의성", "지옥의성"],
+        파괴신: ["파멸의 눈동자"],
+        "PVE 공략": ["아스트레아", "칼리스트라", "레오니드", "파멸의 눈동자", "수호자의성", "포디나의성", "불멸의성", "죽음의성", "고대용의성", "혹한의성", "지옥의성"],
+      };
 
       function fillSelect(select, items, placeholder) {
         select.innerHTML = "";
@@ -362,7 +371,23 @@
           option.textContent = item;
           strategyTypeInput.append(option);
         });
-        strategyTypeInput.value = options.includes(current) ? current : options[0] || "";
+        const categoryType = options.includes(categoryInput.value) ? categoryInput.value : "";
+        strategyTypeInput.value = categoryType || (options.includes(current) ? current : options[0] || "");
+      }
+
+      function updateStrategyBossOptions() {
+        if (!strategyBossOptions) return;
+        const type = strategyTypeInput?.value || categoryInput.value;
+        const options = pveContentOptions[type] || pveContentOptions[categoryInput.value] || [];
+        strategyBossOptions.innerHTML = "";
+        options.forEach((item) => {
+          const option = document.createElement("option");
+          option.value = item;
+          strategyBossOptions.append(option);
+        });
+        if (strategyBossInput && options.length) {
+          strategyBossInput.placeholder = options.join(", ");
+        }
       }
 
       function resetEmptySpecLabels(mode) {
@@ -397,6 +422,7 @@
         if (strategyNoteInput) strategyNoteInput.placeholder = config.notePlaceholder;
         if (pvpExtraFields) pvpExtraFields.hidden = mode !== "pvp";
         applyStrategyTypeOptions(mode);
+        updateStrategyBossOptions();
         pveGuideEditor.querySelectorAll("[data-pve-hero-role]").forEach((input) => {
           input.placeholder = config.heroRolePlaceholder;
         });
@@ -885,6 +911,7 @@
         scheduleDraftSave();
       });
       strategyTypeInput?.addEventListener("change", () => {
+        updateStrategyBossOptions();
         updateStrategyHeroSlots();
         scheduleDraftSave();
       });

@@ -241,6 +241,10 @@ const boardInfo = {
     title: "PVE 공략",
     desc: "일반적인 PVE 공략 공간",
   },
+  돌발레이드: {
+    title: "돌발레이드",
+    desc: "아스트레아, 칼리스트라, 레오니드 공략을 모아보는 공간",
+  },
   "PVP 공략": {
     title: "PVP 공략",
     desc: "총력전, 결투장 관련 토론장",
@@ -281,6 +285,7 @@ const boardAliases = {
   "자유 게시판": "PVP 게시판",
   "데미지 고급": "임시 채널1",
   "아이템 고급": "임시 채널2",
+  "돌발 레이드": "돌발레이드",
 };
 const overviewExcludedCategories = new Set(["공지사항"]);
 const boardCategoryGroups = {
@@ -289,6 +294,7 @@ const boardCategoryGroups = {
   "PVE 공략": "pve",
   파괴신: "pve",
   공성전: "pve",
+  돌발레이드: "pve",
   기술: "pve",
 };
 
@@ -302,7 +308,7 @@ const boardTabSets = {
     { filter: "PVE 공략", label: "PVE 공략" },
     { filter: "파괴신", label: "파괴신" },
     { filter: "공성전", label: "공성전" },
-    { filter: "기술", label: "기술" },
+    { filter: "돌발레이드", label: "돌발레이드" },
   ],
 };
 
@@ -326,8 +332,8 @@ const heroModes = {
   pve: {
     image: "assets/common/guide-hero.webp",
     kicker: "BBITSENA · PVE STRATEGY",
-    title: "PVE 게시판",
-    subtitle: "레이드, 파괴신, 공성전 공략을 모아 확인하세요",
+    title: "PVE 공략",
+    subtitle: "파괴신, 공성전, 돌발레이드 공략을 모아 확인하세요",
     action: "공략 작성하기",
     href: "upload.html",
   },
