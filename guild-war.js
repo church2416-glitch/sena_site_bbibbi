@@ -399,7 +399,7 @@ const GuildWar = (() => {
   }
 
   function getAccessoryImageGrade(grade) {
-    const imageGrade = String(grade || "6").split("/").pop();
+    const imageGrade = String(grade || "6").split("/")[0];
     return ["4", "5", "6"].includes(imageGrade) ? imageGrade : "6";
   }
 
