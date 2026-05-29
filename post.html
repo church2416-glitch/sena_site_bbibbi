@@ -381,20 +381,112 @@
         }
       }
 
+      function escapeHtml(value) {
+        return String(value || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function renderInlineMarkup(value) {
+        return escapeHtml(value)
+          .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+          .replace(/__(.+?)__/g, "<u>$1</u>")
+          .replace(/\*(.+?)\*/g, "<em>$1</em>")
+          .replace(/~~(.+?)~~/g, "<s>$1</s>")
+          .replace(/~(.+?)~/g, "<sub>$1</sub>")
+          .replace(/\^(.+?)\^/g, "<sup>$1</sup>")
+          .replace(/`(.+?)`/g, "<code>$1</code>")
+          .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+          .replace(/\{color:([#a-zA-Z0-9(),.%\s-]+)\}(.+?)\{\/color\}/g, '<span style="color:$1">$2</span>');
+      }
+
+      function renderRichText(source) {
+        const lines = String(source || "").split(/\r?\n/);
+        const html = [];
+        let inList = false;
+        let inOrdered = false;
+        let inCode = false;
+        let inTable = false;
+
+        const closeLists = () => {
+          if (inList) html.push("</ul>");
+          if (inOrdered) html.push("</ol>");
+          inList = false;
+          inOrdered = false;
+        };
+        const closeTable = () => {
+          if (inTable) html.push("</table>");
+          inTable = false;
+        };
+        const closeFlow = () => {
+          closeLists();
+          closeTable();
+        };
+
+        lines.forEach((line) => {
+          if (line.trim() === "```") {
+            closeFlow();
+            html.push(inCode ? "</code></pre>" : "<pre><code>");
+            inCode = !inCode;
+            return;
+          }
+          if (inCode) {
+            html.push(`${escapeHtml(line)}\n`);
+            return;
+          }
+          if (!line.trim()) {
+            closeFlow();
+            return;
+          }
+          if (/^\|.+\|$/.test(line.trim())) {
+            closeLists();
+            if (!inTable) {
+              html.push("<table>");
+              inTable = true;
+            }
+            const cells = line.trim().slice(1, -1).split("|").map((cell) => `<td>${renderInlineMarkup(cell.trim())}</td>`).join("");
+            html.push(`<tr>${cells}</tr>`);
+            return;
+          }
+          closeTable();
+          if (/^\d+\.\s+/.test(line)) {
+            if (!inOrdered) {
+              closeLists();
+              html.push("<ol>");
+              inOrdered = true;
+            }
+            html.push(`<li>${renderInlineMarkup(line.replace(/^\d+\.\s+/, ""))}</li>`);
+            return;
+          }
+          if (/^[-*]\s+/.test(line)) {
+            if (!inList) {
+              closeLists();
+              html.push("<ul>");
+              inList = true;
+            }
+            html.push(`<li>${renderInlineMarkup(line.replace(/^[-*]\s+/, ""))}</li>`);
+            return;
+          }
+          closeLists();
+          if (line.startsWith("### ")) html.push(`<h3>${renderInlineMarkup(line.slice(4))}</h3>`);
+          else if (line.startsWith("## ")) html.push(`<h2>${renderInlineMarkup(line.slice(3))}</h2>`);
+          else if (line.startsWith("> ")) html.push(`<blockquote>${renderInlineMarkup(line.slice(2))}</blockquote>`);
+          else if (line.startsWith(":::compare")) html.push('<section class="compare-preview">');
+          else if (line.startsWith(":::end")) html.push("</section>");
+          else html.push(`<p>${renderInlineMarkup(line)}</p>`);
+        });
+        closeFlow();
+        if (inCode) html.push("</code></pre>");
+        return html.join("");
+      }
+
       function renderPostBody(guide) {
         const body = document.querySelector("#postBody");
         const source = guide.body || guide.content || guide.summary || "아직 상세 본문이 없습니다.";
-        const parts = String(source)
-          .split(/\n{2,}/)
-          .map((item) => item.trim())
-          .filter(Boolean);
-
-        body.innerHTML = "";
-        parts.forEach((part) => {
-          const paragraph = document.createElement("p");
-          paragraph.textContent = part;
-          body.append(paragraph);
-        });
+        body.innerHTML = renderRichText(source);
 
         renderPostMedia(body, guide.media || {});
         renderPveGuide(body, guide.media?.pveGuide);

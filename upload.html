@@ -149,11 +149,26 @@
               <textarea data-pve-field="note" id="strategyNoteInput" rows="5" maxlength="1000" placeholder="스킬 순서, 주의할 패턴, 대체 영웅 등을 적어주세요."></textarea>
             </label>
           </section>
-          <section class="editor-box" aria-label="본문 작성기">
+          <section class="editor-box" id="richEditorBox" aria-label="본문 작성기">
+            <div class="editor-modebar" aria-label="작성 모드">
+              <button type="button" class="active" id="editorWriteButton">편집기</button>
+              <button type="button" id="editorPreviewButton">미리보기</button>
+              <button type="button" id="editorFullscreenButton">전체화면</button>
+            </div>
             <div class="editor-toolbar" aria-label="본문 도구">
-              <button type="button" data-insert="## 소제목">소제목</button>
-              <button type="button" data-insert="- 체크할 내용">목록</button>
-              <button type="button" data-insert="**강조할 내용**">강조</button>
+              <button type="button" data-editor-action="heading">Tt</button>
+              <button type="button" data-editor-action="color">색</button>
+              <button type="button" data-editor-action="bold">B</button>
+              <button type="button" data-editor-action="italic">I</button>
+              <button type="button" data-editor-action="strike">S</button>
+              <button type="button" data-editor-action="sub">x₁</button>
+              <button type="button" data-editor-action="sup">x¹</button>
+              <button type="button" data-editor-action="underline">U</button>
+              <button type="button" data-editor-action="ul">• 목록</button>
+              <button type="button" data-editor-action="ol">1. 목록</button>
+              <button type="button" data-editor-action="quote">인용</button>
+              <button type="button" data-editor-action="code">코드</button>
+              <button type="button" data-editor-action="link">링크</button>
               <label class="tool-file">
                 이미지
                 <input id="imageInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/avif,image/bmp,.jpg,.jpeg,.jfif,.png,.gif,.webp,.avif,.bmp" multiple />
@@ -163,6 +178,8 @@
                 <input id="videoInput" type="file" accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-m4v,video/mpeg,video/x-msvideo,video/x-matroska,.mp4,.m4v,.webm,.ogv,.ogg,.mov,.mpeg,.mpg,.avi,.mkv" multiple />
               </label>
               <button type="button" id="youtubeButton">유튜브</button>
+              <button type="button" data-editor-action="table">표</button>
+              <button type="button" data-editor-action="compare">비교</button>
             </div>
             <textarea
               id="bodyInput"
@@ -170,6 +187,7 @@
               rows="14"
               placeholder="공략 본문을 작성해주세요. 이미지와 유튜브 영상은 아래 미리보기와 상세페이지에 함께 표시됩니다."
             ></textarea>
+            <div class="body-preview" id="bodyPreview" hidden></div>
             <div class="youtube-field" id="youtubeField" hidden>
               <input id="youtubeInput" name="youtube" type="url" placeholder="유튜브 링크를 붙여넣어 주세요." />
             </div>
@@ -210,6 +228,11 @@
       const youtubeField = document.querySelector("#youtubeField");
       const mediaPreview = document.querySelector("#mediaPreview");
       const bodyInput = document.querySelector("#bodyInput");
+      const richEditorBox = document.querySelector("#richEditorBox");
+      const bodyPreview = document.querySelector("#bodyPreview");
+      const editorWriteButton = document.querySelector("#editorWriteButton");
+      const editorPreviewButton = document.querySelector("#editorPreviewButton");
+      const editorFullscreenButton = document.querySelector("#editorFullscreenButton");
       const categoryInput = document.querySelector("#categoryInput");
       const pveGuideEditor = document.querySelector("#pveGuideEditor");
       const pveHeroGrid = document.querySelector("#pveHeroGrid");
@@ -656,6 +679,157 @@
         });
       }
 
+      function escapeHtml(value) {
+        return String(value || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function renderInlineMarkup(value) {
+        return escapeHtml(value)
+          .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+          .replace(/__(.+?)__/g, "<u>$1</u>")
+          .replace(/\*(.+?)\*/g, "<em>$1</em>")
+          .replace(/~~(.+?)~~/g, "<s>$1</s>")
+          .replace(/~(.+?)~/g, "<sub>$1</sub>")
+          .replace(/\^(.+?)\^/g, "<sup>$1</sup>")
+          .replace(/`(.+?)`/g, "<code>$1</code>")
+          .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+          .replace(/\{color:([#a-zA-Z0-9(),.%\s-]+)\}(.+?)\{\/color\}/g, '<span style="color:$1">$2</span>');
+      }
+
+      function renderBodyPreview() {
+        const lines = bodyInput.value.split(/\r?\n/);
+        const html = [];
+        let inList = false;
+        let inOrdered = false;
+        let inCode = false;
+        let inTable = false;
+
+        const closeLists = () => {
+          if (inList) html.push("</ul>");
+          if (inOrdered) html.push("</ol>");
+          inList = false;
+          inOrdered = false;
+        };
+        const closeTable = () => {
+          if (inTable) html.push("</table>");
+          inTable = false;
+        };
+
+        lines.forEach((line) => {
+          if (line.trim() === "```") {
+            closeLists();
+            closeTable();
+            html.push(inCode ? "</code></pre>" : "<pre><code>");
+            inCode = !inCode;
+            return;
+          }
+          if (inCode) {
+            html.push(`${escapeHtml(line)}\n`);
+            return;
+          }
+          if (!line.trim()) {
+            closeLists();
+            closeTable();
+            return;
+          }
+          if (/^\|.+\|$/.test(line.trim())) {
+            closeLists();
+            if (!inTable) {
+              html.push("<table>");
+              inTable = true;
+            }
+            const cells = line.trim().slice(1, -1).split("|").map((cell) => `<td>${renderInlineMarkup(cell.trim())}</td>`).join("");
+            html.push(`<tr>${cells}</tr>`);
+            return;
+          }
+          closeTable();
+          if (/^\d+\.\s+/.test(line)) {
+            if (!inOrdered) {
+              closeLists();
+              html.push("<ol>");
+              inOrdered = true;
+            }
+            html.push(`<li>${renderInlineMarkup(line.replace(/^\d+\.\s+/, ""))}</li>`);
+            return;
+          }
+          if (/^[-*]\s+/.test(line)) {
+            if (!inList) {
+              closeLists();
+              html.push("<ul>");
+              inList = true;
+            }
+            html.push(`<li>${renderInlineMarkup(line.replace(/^[-*]\s+/, ""))}</li>`);
+            return;
+          }
+          closeLists();
+          if (line.startsWith("### ")) html.push(`<h3>${renderInlineMarkup(line.slice(4))}</h3>`);
+          else if (line.startsWith("## ")) html.push(`<h2>${renderInlineMarkup(line.slice(3))}</h2>`);
+          else if (line.startsWith("> ")) html.push(`<blockquote>${renderInlineMarkup(line.slice(2))}</blockquote>`);
+          else if (line.startsWith(":::compare")) html.push('<section class="compare-preview">');
+          else if (line.startsWith(":::end")) html.push("</section>");
+          else html.push(`<p>${renderInlineMarkup(line)}</p>`);
+        });
+        closeLists();
+        closeTable();
+        if (inCode) html.push("</code></pre>");
+        bodyPreview.innerHTML = html.join("");
+      }
+
+      function setEditorPreviewMode(enabled) {
+        renderBodyPreview();
+        bodyInput.hidden = enabled;
+        bodyPreview.hidden = !enabled;
+        editorWriteButton.classList.toggle("active", !enabled);
+        editorPreviewButton.classList.toggle("active", enabled);
+      }
+
+      function insertAtSelection(before, after = "", placeholder = "") {
+        const start = bodyInput.selectionStart;
+        const end = bodyInput.selectionEnd;
+        const selected = bodyInput.value.slice(start, end) || placeholder;
+        const insert = `${before}${selected}${after}`;
+        bodyInput.value = `${bodyInput.value.slice(0, start)}${insert}${bodyInput.value.slice(end)}`;
+        bodyInput.focus();
+        bodyInput.setSelectionRange(start + before.length, start + before.length + selected.length);
+        scheduleDraftSave();
+        renderBodyPreview();
+      }
+
+      function insertBlock(text) {
+        const start = bodyInput.selectionStart;
+        const prefix = start > 0 && !bodyInput.value.slice(0, start).endsWith("\n") ? "\n" : "";
+        const insert = `${prefix}${text}`;
+        bodyInput.value = `${bodyInput.value.slice(0, start)}${insert}${bodyInput.value.slice(start)}`;
+        bodyInput.focus();
+        bodyInput.setSelectionRange(start + insert.length, start + insert.length);
+        scheduleDraftSave();
+        renderBodyPreview();
+      }
+
+      function handleEditorAction(action) {
+        const selected = bodyInput.value.slice(bodyInput.selectionStart, bodyInput.selectionEnd);
+        if (action === "heading") return insertBlock(`## ${selected || "소제목"}`);
+        if (action === "color") return insertAtSelection("{color:#ffdd66}", "{/color}", "강조할 문장");
+        if (action === "bold") return insertAtSelection("**", "**", "굵게");
+        if (action === "italic") return insertAtSelection("*", "*", "기울임");
+        if (action === "strike") return insertAtSelection("~~", "~~", "취소선");
+        if (action === "underline") return insertAtSelection("__", "__", "밑줄");
+        if (action === "sub") return insertAtSelection("~", "~", "아래첨자");
+        if (action === "sup") return insertAtSelection("^", "^", "위첨자");
+        if (action === "ul") return insertBlock("- 첫 번째 항목\n- 두 번째 항목");
+        if (action === "ol") return insertBlock("1. 첫 번째 항목\n2. 두 번째 항목");
+        if (action === "quote") return insertBlock(`> ${selected || "인용문"}`);
+        if (action === "code") return insertBlock(`\`\`\`\n${selected || "코드 또는 표기할 내용"}\n\`\`\``);
+        if (action === "link") return insertAtSelection("[", "](https://)", selected || "링크");
+        if (action === "table") return insertBlock("| 항목 | 값 |\n| 이름 | 내용 |\n| 효과 | 내용 |");
+        if (action === "compare") return insertBlock(":::compare\n| 기준 | A | B |\n| 장점 | 내용 | 내용 |\n| 단점 | 내용 | 내용 |\n:::end");
+      }
+
       form.addEventListener("input", scheduleDraftSave);
       form.addEventListener("change", scheduleDraftSave);
 
@@ -663,17 +837,20 @@
         fileName.textContent = fileInput.files[0]?.name || "첨부 선택";
       });
 
-      document.querySelectorAll("[data-insert]").forEach((button) => {
+      document.querySelectorAll("[data-editor-action]").forEach((button) => {
         button.addEventListener("click", () => {
-          const insert = button.dataset.insert;
-          const start = bodyInput.selectionStart;
-          const end = bodyInput.selectionEnd;
-          bodyInput.value = `${bodyInput.value.slice(0, start)}${insert}${bodyInput.value.slice(end)}`;
-          bodyInput.focus();
-          bodyInput.setSelectionRange(start + insert.length, start + insert.length);
-          scheduleDraftSave();
+          handleEditorAction(button.dataset.editorAction);
         });
       });
+
+      editorWriteButton.addEventListener("click", () => setEditorPreviewMode(false));
+      editorPreviewButton.addEventListener("click", () => setEditorPreviewMode(true));
+      editorFullscreenButton.addEventListener("click", () => {
+        richEditorBox.classList.toggle("is-fullscreen");
+        editorFullscreenButton.textContent = richEditorBox.classList.contains("is-fullscreen") ? "전체화면 해제" : "전체화면";
+        bodyInput.focus();
+      });
+      bodyInput.addEventListener("input", renderBodyPreview);
 
       youtubeButton.addEventListener("click", () => {
         youtubeField.hidden = !youtubeField.hidden;
