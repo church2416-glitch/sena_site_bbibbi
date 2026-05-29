@@ -30,6 +30,10 @@ function appendNameWithRole(target, name, role) {
   target.append(image, document.createTextNode(name || "관리자"));
 }
 
+function isManagerRole(role) {
+  return ["admin", "superadmin"].includes(String(role || "").toLowerCase());
+}
+
 function parseNoticeDate(value) {
   const raw = String(value || "").trim();
   if (!raw) return null;
@@ -87,12 +91,15 @@ function renderNotices(items) {
     const meta = document.createElement("td");
     const badge = document.createElement("span");
     const link = document.createElement("a");
+    const managerNotice = isManagerRole(item.authorRole);
 
+    row.classList.toggle("manager-notice-row", managerNotice);
     badge.className = "notice-table-badge";
     badge.textContent = index === 0 ? "TOP" : String(index + 1);
     number.append(badge);
 
     link.href = `post.html?id=${encodeURIComponent(item.id)}`;
+    link.classList.toggle("manager-notice-title", managerNotice);
     link.textContent = item.title || "제목 없음";
     titleCell.append(link);
     appendNameWithRole(author, item.author || item.authorUsername || "관리자", item.authorRole);
