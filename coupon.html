@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>쿠폰 - bbitsena</title>
+    <link rel="stylesheet" href="styles.css?v=coupon-tool-20260530" />
+  </head>
+  <body class="coupon-page">
+    <main class="coupon-shell">
+      <a class="brand upload-brand" href="index.html">
+        <img class="site-logo" src="assets/common/logo.webp" alt="bbitsena" />
+        <span class="brand-kicker">삣삐 유틸</span>
+        <strong>쿠폰</strong>
+        <small>SEVENKNIGHT : REBIRTH</small>
+      </a>
+
+      <section class="coupon-panel">
+        <div class="coupon-head">
+          <div>
+            <span>COUPON TOOL</span>
+            <h1>UID 쿠폰 전송</h1>
+            <p>UID와 쿠폰 코드를 입력하면 서버에서 쿠폰 전송 요청을 처리합니다.</p>
+          </div>
+          <a href="index.html">메인으로</a>
+        </div>
+
+        <form id="couponForm" class="coupon-form">
+          <label>
+            UID
+            <input id="couponUidInput" name="uid" type="text" maxlength="40" autocomplete="off" placeholder="UID 입력" required />
+          </label>
+          <label>
+            쿠폰 코드
+            <input id="couponCodeInput" name="couponCode" type="text" maxlength="80" autocomplete="off" placeholder="쿠폰 코드 입력" required />
+          </label>
+          <button class="submit-button" id="couponSubmitButton" type="submit">쿠폰 전송</button>
+        </form>
+
+        <p class="coupon-status" id="couponStatus" role="status">쿠폰 API 연결 상태를 확인하는 중입니다.</p>
+      </section>
+
+      <section class="coupon-panel">
+        <div class="coupon-head compact">
+          <div>
+            <span>HISTORY</span>
+            <h2>최근 처리 내역</h2>
+          </div>
+          <button class="ghost-button" id="couponReloadButton" type="button">새로고침</button>
+        </div>
+        <div class="coupon-history" id="couponHistory"></div>
+      </section>
+    </main>
+
+    <script src="theme.js"></script>
+    <script src="coupon.js?v=coupon-tool-20260530"></script>
+  </body>
+</html>

@@ -54,6 +54,8 @@ const naverRedirectUri = process.env.NAVER_REDIRECT_URI || `${siteUrl}/auth/nave
 const googleClientId = process.env.GOOGLE_CLIENT_ID || "";
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
 const googleRedirectUri = process.env.GOOGLE_REDIRECT_URI || `${siteUrl}/auth/google/callback`;
+const couponRedeemUrl = process.env.COUPON_REDEEM_URL || "";
+const couponApiToken = process.env.COUPON_API_TOKEN || "";
 const internalNoticeCategory = "\uacf5\uc9c0\uc0ac\ud56d";
 const defaultGuildSeasonSettings = {
   seasonNote: "세븐나이츠 리버스 길드전",
@@ -98,6 +100,7 @@ const allowedVideoMimeTypes = new Set([
 ]);
 const authRateWindowMs = 10 * 60 * 1000;
 const authRateLimits = new Map();
+const couponRateWindowMs = 60 * 1000;
 const cookieSecure = siteUrl.startsWith("https://") && process.env.COOKIE_SECURE !== "false";
 const roleLevels = {
   blocked: 0,
@@ -448,6 +451,64 @@ function checkRateLimit(req, res, scope, limit, windowMs = authRateWindowMs) {
   res.setHeader("Retry-After", String(retryAfter));
   res.status(429).json({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." });
   return true;
+}
+
+function sanitizeCouponInput(value, maxLength) {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, "")
+    .slice(0, maxLength);
+}
+
+function serializeCouponRequest(row) {
+  return {
+    id: row.id,
+    uid: row.uid,
+    couponCode: row.coupon_code,
+    status: row.status,
+    message: row.message || "",
+    createdAt: row.created_at,
+  };
+}
+
+async function sendCouponToGame({ uid, couponCode }) {
+  if (!couponRedeemUrl) {
+    return {
+      status: "pending",
+      message: "공식 쿠폰 API가 아직 설정되지 않아 내부 기록만 저장했습니다.",
+      response: { configured: false },
+    };
+  }
+
+  const headers = {
+    "Content-Type": "application/json",
+    "User-Agent": "bbitsena-coupon-tool/1.0",
+  };
+  if (couponApiToken) headers.Authorization = `Bearer ${couponApiToken}`;
+
+  const response = await fetch(couponRedeemUrl, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ uid, couponCode }),
+  });
+  const contentType = response.headers.get("content-type") || "";
+  const payload = contentType.includes("application/json")
+    ? await response.json().catch(() => ({}))
+    : { text: await response.text().catch(() => "") };
+
+  if (!response.ok) {
+    return {
+      status: "failed",
+      message: payload.error || payload.message || `쿠폰 전송 실패 (${response.status})`,
+      response: payload,
+    };
+  }
+
+  return {
+    status: "sent",
+    message: payload.message || "쿠폰 전송 요청이 완료되었습니다.",
+    response: payload,
+  };
 }
 
 setInterval(() => {
@@ -1655,6 +1716,64 @@ app.delete("/api/me/notifications/:id", requireMember, (req, res) => {
   if (!Number.isFinite(id)) return res.status(400).json({ error: "알림 ID가 올바르지 않습니다." });
   db.prepare("DELETE FROM notifications WHERE recipient_id = ? AND id = ?").run(req.user.id, id);
   res.json({ ok: true, unreadCount: getUnreadNotificationCount(req.user.id) });
+});
+
+app.get("/api/coupon/requests", requireMember, (req, res) => {
+  const rows = db.prepare(
+    `
+      SELECT id, uid, coupon_code, status, message, created_at
+      FROM coupon_requests
+      WHERE user_id = ?
+      ORDER BY datetime(created_at) DESC
+      LIMIT 10
+    `,
+  ).all(req.user.id);
+  res.json({ requests: rows.map(serializeCouponRequest), configured: Boolean(couponRedeemUrl) });
+});
+
+app.post("/api/coupon/send", requireMember, async (req, res) => {
+  if (checkRateLimit(req, res, `coupon:${req.user.id}`, 10, couponRateWindowMs)) return;
+
+  const uid = sanitizeCouponInput(req.body?.uid, 40);
+  const couponCode = sanitizeCouponInput(req.body?.couponCode, 80).toUpperCase();
+  if (!/^[A-Z0-9_-]{3,80}$/i.test(uid)) {
+    return res.status(400).json({ error: "UID는 영문, 숫자, _, - 조합으로 3자 이상 입력해주세요." });
+  }
+  if (!/^[A-Z0-9_-]{3,80}$/.test(couponCode)) {
+    return res.status(400).json({ error: "쿠폰 코드는 영문, 숫자, _, - 조합으로 3자 이상 입력해주세요." });
+  }
+
+  const id = crypto.randomUUID();
+  let result;
+  try {
+    result = await sendCouponToGame({ uid, couponCode });
+  } catch (error) {
+    result = {
+      status: "failed",
+      message: "쿠폰 API 연결 중 오류가 발생했습니다.",
+      response: { error: error.message },
+    };
+  }
+
+  db.prepare(
+    `
+      INSERT INTO coupon_requests (
+        id, user_id, uid, coupon_code, status, message, response_json
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `,
+  ).run(id, req.user.id, uid, couponCode, result.status, result.message, JSON.stringify(result.response || {}));
+
+  res.status(result.status === "failed" ? 502 : 200).json({
+    request: {
+      id,
+      uid,
+      couponCode,
+      status: result.status,
+      message: result.message,
+      createdAt: new Date().toISOString(),
+    },
+    configured: Boolean(couponRedeemUrl),
+  });
 });
 
 app.get("/api/posts", requireContentAccess, (req, res) => {

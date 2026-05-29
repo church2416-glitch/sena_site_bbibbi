@@ -2477,7 +2477,8 @@ p {
   min-width: 118px;
 }
 
-.upload-page {
+.upload-page,
+.coupon-page {
   min-height: 100vh;
   background:
     radial-gradient(circle at 78% 8%, rgba(var(--theme-mid-rgb), 0.24), transparent 28%),
@@ -2501,6 +2502,7 @@ p {
 }
 
 .upload-shell,
+.coupon-shell,
 .post-shell {
   display: grid;
   gap: 22px;
@@ -2509,10 +2511,120 @@ p {
   padding: 42px 0;
 }
 
+.coupon-shell {
+  width: min(880px, calc(100% - 28px));
+}
+
 .post-shell {
   width: min(960px, calc(100% - 32px));
   gap: 16px;
   padding: 24px 0 64px;
+}
+
+.coupon-panel {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(9, 10, 18, 0.88);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.22);
+}
+
+.coupon-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.coupon-head.compact {
+  align-items: center;
+}
+
+.coupon-head span {
+  color: var(--accent-strong);
+  font-size: 11px;
+  font-weight: 1000;
+  letter-spacing: 0.08em;
+}
+
+.coupon-head h1,
+.coupon-head h2 {
+  margin: 6px 0;
+  color: #fff;
+  letter-spacing: 0;
+}
+
+.coupon-head p,
+.coupon-status {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.coupon-head a,
+.ghost-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: #e7e1ff;
+  background: rgba(13, 14, 24, 0.8);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.coupon-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.coupon-form label {
+  display: grid;
+  gap: 7px;
+  color: #f8ec93;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.coupon-history {
+  display: grid;
+  gap: 10px;
+}
+
+.coupon-history-row {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.16);
+  border-radius: 8px;
+  background: rgba(5, 6, 12, 0.62);
+}
+
+.coupon-history-row strong {
+  color: #fff;
+}
+
+.coupon-history-row span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.coupon-history-row p {
+  color: #d9d4ee;
+  font-size: 13px;
+}
+
+.coupon-history-row.is-sent {
+  border-color: rgba(101, 241, 213, 0.35);
+}
+
+.coupon-history-row.is-failed {
+  border-color: rgba(255, 92, 124, 0.4);
 }
 
 .legal-page {
@@ -6413,6 +6525,14 @@ p {
 
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .coupon-form {
+    grid-template-columns: 1fr;
+  }
+
+  .coupon-head {
+    display: grid;
   }
 
   .upload-actions {
