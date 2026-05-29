@@ -299,6 +299,7 @@
 
           <div class="upload-actions">
             <a href="guild-war.html">공개 화면 보기</a>
+            <span class="guild-save-pill" id="bottomSaveState">저장 대기</span>
             <button class="ghost-button" type="button" id="resetGuild">전체 초기화</button>
             <button class="submit-button" type="submit">저장</button>
           </div>
@@ -311,9 +312,15 @@
     <script>
       const form = document.querySelector("#guildForm");
       const saveState = document.querySelector("#saveState");
+      const bottomSaveState = document.querySelector("#bottomSaveState");
       let guildState = GuildWar.loadState();
       let activeMode = "attack";
       let activePlanIndex = 0;
+
+      function setSaveState(message) {
+        saveState.textContent = message;
+        bottomSaveState.textContent = message;
+      }
 
       function currentSheet() {
         return guildState[activeMode];
@@ -347,17 +354,17 @@
         }
         guildState[activeMode] = GuildWar.readAdminForm(form, GuildWar.sheetDefaults[activeMode], guildState[activeMode], activePlanIndex);
         GuildWar.saveState(guildState);
-        saveState.textContent = "자동 저장됨";
+        setSaveState("자동 저장됨");
       }
 
       async function initializeAdminPage() {
-        saveState.textContent = "서버 불러오는 중";
+        setSaveState("서버 불러오는 중");
         guildState = await GuildWar.loadRemoteState(guildState);
         GuildWar.saveState(guildState);
         GuildWar.fillAdminForm(form, currentSheet(), activeMode, activePlanIndex);
         renderTargetManager();
         renderAdminPage();
-        saveState.textContent = "저장 대기";
+        setSaveState("저장 대기");
       }
 
       form.addEventListener("input", saveDraft);
@@ -387,7 +394,7 @@
         GuildWar.fillAdminForm(form, currentSheet(), activeMode, activePlanIndex);
         renderTargetManager();
         GuildWar.saveState(guildState);
-        saveState.textContent = "자동 저장됨";
+        setSaveState("자동 저장됨");
       }
 
       function renderTargetManager() {
@@ -437,7 +444,7 @@
           GuildWar.setSkillChoice(form, choice.dataset.slot, button.dataset.skill);
           guildState[activeMode] = GuildWar.readAdminForm(form, GuildWar.sheetDefaults[activeMode], guildState[activeMode], activePlanIndex);
           GuildWar.saveState(guildState);
-          saveState.textContent = "자동 저장됨";
+          setSaveState("자동 저장됨");
         });
       });
 
@@ -450,7 +457,7 @@
           GuildWar.fillAdminForm(form, currentSheet(), activeMode, activePlanIndex);
           syncAdminPlanCards();
           GuildWar.saveState(guildState);
-          saveState.textContent = "자동 저장됨";
+          setSaveState("자동 저장됨");
         };
         card.addEventListener("click", selectCard);
         card.addEventListener("keydown", (event) => {
@@ -468,19 +475,19 @@
         renderTargetManager();
         syncAdminPlanCards();
         GuildWar.saveState(guildState);
-        saveState.textContent = "자동 저장됨";
+        setSaveState("자동 저장됨");
       });
 
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
         try {
-          saveState.textContent = "서버 저장 중";
+          setSaveState("서버 저장 중");
           guildState[activeMode] = GuildWar.readAdminForm(form, GuildWar.sheetDefaults[activeMode], guildState[activeMode], activePlanIndex);
           GuildWar.saveState(guildState);
           guildState = await GuildWar.saveRemoteState(guildState);
-          saveState.textContent = "서버 저장 완료";
+          setSaveState("서버 저장 완료");
         } catch (error) {
-          saveState.textContent = error.message || "서버 저장 실패";
+          setSaveState(error.message || "서버 저장 실패");
         }
       });
 
@@ -489,7 +496,7 @@
         activePlanIndex = 0;
         GuildWar.fillAdminForm(form, currentSheet(), activeMode, activePlanIndex);
         renderAdminPage();
-        saveState.textContent = "초기화 완료";
+        setSaveState("초기화 완료");
       });
 
       initializeAdminPage();
