@@ -1989,7 +1989,7 @@ app.get("/api/coupon/codes", requireMember, (req, res) => {
 app.post("/api/coupon/codes", requireContentManager, (req, res) => {
   const rawText = String(req.body?.codes || "");
   const rows = rawText
-    .split(/\r?\n|,/)
+    .split(/[\s,]+/)
     .map((line) => sanitizeCouponInput(line, 80).toUpperCase())
     .filter((code) => /^[A-Z0-9_-]{3,80}$/.test(code));
   const uniqueCodes = [...new Set(rows)].slice(0, 100);

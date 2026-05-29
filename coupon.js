@@ -11,6 +11,7 @@ const couponCodesInput = document.querySelector("#couponCodesInput");
 const couponCodeSaveButton = document.querySelector("#couponCodeSaveButton");
 
 let savedCouponCodes = [];
+let canManageCouponCodes = false;
 
 function formatCouponDate(value) {
   const raw = String(value || "").trim();
@@ -36,7 +37,7 @@ function statusLabel(status) {
 }
 
 function canManageCoupons(user) {
-  return Boolean(user?.canManageContent || user?.canAccessAdminDb || user?.isAdmin);
+  return Boolean(user?.canManageContent || user?.canAccessAdminDb || user?.isAdmin || user?.isSuperAdmin);
 }
 
 function renderCodeList() {
@@ -44,7 +45,9 @@ function renderCodeList() {
   if (!savedCouponCodes.length) {
     const empty = document.createElement("p");
     empty.className = "empty-state";
-    empty.textContent = "저장된 쿠폰 코드가 없습니다.";
+    empty.textContent = canManageCouponCodes
+      ? "아직 업로드된 쿠폰 코드가 없습니다."
+      : "저장된 쿠폰이 없습니다. 관리자에게 쿠폰 업로드를 요청해주세요.";
     couponCodeList.append(empty);
     return;
   }
@@ -60,7 +63,7 @@ function renderCodeList() {
     remove.type = "button";
     remove.className = "ghost-button coupon-code-remove";
     remove.textContent = "삭제";
-    remove.hidden = couponAdminPanel.hidden;
+    remove.hidden = !canManageCouponCodes;
     remove.addEventListener("click", () => deleteCouponCode(item.id));
     row.append(order, code, remove);
     couponCodeList.append(row);
@@ -109,7 +112,9 @@ async function loadCouponHistory() {
   savedCouponCodes = data.codes || [];
   couponStatus.textContent = savedCouponCodes.length
     ? `${savedCouponCodes.length}개의 쿠폰이 저장되어 있습니다.`
-    : "저장된 쿠폰이 없습니다. 관리자에게 쿠폰 등록을 요청해주세요.";
+    : canManageCouponCodes
+      ? "업로드된 쿠폰이 없습니다. 위 입력칸에 쿠폰 코드를 등록해주세요."
+      : "저장된 쿠폰이 없습니다. 관리자에게 쿠폰 업로드를 요청해주세요.";
   renderCodeList();
   renderHistory(data.requests || []);
 }
@@ -141,7 +146,7 @@ async function submitBulkCoupons(event) {
 async function saveCouponCodes(event) {
   event.preventDefault();
   couponCodeSaveButton.disabled = true;
-  couponCodeSaveButton.textContent = "저장 중";
+  couponCodeSaveButton.textContent = "업로드 중";
 
   try {
     const response = await fetch("/api/coupon/codes", {
@@ -150,15 +155,15 @@ async function saveCouponCodes(event) {
       body: JSON.stringify({ codes: couponCodesInput.value }),
     });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || "쿠폰 저장에 실패했습니다.");
+    if (!response.ok) throw new Error(data.error || "쿠폰 업로드에 실패했습니다.");
     couponCodesInput.value = "";
-    couponStatus.textContent = `${data.added || 0}개의 쿠폰을 새로 저장했습니다.`;
+    couponStatus.textContent = `${data.added || 0}개의 쿠폰을 새로 업로드했습니다.`;
     await loadCouponHistory();
   } catch (error) {
-    couponStatus.textContent = error.message || "쿠폰 저장에 실패했습니다.";
+    couponStatus.textContent = error.message || "쿠폰 업로드에 실패했습니다.";
   } finally {
     couponCodeSaveButton.disabled = false;
-    couponCodeSaveButton.textContent = "쿠폰 저장";
+    couponCodeSaveButton.textContent = "쿠폰 업로드";
   }
 }
 
@@ -175,7 +180,8 @@ async function deleteCouponCode(id) {
 
 async function initCouponPage() {
   const user = await loadCurrentUser();
-  if (canManageCoupons(user)) couponAdminPanel.hidden = false;
+  canManageCouponCodes = canManageCoupons(user);
+  if (canManageCouponCodes) couponAdminPanel.hidden = false;
   await loadCouponHistory();
 }
 
