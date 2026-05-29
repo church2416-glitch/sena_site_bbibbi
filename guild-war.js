@@ -581,7 +581,7 @@ const GuildWar = (() => {
     sheet.bosses.forEach((boss, index) => {
       const option = document.createElement("option");
       option.value = String(index);
-      option.textContent = `${boss} · ${index % 2 === 0 ? "물 · 암" : "불 · 초"}`;
+      option.textContent = boss;
       select.append(option);
     });
     select.value = String(sheet.activeTargetIndex || 0);
