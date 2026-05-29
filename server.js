@@ -809,10 +809,14 @@ function normalizePveGuide(value) {
     boss: String(raw.boss || "").trim().slice(0, 40),
     power: String(raw.power || "").trim().slice(0, 40),
     formation: String(raw.formation || "").trim().slice(0, 60),
+    formationType: ["att", "bal", "base", "def"].includes(String(raw.formationType || "")) ? String(raw.formationType) : "",
     note: String(raw.note || "").trim().slice(0, 1000),
     heroes: cleanList(raw.heroes, 8, (hero) => ({
       name: String(hero?.name || "").trim().slice(0, 30),
       role: String(hero?.role || "").trim().slice(0, 40),
+      accessory: String(hero?.accessory || "").trim().slice(0, 20),
+      refine: String(hero?.refine || "").trim().slice(0, 20),
+      grade: String(hero?.grade || "").trim().slice(0, 10),
     })),
     specs: cleanList(raw.specs, 6, (spec) => ({
       label: String(spec?.label || "").trim().slice(0, 30),

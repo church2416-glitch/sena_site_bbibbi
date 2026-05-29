@@ -410,9 +410,22 @@
         });
         if (summary.children.length) shell.append(summary);
 
+        if (guide.formationType) {
+          const formation = createFormationPreview(guide.formationType);
+          if (formation) shell.append(formation);
+        }
+
         (guide.heroes || []).filter((hero) => hero.name || hero.role).forEach((hero) => {
           const card = document.createElement("span");
-          card.innerHTML = `<b>${hero.name || "-"}</b><small>${hero.role || "핵심 영웅"}</small>`;
+          const heroImage = getCharacterImage(hero.name);
+          const accessory = getAccessoryImage(hero.accessory, hero.grade);
+          card.className = "strategy-hero-card";
+          card.innerHTML = `
+            <i>${heroImage ? `<img src="${heroImage}" alt="${hero.name}" />` : (hero.name || "?").slice(0, 1)}</i>
+            <b>${hero.name || "-"}</b>
+            <small>${hero.role || "핵심 영웅"}</small>
+            ${accessory ? `<em><img src="${accessory.src}" alt="${accessory.label}" />${accessory.label}</em>` : ""}
+          `;
           heroList.append(card);
         });
         if (heroList.children.length) shell.append(heroList);
@@ -429,6 +442,37 @@
           shell.append(note);
         }
         body.append(shell);
+      }
+
+      function getCharacterImage(name) {
+        const cleanName = String(name || "").trim();
+        return cleanName ? `assets/character/${cleanName}.png` : "";
+      }
+
+      function getAccessoryImage(type, grade) {
+        const cleanType = String(type || "").trim();
+        const imageGrade = String(grade || "6").split("/").pop();
+        const map = {
+          불사의반지: { src: `assets/ring/immortality${imageGrade === "4" ? "1" : imageGrade === "5" ? "2" : "3"}.png`, label: `${cleanType} ${grade || "6"}★` },
+          부활의반지: { src: `assets/ring/resurrection${imageGrade === "4" ? "1" : imageGrade === "5" ? "2" : "3"}.png`, label: `${cleanType} ${grade || "6"}★` },
+          권능의반지: { src: `assets/ring/Might${imageGrade === "4" ? "1" : imageGrade === "5" ? "2" : "3"}.png`, label: `${cleanType} ${grade || "6"}★` },
+        };
+        return map[cleanType] || null;
+      }
+
+      function createFormationPreview(type) {
+        const map = {
+          att: ["공격진형", "assets/formation/att.png"],
+          bal: ["밸런스진형", "assets/formation/Bal.png"],
+          base: ["기본진형", "assets/formation/base.png"],
+          def: ["보호진형", "assets/formation/def.png"],
+        };
+        const item = map[type];
+        if (!item) return null;
+        const box = document.createElement("div");
+        box.className = "strategy-formation-preview";
+        box.innerHTML = `<img src="${item[1]}" alt="${item[0]}" /><b>${item[0]}</b>`;
+        return box;
       }
 
       function isReservedMediaAsset(image = {}) {
