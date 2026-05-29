@@ -1044,6 +1044,124 @@ function createNotification({ recipientId, actorId, type, targetType, targetId, 
   pushNotification(recipientId, result.lastInsertRowid);
 }
 
+const mentionAliases = new Map([
+  ["all", "all"],
+  ["everyone", "all"],
+  ["전체", "all"],
+  ["관리자", "admin"],
+  ["운영진", "admin"],
+  ["정예", "elite"],
+  ["권한", "privileged"],
+]);
+
+function extractMentionTokens(...values) {
+  const tokens = new Set();
+  const mentionPattern = /(^|[\s([{<])@([가-힣A-Za-z0-9_-]{1,30})/g;
+  for (const value of values) {
+    const text = String(value || "");
+    for (const match of text.matchAll(mentionPattern)) {
+      tokens.add(match[2]);
+    }
+  }
+  return [...tokens].slice(0, 20);
+}
+
+function canUseGroupMention(user) {
+  const flags = roleFlags(user);
+  return Boolean(flags.isAdmin || flags.canManageContent || flags.canManageUsers || flags.canAccessAdminDb);
+}
+
+function isMentionVisibleUser(user) {
+  return Boolean(user?.id && hasPermission(user, "canReadPosts"));
+}
+
+function matchesMentionGroup(user, group) {
+  const flags = roleFlags(user);
+  if (group === "all") return isMentionVisibleUser(user);
+  if (group === "admin") return Boolean(flags.isAdmin || flags.canManageGuild || flags.canManageContent || flags.canManageUsers || flags.canAccessAdminDb);
+  if (group === "elite") return Boolean(flags.isVerified);
+  if (group === "privileged") return Boolean(flags.isAdmin || flags.isVerified || flags.canManageGuild || flags.canManageContent || flags.canManageUsers || flags.canAccessAdminDb);
+  return false;
+}
+
+function selectMentionUsersForGroup(group, actorId) {
+  return db
+    .prepare(
+      `
+        SELECT id, username, display_name, role, permissions_json
+        FROM users
+        WHERE id != ?
+        ORDER BY datetime(created_at) ASC
+        LIMIT 500
+      `,
+    )
+    .all(actorId)
+    .filter((user) => matchesMentionGroup(user, group))
+    .slice(0, 100);
+}
+
+function selectMentionUsersByName(token, actorId) {
+  const name = String(token || "").trim();
+  if (!name) return [];
+  return db
+    .prepare(
+      `
+        SELECT id, username, display_name, role, permissions_json
+        FROM users
+        WHERE id != ?
+          AND (
+            username = ? COLLATE NOCASE
+            OR display_name = ?
+          )
+        LIMIT 10
+      `,
+    )
+    .all(actorId, name, name)
+    .filter(isMentionVisibleUser);
+}
+
+function createMentionNotifications({ actor, postId, commentId = null, targetType, sourceText }) {
+  const tokens = extractMentionTokens(sourceText);
+  if (!tokens.length) return;
+
+  const recipients = new Map();
+  const groupLabels = [];
+  const allowGroupMention = canUseGroupMention(actor);
+  for (const token of tokens) {
+    const alias = mentionAliases.get(token.toLowerCase()) || mentionAliases.get(token);
+    if (alias) {
+      if (!allowGroupMention) continue;
+      groupLabels.push(token);
+      for (const user of selectMentionUsersForGroup(alias, actor.id)) {
+        recipients.set(user.id, user);
+      }
+      continue;
+    }
+    for (const user of selectMentionUsersByName(token, actor.id)) {
+      recipients.set(user.id, user);
+    }
+  }
+
+  if (!recipients.size) return;
+  const actorName = actor.display_name || actor.username || "누군가";
+  const place = targetType === "comment" ? "댓글" : "게시글";
+  const groupText = groupLabels.length ? ` @${groupLabels[0]}` : "";
+  const message = `${actorName}님이 ${place}에서${groupText} 멘션했습니다.`;
+
+  for (const recipient of recipients.values()) {
+    createNotification({
+      recipientId: recipient.id,
+      actorId: actor.id,
+      type: "mention",
+      targetType,
+      targetId: commentId || postId,
+      postId,
+      commentId,
+      message,
+    });
+  }
+}
+
 function getUnreadNotificationCount(userId) {
   return Number(
     db.prepare("SELECT COUNT(*) AS count FROM notifications WHERE recipient_id = ? AND read_at IS NULL").get(userId)?.count,
@@ -1843,6 +1961,13 @@ app.post("/api/posts", requireContentAccess, requirePermission("canWritePosts", 
     `,
   ).run(id, req.user.id, category, game, title, summary, body, JSON.stringify(tags), attachment, JSON.stringify(postMedia));
 
+  createMentionNotifications({
+    actor: req.user,
+    postId: id,
+    targetType: "post",
+    sourceText: [title, summary, body, tags.join(" ")].join("\n"),
+  });
+
   const post = selectPostRows("posts.id = ?", [id])[0];
   res.status(201).json(withUserVoteState(serializePost(post), req.user.id));
 });
@@ -2094,6 +2219,13 @@ app.post("/api/posts/:id/comments", requireContentAccess, (req, res) => {
       message: `${req.user.display_name || req.user.username}님이 댓글에 답글을 남겼습니다.`,
     });
   }
+  createMentionNotifications({
+    actor: req.user,
+    postId: id,
+    commentId,
+    targetType: "comment",
+    sourceText: content,
+  });
   const comment = selectCommentRows("post_comments.id = ?", [commentId])[0];
   const updatedPost = selectPostRows("posts.id = ?", [id])[0];
   res.status(201).json({
