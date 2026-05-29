@@ -91,6 +91,23 @@ const GuildWar = (() => {
     불사: "불사세공",
     부활: "부활세공",
   };
+  const legacyDefaultGearValues = new Set([
+    "추적자",
+    "수문장",
+    "수호자",
+    "선봉장",
+    "초월자",
+    "방어무시",
+    "받는 피해 감소",
+    "생존력",
+    "약점 확률",
+    "모든 공격력 %",
+    "모든 공격력%",
+    "전열 유지",
+    "반격 주의",
+    "마무리",
+    "스킬 100% 목표 세팅",
+  ]);
 
   const petCatalog = ["루", "크리", "이린", "리첼", "파이크", "델로", "윈디", "제브", "유", "요랑", "연지", "카람", "제오", "멜페로"];
   const petImages = Object.fromEntries(petCatalog.map((name) => [name, `assets/pet/${name}.png`]));
@@ -123,9 +140,9 @@ const GuildWar = (() => {
       enemyPets: { main: "", alt: "" },
       allyPets: { main: "", alt: "" },
       gear: [
-        "밀리아 / 수문장 / 방어무시 / 받는 피해 감소 / - / -",
-        "레긴레이프 / 추적자 / 약점 확률 / 모든 공격력 % / 생존력 / 스킬 100% 목표 세팅",
-        "프레이야 / 초월자 / - / - / - / -",
+        "- / - / - / - / - / -",
+        "- / - / - / - / - / -",
+        "- / - / - / - / - / -",
       ],
       skillOrder: ["레긴레이프 2", "프레이야 2", "밀리아 1"],
       skillNote: "",
@@ -146,9 +163,9 @@ const GuildWar = (() => {
       enemyPets: { main: "", alt: "" },
       allyPets: { main: "", alt: "" },
       gear: [
-        "루디 / 수호자 / 생존력 / 받는 피해 감소 / - / 전열 유지",
-        "아일린 / 추적자 / 약점 확률 / 모든 공격력 % / - / 반격 주의",
-        "레이첼 / 초월자 / 방어무시 / - / - / 마무리",
+        "- / - / - / - / - / -",
+        "- / - / - / - / - / -",
+        "- / - / - / - / - / -",
       ],
       skillOrder: ["루디 1", "아일린 2", "레이첼 1"],
       skillNote: "",
@@ -376,7 +393,8 @@ const GuildWar = (() => {
   }
 
   function toAdminInputValue(value) {
-    return value === "-" ? "" : value;
+    if (value === "-" || legacyDefaultGearValues.has(value)) return "";
+    return value;
   }
 
   function formatAccessoryGrade(grade) {
