@@ -6,10 +6,10 @@ const GuildWar = (() => {
     defense: "방어 족보",
   };
   const formationTypes = {
-    att: { label: "공격진형", src: "assets/formation/att.png" },
-    bal: { label: "밸런스진형", src: "assets/formation/Bal.png" },
-    base: { label: "기본진형", src: "assets/formation/base.png" },
-    def: { label: "보호진형", src: "assets/formation/def.png" },
+    att: { label: "공격진형", src: "assets/formation/att.webp" },
+    bal: { label: "밸런스진형", src: "assets/formation/Bal.webp" },
+    base: { label: "기본진형", src: "assets/formation/base.webp" },
+    def: { label: "보호진형", src: "assets/formation/def.webp" },
   };
   const planCards = [
     { label: "필수 조합" },
@@ -52,27 +52,27 @@ const GuildWar = (() => {
       label: "불사",
       tone: "immortal",
       images: {
-        4: "assets/ring/immortality1.png",
-        5: "assets/ring/immortality2.png",
-        6: "assets/ring/immortality3.png",
+        4: "assets/ring/immortality1.webp",
+        5: "assets/ring/immortality2.webp",
+        6: "assets/ring/immortality3.webp",
       },
     },
     부활의반지: {
       label: "부활",
       tone: "revive",
       images: {
-        4: "assets/ring/resurrection1.png",
-        5: "assets/ring/resurrection2.png",
-        6: "assets/ring/resurrection3.png",
+        4: "assets/ring/resurrection1.webp",
+        5: "assets/ring/resurrection2.webp",
+        6: "assets/ring/resurrection3.webp",
       },
     },
     권능의반지: {
       label: "권능",
       tone: "power",
       images: {
-        4: "assets/ring/Might1.png",
-        5: "assets/ring/Might2.png",
-        6: "assets/ring/Might3.png",
+        4: "assets/ring/Might1.webp",
+        5: "assets/ring/Might2.webp",
+        6: "assets/ring/Might3.webp",
       },
     },
   };
@@ -106,8 +106,8 @@ const GuildWar = (() => {
   ]);
 
   const petCatalog = ["루", "크리", "이린", "리첼", "파이크", "델로", "윈디", "제브", "유", "요랑", "연지", "카람", "제오", "멜페로"];
-  const petImages = Object.fromEntries(petCatalog.map((name) => [name, `assets/pet/${name}.png`]));
-  petImages["멜패로"] = "assets/pet/멜페로.png";
+  const petImages = Object.fromEntries(petCatalog.map((name) => [name, `assets/pet/${name}.webp`]));
+  petImages["멜패로"] = "assets/pet/멜페로.webp";
 
   const characterCatalog = [
     "겔리두스", "나타", "델론즈", "라드그리드", "라이언", "란드그리드", "레긴레이프", "레이첼", "로지", "루디",
@@ -117,7 +117,7 @@ const GuildWar = (() => {
     "카린", "카일", "칼헤론", "콜트", "크리스", "키리엘", "태오", "트루드", "파이", "팔라누스",
     "프레이야", "플라튼", "헬레니아",
   ];
-  const characterImages = Object.fromEntries(characterCatalog.map((name) => [name, `assets/character/${name}.png`]));
+  const characterImages = Object.fromEntries(characterCatalog.map((name) => [name, `assets/character/${name}.webp`]));
   let characterComboboxId = 0;
 
   const sheetDefaults = {

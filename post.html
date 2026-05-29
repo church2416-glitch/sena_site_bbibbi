@@ -9,7 +9,7 @@
   <body class="post-page">
     <main class="post-shell">
       <a class="brand upload-brand" href="index.html">
-        <img class="site-logo" src="assets/common/logo.png" alt="bbitsena" />
+        <img class="site-logo" src="assets/common/logo.webp" alt="bbitsena" />
         <span class="brand-kicker">삐삐 커뮤니티</span>
         <strong>삐삐 길드</strong>
         <small>SEVENKNIGHT : REBIRTH</small>
@@ -182,13 +182,13 @@
       }
 
       const roleIconMap = {
-        superadmin: { label: "최고관리자", src: "assets/common/최고관리자.png" },
-        admin: { label: "관리자", src: "assets/common/관리자.png" },
-        elite: { label: "정예", src: "assets/common/정예.png" },
-        verified: { label: "정예", src: "assets/common/정예.png" },
-        user: { label: "일반", src: "assets/common/일반.png" },
-        blocked: { label: "기본", src: "assets/common/기본.png" },
-        default: { label: "기본", src: "assets/common/기본.png" },
+        superadmin: { label: "최고관리자", src: "assets/common/최고관리자.webp" },
+        admin: { label: "관리자", src: "assets/common/관리자.webp" },
+        elite: { label: "정예", src: "assets/common/정예.webp" },
+        verified: { label: "정예", src: "assets/common/정예.webp" },
+        user: { label: "일반", src: "assets/common/일반.webp" },
+        blocked: { label: "기본", src: "assets/common/기본.webp" },
+        default: { label: "기본", src: "assets/common/기본.webp" },
       };
 
       function appendNameWithRole(target, name, role) {
@@ -533,31 +533,31 @@
 
       function getCharacterImage(name) {
         const cleanName = String(name || "").trim();
-        return cleanName ? `assets/character/${cleanName}.png` : "";
+        return cleanName ? `assets/character/${cleanName}.webp` : "";
       }
 
       function getPetImage(name) {
         const cleanName = String(name || "").trim();
-        return cleanName ? `assets/pet/${cleanName}.png` : "";
+        return cleanName ? `assets/pet/${cleanName}.webp` : "";
       }
 
       function getAccessoryImage(type, grade) {
         const cleanType = String(type || "").trim();
         const imageGrade = String(grade || "6").split("/").pop();
         const map = {
-          불사의반지: { src: `assets/ring/immortality${imageGrade === "4" ? "1" : imageGrade === "5" ? "2" : "3"}.png`, label: `${cleanType} ${grade || "6"}★` },
-          부활의반지: { src: `assets/ring/resurrection${imageGrade === "4" ? "1" : imageGrade === "5" ? "2" : "3"}.png`, label: `${cleanType} ${grade || "6"}★` },
-          권능의반지: { src: `assets/ring/Might${imageGrade === "4" ? "1" : imageGrade === "5" ? "2" : "3"}.png`, label: `${cleanType} ${grade || "6"}★` },
+          불사의반지: { src: `assets/ring/immortality${imageGrade === "4" ? "1" : imageGrade === "5" ? "2" : "3"}.webp`, label: `${cleanType} ${grade || "6"}★` },
+          부활의반지: { src: `assets/ring/resurrection${imageGrade === "4" ? "1" : imageGrade === "5" ? "2" : "3"}.webp`, label: `${cleanType} ${grade || "6"}★` },
+          권능의반지: { src: `assets/ring/Might${imageGrade === "4" ? "1" : imageGrade === "5" ? "2" : "3"}.webp`, label: `${cleanType} ${grade || "6"}★` },
         };
         return map[cleanType] || null;
       }
 
       function createFormationPreview(type) {
         const map = {
-          att: ["공격진형", "assets/formation/att.png"],
-          bal: ["밸런스진형", "assets/formation/Bal.png"],
-          base: ["기본진형", "assets/formation/base.png"],
-          def: ["보호진형", "assets/formation/def.png"],
+          att: ["공격진형", "assets/formation/att.webp"],
+          bal: ["밸런스진형", "assets/formation/Bal.webp"],
+          base: ["기본진형", "assets/formation/base.webp"],
+          def: ["보호진형", "assets/formation/def.webp"],
         };
         const item = map[type];
         if (!item) return null;

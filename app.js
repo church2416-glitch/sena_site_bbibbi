@@ -304,7 +304,7 @@ const boardTabSets = {
 
 const heroModes = {
   overview: {
-    image: "assets/common/singularity-hero.png",
+    image: "assets/common/singularity-hero.webp",
     kicker: "삐삐,",
     title: "삐삐인데요...",
     subtitle: "삐삐 커뮤니티",
@@ -312,7 +312,7 @@ const heroModes = {
     href: "guild-war.html",
   },
   pvp: {
-    image: "assets/common/guide-hero.png",
+    image: "assets/common/guide-hero.webp",
     kicker: "BBITSENA · PVP BOARD",
     title: "PVP 게시판",
     subtitle: "결투장 조합과 메타 이야기를 확인하세요",
@@ -320,7 +320,7 @@ const heroModes = {
     href: "upload.html",
   },
   pve: {
-    image: "assets/common/guide-hero.png",
+    image: "assets/common/guide-hero.webp",
     kicker: "BBITSENA · PVE STRATEGY",
     title: "PVE 게시판",
     subtitle: "레이드, 파괴신, 공성전 공략을 모아 확인하세요",
@@ -655,14 +655,14 @@ function getAccountRoleLabel(user) {
 }
 
 const roleIconMap = {
-  superadmin: { label: "최고관리자", src: "assets/common/최고관리자.png" },
-  admin: { label: "관리자", src: "assets/common/관리자.png" },
-  elite: { label: "정예", src: "assets/common/정예.png" },
-  verified: { label: "정예", src: "assets/common/정예.png" },
-  user: { label: "일반", src: "assets/common/일반.png" },
-  blocked: { label: "기본", src: "assets/common/기본.png" },
-  guest: { label: "기본", src: "assets/common/기본.png" },
-  default: { label: "기본", src: "assets/common/기본.png" },
+  superadmin: { label: "최고관리자", src: "assets/common/최고관리자.webp" },
+  admin: { label: "관리자", src: "assets/common/관리자.webp" },
+  elite: { label: "정예", src: "assets/common/정예.webp" },
+  verified: { label: "정예", src: "assets/common/정예.webp" },
+  user: { label: "일반", src: "assets/common/일반.webp" },
+  blocked: { label: "기본", src: "assets/common/기본.webp" },
+  guest: { label: "기본", src: "assets/common/기본.webp" },
+  default: { label: "기본", src: "assets/common/기본.webp" },
 };
 
 function createRoleIcon(role) {
