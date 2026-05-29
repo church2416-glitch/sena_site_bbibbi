@@ -126,6 +126,19 @@
               </div>
             </div>
             <div class="pve-mini-section">
+              <h3>펫 구성</h3>
+              <div class="pve-editor-grid">
+                <label>
+                  메인펫
+                  <select data-pve-field="mainPet" id="strategyMainPetInput"></select>
+                </label>
+                <label>
+                  대체펫
+                  <select data-pve-field="subPet" id="strategySubPetInput"></select>
+                </label>
+              </div>
+            </div>
+            <div class="pve-mini-section">
               <h3 id="strategyHeroTitle">핵심 영웅</h3>
               <div class="pve-hero-grid" id="pveHeroGrid"></div>
             </div>
@@ -214,6 +227,8 @@
       const strategyNoteInput = document.querySelector("#strategyNoteInput");
       const strategyHeroTitle = document.querySelector("#strategyHeroTitle");
       const strategySpecTitle = document.querySelector("#strategySpecTitle");
+      const strategyMainPetInput = document.querySelector("#strategyMainPetInput");
+      const strategySubPetInput = document.querySelector("#strategySubPetInput");
       let imageFiles = [];
       let videoFiles = [];
       let isUploading = false;
@@ -280,6 +295,7 @@
       const accessoryTypes = ["", "불사의반지", "부활의반지", "권능의반지"];
       const accessoryRefines = ["", "세공", "권불", "불권", "부불", "불부", "권기", "기권"];
       const accessoryGrades = ["", "6", "5", "4", "6/6", "6/5", "6/4"];
+      const petCatalog = ["루", "크리", "이린", "리첼", "파이크", "델로", "윈디", "제브", "유", "요랑", "연지", "카람", "제오", "멜페로"];
 
       function fillSelect(select, items, placeholder) {
         select.innerHTML = "";
@@ -368,6 +384,12 @@
       }
 
       function createPveRows() {
+        if (strategyMainPetInput && !strategyMainPetInput.children.length) {
+          fillSelect(strategyMainPetInput, petCatalog, "메인펫 선택");
+        }
+        if (strategySubPetInput && !strategySubPetInput.children.length) {
+          fillSelect(strategySubPetInput, petCatalog, "대체펫 선택");
+        }
         if (pveHeroGrid && !pveHeroGrid.children.length) {
           Array.from({ length: 10 }).forEach((_, index) => {
             const row = document.createElement("label");
@@ -446,6 +468,8 @@
           allyTeam: field("allyTeam"),
           winPlan: field("winPlan"),
           caution: field("caution"),
+          mainPet: field("mainPet"),
+          subPet: field("subPet"),
           note: field("note"),
           heroes: Array.from({ length: heroCount }).map((_, index) => ({
             name: pveGuideEditor.querySelector(`[data-pve-hero-name="${index}"]`)?.value.trim() || "",

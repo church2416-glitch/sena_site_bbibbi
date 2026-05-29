@@ -2063,6 +2063,7 @@ p {
 
 .pve-guide-summary,
 .pve-guide-heroes,
+.pve-guide-pets,
 .pve-guide-specs {
   display: grid;
   gap: 8px;
@@ -2086,6 +2087,26 @@ p {
 
 .pve-guide-heroes {
   grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+}
+
+.pve-guide-pets {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 180px));
+}
+
+.pve-guide-round {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(255, 218, 94, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 218, 94, 0.035);
+}
+
+.pve-guide-round h3 {
+  margin: 0;
+  color: #f8ec93;
+  font-size: 13px;
+  font-weight: 1000;
 }
 
 .strategy-formation-preview {
@@ -2158,6 +2179,40 @@ p {
   width: 20px;
   height: 20px;
   object-fit: contain;
+}
+
+.strategy-pet-card {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-height: 118px;
+  padding: 10px;
+  border: 1px solid rgba(111, 224, 205, 0.22);
+  border-radius: 8px;
+  color: #d9d4ee;
+  background: rgba(111, 224, 205, 0.06);
+  text-align: center;
+}
+
+.strategy-pet-card i {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  overflow: hidden;
+  border: 1px solid rgba(111, 224, 205, 0.42);
+  border-radius: 999px;
+  color: #07110f;
+  background: radial-gradient(circle at 35% 28%, #fff, #bffff2 48%, #6fe0cd);
+  font-style: normal;
+  font-weight: 1000;
+  box-shadow: 0 0 18px rgba(111, 224, 205, 0.22);
+}
+
+.strategy-pet-card i img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .pve-guide-specs {
@@ -3389,6 +3444,7 @@ p {
 
 .pve-guide-summary span,
 .pve-guide-heroes span,
+.pve-guide-pets span,
 .pve-guide-specs span,
 .pve-guide-note {
   border-color: rgba(255, 218, 94, 0.22);
@@ -3403,6 +3459,7 @@ p {
 
 .pve-guide-view.is-pvp .pve-guide-summary span,
 .pve-guide-view.is-pvp .pve-guide-heroes span,
+.pve-guide-view.is-pvp .pve-guide-pets span,
 .pve-guide-view.is-pvp .pve-guide-specs span,
 .pve-guide-view.is-pvp .pve-guide-note {
   border-color: rgba(111, 224, 205, 0.22);

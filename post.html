@@ -375,7 +375,7 @@
       function renderPveGuide(body, guide) {
         if (!guide || typeof guide !== "object") return;
         const mode = guide.mode === "pvp" ? "pvp" : "pve";
-        const hasPayload = [guide.type, guide.boss, guide.power, guide.formation, guide.allyTeam, guide.winPlan, guide.caution, guide.note].some(Boolean)
+        const hasPayload = [guide.type, guide.boss, guide.power, guide.formation, guide.allyTeam, guide.winPlan, guide.caution, guide.mainPet, guide.subPet, guide.note].some(Boolean)
           || (Array.isArray(guide.heroes) && guide.heroes.length)
           || (Array.isArray(guide.specs) && guide.specs.length);
         if (!hasPayload) return;
@@ -385,6 +385,7 @@
         const title = document.createElement("h2");
         const summary = document.createElement("div");
         const heroList = document.createElement("div");
+        const petList = document.createElement("div");
         const specList = document.createElement("div");
         const note = document.createElement("p");
 
@@ -392,6 +393,7 @@
         head.className = "pve-guide-view-head";
         summary.className = "pve-guide-summary";
         heroList.className = "pve-guide-heroes";
+        petList.className = "pve-guide-pets";
         specList.className = "pve-guide-specs";
         note.className = "pve-guide-note";
 
@@ -435,19 +437,79 @@
           if (formation) shell.append(formation);
         }
 
-        (guide.heroes || []).filter((hero) => hero.name || hero.role).forEach((hero) => {
+        [
+          ["메인펫", guide.mainPet],
+          ["대체펫", guide.subPet],
+        ].forEach(([label, name]) => {
+          if (!name) return;
           const card = document.createElement("span");
+          const icon = document.createElement("i");
+          const title = document.createElement("b");
+          const caption = document.createElement("small");
+          const image = getPetImage(name);
+          card.className = "strategy-pet-card";
+          if (image) {
+            const img = document.createElement("img");
+            img.src = image;
+            img.alt = name;
+            icon.append(img);
+          } else {
+            icon.textContent = name.slice(0, 1);
+          }
+          title.textContent = name;
+          caption.textContent = label;
+          card.append(icon, title, caption);
+          petList.append(card);
+        });
+        if (petList.children.length) shell.append(petList);
+
+        const visibleHeroes = (guide.heroes || []).filter((hero) => hero.name || hero.role);
+        const shouldSplitRounds = mode === "pve" && visibleHeroes.length > 5;
+        const appendHeroCard = (target, hero) => {
+          const card = document.createElement("span");
+          const icon = document.createElement("i");
+          const title = document.createElement("b");
+          const role = document.createElement("small");
           const heroImage = getCharacterImage(hero.name);
           const accessory = getAccessoryImage(hero.accessory, hero.grade);
           card.className = "strategy-hero-card";
-          card.innerHTML = `
-            <i>${heroImage ? `<img src="${heroImage}" alt="${hero.name}" />` : (hero.name || "?").slice(0, 1)}</i>
-            <b>${hero.name || "-"}</b>
-            <small>${hero.role || "핵심 영웅"}</small>
-            ${accessory ? `<em><img src="${accessory.src}" alt="${accessory.label}" />${accessory.label}</em>` : ""}
-          `;
-          heroList.append(card);
-        });
+          if (heroImage) {
+            const img = document.createElement("img");
+            img.src = heroImage;
+            img.alt = hero.name || "영웅";
+            icon.append(img);
+          } else {
+            icon.textContent = (hero.name || "?").slice(0, 1);
+          }
+          title.textContent = hero.name || "-";
+          role.textContent = hero.role || "핵심 영웅";
+          card.append(icon, title, role);
+          if (accessory) {
+            const badge = document.createElement("em");
+            const img = document.createElement("img");
+            img.src = accessory.src;
+            img.alt = accessory.label;
+            badge.append(img, document.createTextNode(accessory.label));
+            card.append(badge);
+          }
+          target.append(card);
+        };
+        if (shouldSplitRounds) {
+          [visibleHeroes.slice(0, 5), visibleHeroes.slice(5, 10)].forEach((heroes, index) => {
+            if (!heroes.length) return;
+            const round = document.createElement("section");
+            const roundTitle = document.createElement("h3");
+            const roundHeroes = document.createElement("div");
+            round.className = "pve-guide-round";
+            roundHeroes.className = "pve-guide-heroes";
+            roundTitle.textContent = `${index + 1}라운드`;
+            heroes.forEach((hero) => appendHeroCard(roundHeroes, hero));
+            round.append(roundTitle, roundHeroes);
+            heroList.append(round);
+          });
+        } else {
+          visibleHeroes.forEach((hero) => appendHeroCard(heroList, hero));
+        }
         if (heroList.children.length) shell.append(heroList);
 
         (guide.specs || []).filter((spec) => spec.label || spec.value || spec.memo).forEach((spec) => {
@@ -467,6 +529,11 @@
       function getCharacterImage(name) {
         const cleanName = String(name || "").trim();
         return cleanName ? `assets/character/${cleanName}.png` : "";
+      }
+
+      function getPetImage(name) {
+        const cleanName = String(name || "").trim();
+        return cleanName ? `assets/pet/${cleanName}.png` : "";
       }
 
       function getAccessoryImage(type, grade) {
