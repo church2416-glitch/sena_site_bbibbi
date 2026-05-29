@@ -67,7 +67,7 @@ function formatDate(value) {
 function renderEmptyNotice() {
   const row = document.createElement("tr");
   const cell = document.createElement("td");
-  cell.colSpan = 4;
+  cell.colSpan = 6;
   cell.className = "notice-empty-cell";
   cell.textContent = "등록된 공지사항이 없습니다.";
   row.append(cell);
@@ -88,23 +88,30 @@ function renderNotices(items) {
     const number = document.createElement("td");
     const titleCell = document.createElement("td");
     const author = document.createElement("td");
-    const meta = document.createElement("td");
+    const dateCell = document.createElement("td");
+    const viewsCell = document.createElement("td");
+    const votesCell = document.createElement("td");
     const badge = document.createElement("span");
     const link = document.createElement("a");
+    const type = document.createElement("span");
     const managerNotice = isManagerRole(item.authorRole);
 
     row.classList.toggle("manager-notice-row", managerNotice);
     badge.className = "notice-table-badge";
-    badge.textContent = index === 0 ? "TOP" : String(index + 1);
+    badge.textContent = index === 0 ? "공지" : String(index + 1);
     number.append(badge);
 
+    type.className = "notice-row-type";
+    type.textContent = "!";
     link.href = `post.html?id=${encodeURIComponent(item.id)}`;
     link.classList.toggle("manager-notice-title", managerNotice);
     link.textContent = item.title || "제목 없음";
-    titleCell.append(link);
+    titleCell.append(type, link);
     appendNameWithRole(author, item.author || item.authorUsername || "관리자", item.authorRole);
-    meta.textContent = `${formatDate(item.createdAt || item.date)} · 조회 ${formatNumber(item.views)}`;
-    row.append(number, titleCell, author, meta);
+    dateCell.textContent = formatDate(item.createdAt || item.date).slice(2, 10).replaceAll("-", ".");
+    viewsCell.textContent = formatNumber(item.views);
+    votesCell.textContent = formatNumber(item.votes);
+    row.append(number, titleCell, author, dateCell, viewsCell, votesCell);
     noticePageList.append(row);
   });
 
