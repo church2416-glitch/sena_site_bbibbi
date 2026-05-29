@@ -363,6 +363,16 @@ const GuildWar = (() => {
   }
 
   function parseGear(line) {
+    if (line && typeof line === "object" && !Array.isArray(line)) {
+      return [
+        String(line.hero || "").trim(),
+        String(line.set || "").trim(),
+        String(line.weapon || "").trim(),
+        String(line.armor || "").trim(),
+        String(line.accessory || "").trim(),
+        String(line.memo || "").trim(),
+      ];
+    }
     const parts = String(line || "")
       .split(/\s+\/\s+/)
       .map((part) => part.trim());
@@ -476,17 +486,17 @@ const GuildWar = (() => {
         field(form, `gearAccessoryRefine${index}`).value.trim(),
         field(form, `gearAccessoryGrade${index}`).value.trim(),
       );
-      const parts = [
-        field(form, `${sourcePrefix}Hero${index}`).value.trim(),
-        field(form, `gearSet${index}`).value.trim(),
-        field(form, `gearWeapon${index}`).value.trim(),
-        field(form, `gearArmor${index}`).value.trim(),
+      const gear = {
+        hero: field(form, `${sourcePrefix}Hero${index}`).value.trim(),
+        set: field(form, `gearSet${index}`).value.trim(),
+        weapon: field(form, `gearWeapon${index}`).value.trim(),
+        armor: field(form, `gearArmor${index}`).value.trim(),
         accessory,
-        field(form, `gearMemo${index}`).value.trim(),
-      ];
-      const hasMeaningfulValue = parts.some((part) => part && part !== "-");
+        memo: field(form, `gearMemo${index}`).value.trim(),
+      };
+      const hasMeaningfulValue = Object.values(gear).some((part) => part && part !== "-");
       if (!hasMeaningfulValue) return fallback[index];
-      return parts.map((part) => part || "-").join(" / ");
+      return gear;
     });
   }
 
@@ -972,7 +982,7 @@ const GuildWar = (() => {
         gear: readGearFields(form, variantFallback.gear || fallback.gear, sourcePrefix),
         skillOrder: skillOrder.length ? skillOrder : variantFallback.skillOrder || fallback.skillOrder,
         skillNote: field(form, "skillNote").value.trim(),
-        memo: field(form, "memo").value.trim() || fallback.memo,
+        memo: field(form, "memo").value.trim(),
       };
       const variants = isDefense
         ? undefined
@@ -995,7 +1005,7 @@ const GuildWar = (() => {
         gear: isDefense ? readGearFields(form, fallback.gear, sourcePrefix) : primaryVariant.gear,
         skillOrder: isDefense ? (skillOrder.length ? skillOrder : fallback.skillOrder) : primaryVariant.skillOrder,
         skillNote: isDefense ? field(form, "skillNote").value.trim() : primaryVariant.skillNote,
-        memo: isDefense ? field(form, "memo").value.trim() || fallback.memo : primaryVariant.memo,
+        memo: isDefense ? field(form, "memo").value.trim() : primaryVariant.memo,
         ...(isDefense ? {} : { variants }),
       };
     });
