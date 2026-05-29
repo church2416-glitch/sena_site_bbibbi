@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>bbitsena Preview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #05060d;
+        --panel: #0d0f19;
+        --panel-soft: #121421;
+        --line: rgba(124, 100, 255, 0.22);
+        --text: #f4f1ff;
+        --muted: #9b93b7;
+        --accent: #6ce7d2;
+        --accent-2: #a474ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top right, rgba(108, 231, 210, 0.12), transparent 34rem),
+          radial-gradient(circle at 8% 18%, rgba(164, 116, 255, 0.16), transparent 28rem),
+          var(--bg);
+        font-family: "Pretendard", "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+
+      .preview-shell {
+        display: grid;
+        grid-template-columns: 360px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+
+      .preview-sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        padding: 22px;
+        overflow: auto;
+        border-right: 1px solid var(--line);
+        background: rgba(7, 8, 15, 0.86);
+        backdrop-filter: blur(18px);
+      }
+
+      .preview-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 22px;
+      }
+
+      .preview-brand img {
+        width: 34px;
+        height: 34px;
+        object-fit: contain;
+      }
+
+      .preview-brand strong {
+        display: block;
+        font-size: 20px;
+      }
+
+      .preview-brand span {
+        display: block;
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .preview-group {
+        display: grid;
+        gap: 8px;
+        margin-top: 18px;
+      }
+
+      .preview-group h2 {
+        margin: 0 0 4px;
+        color: var(--accent);
+        font-size: 12px;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      .preview-link {
+        display: grid;
+        gap: 4px;
+        width: 100%;
+        padding: 12px 13px;
+        border: 1px solid rgba(124, 100, 255, 0.18);
+        border-radius: 8px;
+        color: var(--text);
+        background: rgba(18, 20, 33, 0.72);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .preview-link:hover,
+      .preview-link.active {
+        border-color: rgba(108, 231, 210, 0.64);
+        background: rgba(108, 231, 210, 0.12);
+      }
+
+      .preview-link strong {
+        font-size: 14px;
+      }
+
+      .preview-link small {
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.45;
+      }
+
+      .preview-main {
+        min-width: 0;
+        padding: 22px;
+      }
+
+      .preview-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 14px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(13, 15, 25, 0.86);
+      }
+
+      .preview-title {
+        min-width: 0;
+      }
+
+      .preview-title strong {
+        display: block;
+        font-size: 18px;
+      }
+
+      .preview-title span {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+        word-break: break-all;
+      }
+
+      .preview-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .preview-actions a,
+      .preview-actions button {
+        min-height: 36px;
+        padding: 0 13px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--text);
+        background: rgba(18, 20, 33, 0.86);
+        font: inherit;
+        font-size: 12px;
+        font-weight: 800;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .preview-actions a.primary,
+      .preview-actions button.active {
+        border-color: rgba(108, 231, 210, 0.7);
+        color: #06100f;
+        background: var(--accent);
+      }
+
+      .preview-frame-wrap {
+        height: calc(100vh - 112px);
+        min-height: 620px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: hidden;
+        background: #05060d;
+        box-shadow: 0 22px 70px rgba(0, 0, 0, 0.3);
+      }
+
+      .preview-frame {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: white;
+      }
+
+      .is-mobile .preview-frame-wrap {
+        width: 390px;
+        max-width: 100%;
+        margin: 0 auto;
+      }
+
+      .preview-note {
+        margin: 12px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      @media (max-width: 920px) {
+        .preview-shell {
+          grid-template-columns: 1fr;
+        }
+
+        .preview-sidebar {
+          position: static;
+          height: auto;
+          max-height: 48vh;
+        }
+
+        .preview-frame-wrap {
+          height: 72vh;
+          min-height: 520px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="preview-shell" id="previewShell">
+      <aside class="preview-sidebar">
+        <a class="preview-brand" href="index.html">
+          <img src="assets/common/logo.webp" alt="bbitsena" />
+          <span>
+            <strong>bbitsena Preview</strong>
+            <span>사이트 전체 화면 확인용</span>
+          </span>
+        </a>
+
+        <div class="preview-group" data-group="main">
+          <h2>Core</h2>
+          <button class="preview-link active" type="button" data-url="index.html" data-title="메인">
+            <strong>메인</strong>
+            <small>홈, 사이드바, 게시판 목록, 로그인 카드</small>
+          </button>
+          <button class="preview-link" type="button" data-url="notices.html" data-title="공지사항">
+            <strong>공지사항</strong>
+            <small>운영진 공지 목록</small>
+          </button>
+          <button class="preview-link" type="button" data-url="upload.html" data-title="글쓰기">
+            <strong>글쓰기</strong>
+            <small>일반/PVP/PVE 게시글 작성기</small>
+          </button>
+          <button class="preview-link" type="button" data-url="coupon.html" data-title="쿠폰">
+            <strong>쿠폰</strong>
+            <small>회원번호와 쿠폰 등록/전송 화면</small>
+          </button>
+        </div>
+
+        <div class="preview-group" data-group="boards">
+          <h2>Boards</h2>
+          <button class="preview-link" type="button" data-url="index.html?board=전체" data-title="전체 게시판">
+            <strong>전체 게시판</strong>
+            <small>공지 제외 일반 게시글 목록</small>
+          </button>
+          <button class="preview-link" type="button" data-url="index.html?board=PVP 게시판" data-title="PVP 게시판">
+            <strong>PVP 게시판</strong>
+            <small>PVP 게시판 탭</small>
+          </button>
+          <button class="preview-link" type="button" data-url="index.html?board=PVE 공략" data-title="PVE 공략">
+            <strong>PVE 공략</strong>
+            <small>파괴신, 공성전, 돌발레이드 포함</small>
+          </button>
+          <button class="preview-link" type="button" data-url="index.html?board=기술" data-title="기술">
+            <strong>기술</strong>
+            <small>기술 게시판</small>
+          </button>
+        </div>
+
+        <div class="preview-group" data-group="guild">
+          <h2>Guild War</h2>
+          <button class="preview-link" type="button" data-url="guild-war.html" data-title="길드전 족보">
+            <strong>길드전 족보</strong>
+            <small>사용자 공개 족보 화면</small>
+          </button>
+          <button class="preview-link" type="button" data-url="guild-war-admin.html" data-title="족보 관리">
+            <strong>족보 관리</strong>
+            <small>관리자 권한 필요</small>
+          </button>
+        </div>
+
+        <div class="preview-group" data-group="admin">
+          <h2>Admin</h2>
+          <button class="preview-link" type="button" data-url="admin.html" data-title="관리자 DB">
+            <strong>관리자 DB</strong>
+            <small>관리자 권한 필요</small>
+          </button>
+          <button class="preview-link" type="button" data-url="notice-upload.html" data-title="공지 작성">
+            <strong>공지 작성</strong>
+            <small>관리자 공지 작성 페이지</small>
+          </button>
+        </div>
+
+        <div class="preview-group" data-group="legal">
+          <h2>Legal</h2>
+          <button class="preview-link" type="button" data-url="terms.html" data-title="이용약관">
+            <strong>이용약관</strong>
+            <small>서비스 약관</small>
+          </button>
+          <button class="preview-link" type="button" data-url="privacy.html" data-title="개인정보처리방침">
+            <strong>개인정보처리방침</strong>
+            <small>개인정보 문서</small>
+          </button>
+        </div>
+      </aside>
+
+      <main class="preview-main">
+        <header class="preview-toolbar">
+          <div class="preview-title">
+            <strong id="previewTitle">메인</strong>
+            <span id="previewUrl">index.html</span>
+          </div>
+          <div class="preview-actions">
+            <button type="button" class="active" id="desktopButton">데스크톱</button>
+            <button type="button" id="mobileButton">모바일</button>
+            <a class="primary" id="openButton" href="index.html" target="_blank" rel="noopener">새 탭 열기</a>
+          </div>
+        </header>
+
+        <section class="preview-frame-wrap">
+          <iframe class="preview-frame" id="previewFrame" title="사이트 미리보기" src="index.html"></iframe>
+        </section>
+        <p class="preview-note">
+          관리자/족보 관리 화면은 로그인 권한이 없으면 로그인 화면 또는 권한 안내로 이동할 수 있습니다.
+          이 페이지는 개발 확인용이라 실제 메뉴에는 노출하지 않았습니다.
+        </p>
+      </main>
+    </div>
+
+    <script>
+      const shell = document.querySelector("#previewShell");
+      const frame = document.querySelector("#previewFrame");
+      const title = document.querySelector("#previewTitle");
+      const urlText = document.querySelector("#previewUrl");
+      const openButton = document.querySelector("#openButton");
+      const desktopButton = document.querySelector("#desktopButton");
+      const mobileButton = document.querySelector("#mobileButton");
+      const links = [...document.querySelectorAll(".preview-link")];
+
+      function openPreview(button) {
+        links.forEach((item) => item.classList.toggle("active", item === button));
+        const url = button.dataset.url;
+        frame.src = url;
+        title.textContent = button.dataset.title || button.textContent.trim();
+        urlText.textContent = url;
+        openButton.href = url;
+        history.replaceState(null, "", `#${encodeURIComponent(url)}`);
+      }
+
+      links.forEach((button) => {
+        button.addEventListener("click", () => openPreview(button));
+      });
+
+      desktopButton.addEventListener("click", () => {
+        shell.classList.remove("is-mobile");
+        desktopButton.classList.add("active");
+        mobileButton.classList.remove("active");
+      });
+
+      mobileButton.addEventListener("click", () => {
+        shell.classList.add("is-mobile");
+        mobileButton.classList.add("active");
+        desktopButton.classList.remove("active");
+      });
+
+      const initialUrl = decodeURIComponent(location.hash.slice(1));
+      const initialButton = links.find((button) => button.dataset.url === initialUrl);
+      if (initialButton) openPreview(initialButton);
+    </script>
+  </body>
+</html>
