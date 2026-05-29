@@ -125,7 +125,7 @@
           <aside class="post-side-panel" aria-label="게시글 정보">
             <strong>게시글 정보</strong>
             <a href="index.html">목록</a>
-            <a href="upload.html" target="_blank" rel="noopener">글쓰기</a>
+            <a id="sideWriteLink" href="upload.html" target="_blank" rel="noopener">글쓰기</a>
             <span id="sideAuthor">작성자 -</span>
             <span id="sideCategory">게시판</span>
             <span id="sideViews">조회 0</span>
@@ -836,6 +836,8 @@
         if (listDesc) listDesc.textContent = isNotice ? "다른 공지사항을 확인해보세요." : "다른 게시글도 이어서 확인해보세요.";
         const backLink = document.querySelector(".post-actions a");
         if (backLink && isNotice) backLink.href = "notices.html";
+        const sideWriteLink = document.querySelector("#sideWriteLink");
+        if (sideWriteLink) sideWriteLink.href = isNotice ? "notice-upload.html" : "upload.html";
         renderPostBody(guide);
 
         const tagBox = document.querySelector("#postTags");

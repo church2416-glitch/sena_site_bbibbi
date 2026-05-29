@@ -118,7 +118,7 @@ async function loadNotices() {
   }
 
   if (noticePageSource) {
-    noticePageSource.href = "upload.html";
+    noticePageSource.href = "notice-upload.html";
     noticePageSource.hidden = true;
     try {
       const meResponse = await fetch("/api/me", { credentials: "same-origin" });
