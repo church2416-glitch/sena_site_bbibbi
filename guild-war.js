@@ -627,6 +627,8 @@ const GuildWar = (() => {
 
     select.dataset.comboboxReady = "true";
     select.dataset.comboboxInputId = inputId;
+    select.hidden = true;
+    select.tabIndex = -1;
     select.parentNode.insertBefore(wrapper, select);
     wrapper.append(select, input, menu);
 

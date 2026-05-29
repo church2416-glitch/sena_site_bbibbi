@@ -4739,6 +4739,10 @@ p {
   pointer-events: none;
 }
 
+.character-combobox > select[hidden] {
+  display: none !important;
+}
+
 .character-combobox-input {
   width: 100%;
   min-width: 0;
