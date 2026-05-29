@@ -3011,7 +3011,7 @@ p {
 }
 
 .notice-board-shell {
-  width: min(880px, calc(100% - 32px));
+  width: min(1120px, calc(100% - 40px));
   margin: 36px auto 80px;
 }
 
@@ -3057,22 +3057,25 @@ p {
 }
 
 .notice-table-wrap {
-  overflow: hidden;
-  border-top: 2px solid rgba(var(--theme-mid-rgb), 0.72);
-  border-bottom: 1px solid rgba(var(--theme-mid-rgb), 0.34);
+  overflow-x: auto;
+  border-top: 2px solid rgba(var(--theme-mid-rgb), 0.66);
+  border-bottom: 1px solid rgba(var(--theme-mid-rgb), 0.28);
   border-radius: 0;
-  background: rgba(10, 11, 18, 0.68);
+  background: rgba(7, 8, 14, 0.72);
 }
 
 .notice-table {
   width: 100%;
+  min-width: 860px;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .notice-table th,
 .notice-table td {
-  padding: 7px 10px;
-  border-bottom: 1px solid rgba(210, 205, 235, 0.11);
+  height: 36px;
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(210, 205, 235, 0.1);
   text-align: left;
 }
 
@@ -3090,17 +3093,17 @@ p {
 }
 
 .notice-table .manager-notice-row td {
-  border-bottom-color: rgba(255, 216, 86, 0.16);
-  color: #eee8cf;
-  background: rgba(255, 223, 86, 0.028);
+  border-bottom-color: rgba(255, 216, 86, 0.12);
+  color: #ede7d3;
+  background: transparent;
 }
 
 .notice-table .manager-notice-row td:first-child {
-  box-shadow: inset 2px 0 0 rgba(255, 224, 92, 0.62);
+  box-shadow: inset 3px 0 0 rgba(255, 224, 92, 0.65);
 }
 
 .notice-table .manager-notice-row:hover td {
-  background: rgba(255, 223, 86, 0.055);
+  background: rgba(255, 223, 86, 0.035);
 }
 
 .notice-table tr:last-child td {
@@ -3122,17 +3125,22 @@ p {
 
 .notice-table td:nth-child(1),
 .notice-table th:nth-child(1) {
-  width: 70px;
+  width: 72px;
+}
+
+.notice-table td:nth-child(2),
+.notice-table th:nth-child(2) {
+  width: auto;
 }
 
 .notice-table td:nth-child(3),
 .notice-table th:nth-child(3) {
-  width: 190px;
+  width: 210px;
 }
 
 .notice-table td:nth-child(4),
 .notice-table th:nth-child(4) {
-  width: 88px;
+  width: 96px;
 }
 
 .notice-table td:nth-child(5),
@@ -3140,6 +3148,12 @@ p {
 .notice-table th:nth-child(5),
 .notice-table th:nth-child(6) {
   width: 62px;
+}
+
+.notice-table td:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .notice-table a {
@@ -3207,9 +3221,16 @@ p {
 }
 
 .notice-table td.role-name {
-  max-width: 190px;
+  display: inline-flex !important;
+  width: 100% !important;
+  max-width: none;
   overflow: hidden;
   text-overflow: ellipsis;
+  background: transparent !important;
+}
+
+.notice-table td.role-name .role-icon {
+  flex: 0 0 22px;
 }
 
 .role-name .role-icon {
@@ -6578,8 +6599,10 @@ p {
 
   .notice-table th:nth-child(1),
   .notice-table td:nth-child(1),
-  .notice-table th:nth-child(4),
-  .notice-table td:nth-child(4) {
+  .notice-table th:nth-child(5),
+  .notice-table td:nth-child(5),
+  .notice-table th:nth-child(6),
+  .notice-table td:nth-child(6) {
     display: none;
   }
 
