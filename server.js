@@ -74,12 +74,28 @@ const defaultImportantNoticeSettings = {
   actionUrl: "",
   updatedAt: "",
 };
-const maxPostImageSize = 8 * 1024 * 1024;
+const maxPostImageSize = 25 * 1024 * 1024;
 const maxPostVideoSize = 500 * 1024 * 1024;
 const uploadRoot = path.join(__dirname, "uploads");
 const uploadTmpRoot = path.join(uploadRoot, "tmp");
-const allowedImageMimeTypes = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
-const allowedVideoMimeTypes = new Set(["video/mp4", "video/webm", "video/ogg", "video/quicktime"]);
+const allowedImageMimeTypes = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/avif",
+  "image/bmp",
+]);
+const allowedVideoMimeTypes = new Set([
+  "video/mp4",
+  "video/webm",
+  "video/ogg",
+  "video/quicktime",
+  "video/x-m4v",
+  "video/mpeg",
+  "video/x-msvideo",
+  "video/x-matroska",
+]);
 const authRateWindowMs = 10 * 60 * 1000;
 const authRateLimits = new Map();
 const cookieSecure = siteUrl.startsWith("https://") && process.env.COOKIE_SECURE !== "false";
@@ -179,7 +195,7 @@ const uploadPostMedia = multer({
       cb(null, uploadTmpRoot);
     },
     filename(req, file, cb) {
-      const extension = extensionFromMime(file.mimetype || "") || path.extname(file.originalname).slice(1) || "bin";
+      const extension = extensionFromMime(mimeFromUpload(file, file.fieldname === "images" ? "image" : "video")) || path.extname(file.originalname).slice(1) || "bin";
       cb(null, `${Date.now().toString(36)}-${crypto.randomBytes(6).toString("hex")}.${extension}`);
     },
   }),
@@ -188,8 +204,8 @@ const uploadPostMedia = multer({
     files: 9,
   },
   fileFilter(req, file, cb) {
-    if (file.fieldname === "images" && allowedImageMimeTypes.has(file.mimetype)) return cb(null, true);
-    if (file.fieldname === "videos" && allowedVideoMimeTypes.has(file.mimetype)) return cb(null, true);
+    if (file.fieldname === "images" && mimeFromUpload(file, "image")) return cb(null, true);
+    if (file.fieldname === "videos" && mimeFromUpload(file, "video")) return cb(null, true);
     return cb(new Error("unsupported_media_type"));
   },
 }).fields([
@@ -204,7 +220,7 @@ const uploadNoticeImage = multer({
       cb(null, directory);
     },
     filename(req, file, cb) {
-      const extension = extensionFromMime(file.mimetype || "") || path.extname(file.originalname).slice(1) || "png";
+      const extension = extensionFromMime(mimeFromUpload(file, "image")) || path.extname(file.originalname).slice(1) || "png";
       cb(null, `notice-${Date.now().toString(36)}-${crypto.randomBytes(5).toString("hex")}.${extension}`);
     },
   }),
@@ -213,7 +229,7 @@ const uploadNoticeImage = multer({
     files: 6,
   },
   fileFilter(req, file, cb) {
-    if (allowedImageMimeTypes.has(file.mimetype)) return cb(null, true);
+    if (mimeFromUpload(file, "image")) return cb(null, true);
     return cb(new Error("unsupported_notice_image"));
   },
 });
@@ -230,7 +246,7 @@ app.use("/uploads", express.static(uploadRoot, {
   maxAge: "1h",
   setHeaders(res, filePath) {
     res.setHeader("X-Content-Type-Options", "nosniff");
-    if (/\.(mp4|webm|ogv|mov)$/i.test(filePath)) {
+    if (/\.(mp4|m4v|webm|ogv|ogg|mov|mpeg|mpg|avi|mkv)$/i.test(filePath)) {
       res.setHeader("Accept-Ranges", "bytes");
       res.setHeader("Cache-Control", "public, max-age=3600");
     }
@@ -749,18 +765,26 @@ function normalizeSafeUrl(value, { allowRelative = false, allowImagesOnly = fals
   if (!raw) return "";
   if (allowRelative && raw.startsWith("/")) {
     if (raw.startsWith("//") || raw.includes("\\")) return "";
-    if (allowImagesOnly && !/^\/uploads\/[a-zA-Z0-9/_-]+\.(jpe?g|png|gif|webp)$/i.test(raw)) return "";
+    if (allowImagesOnly && !isSafeUploadedImagePath(raw)) return "";
     return raw.slice(0, 500);
   }
 
   try {
     const url = new URL(raw);
     if (!["https:", "http:"].includes(url.protocol)) return "";
-    if (allowImagesOnly && !/\.(jpe?g|png|gif|webp)$/i.test(url.pathname)) return "";
+    if (allowImagesOnly && !/\.(jpe?g|jfif|pjpe?g|png|gif|webp|avif|bmp)$/i.test(url.pathname)) return "";
     return url.toString().slice(0, 500);
   } catch {
     return "";
   }
+}
+
+function isSafeUploadedImagePath(src = "") {
+  return /^\/uploads\/[a-zA-Z0-9/_-]+\.(jpe?g|jfif|pjpe?g|png|gif|webp|avif|bmp)$/i.test(String(src || ""));
+}
+
+function isSafeUploadedVideoPath(src = "") {
+  return /^\/uploads\/[a-zA-Z0-9/_-]+\.(mp4|m4v|webm|ogv|ogg|mov|mpeg|mpg|avi|mkv)$/i.test(String(src || ""));
 }
 
 function normalizeYoutubeEmbedUrl(value) {
@@ -814,7 +838,7 @@ function sanitizeStoredMedia(media = {}) {
     ? media.images
       .filter((image) => {
         const src = String(image?.src || "");
-        return /^\/uploads\/[a-zA-Z0-9/_-]+\.(jpe?g|png|gif|webp)$/i.test(src) || isAllowedDataUrl(src, "image") || normalizeSafeUrl(src, { allowImagesOnly: true });
+        return isSafeUploadedImagePath(src) || isAllowedDataUrl(src, "image") || normalizeSafeUrl(src, { allowImagesOnly: true });
       })
       .slice(0, 6)
       .map((image) => ({
@@ -827,7 +851,7 @@ function sanitizeStoredMedia(media = {}) {
   const videos = rawVideos
     .filter((video) => {
       const src = String(video?.src || "");
-      return /^\/uploads\/[a-zA-Z0-9/_-]+\.(mp4|webm|ogv|mov)$/i.test(src) || isAllowedDataUrl(src, "video");
+      return isSafeUploadedVideoPath(src) || isAllowedDataUrl(src, "video");
     })
     .slice(0, 3)
     .map((video) => ({
@@ -1047,24 +1071,87 @@ function normalizeTagsInput(value) {
 }
 
 function extensionFromMime(mimeType = "") {
-  const cleanType = String(mimeType).split(";")[0].trim().toLowerCase();
+  const cleanType = normalizeMimeAlias(mimeType);
   const map = {
     "image/jpeg": "jpg",
     "image/png": "png",
     "image/gif": "gif",
     "image/webp": "webp",
+    "image/avif": "avif",
+    "image/bmp": "bmp",
     "video/mp4": "mp4",
     "video/webm": "webm",
     "video/ogg": "ogv",
     "video/quicktime": "mov",
+    "video/x-m4v": "m4v",
+    "video/mpeg": "mpg",
+    "video/x-msvideo": "avi",
+    "video/x-matroska": "mkv",
   };
   return map[cleanType] || "";
 }
 
-function normalizeAllowedMime(mimeType = "", kind) {
+function normalizeMimeAlias(mimeType = "") {
   const cleanType = String(mimeType).split(";")[0].trim().toLowerCase();
+  const aliases = {
+    "image/jpg": "image/jpeg",
+    "image/pjpeg": "image/jpeg",
+    "image/x-png": "image/png",
+    "image/x-ms-bmp": "image/bmp",
+    "video/mov": "video/quicktime",
+    "video/x-quicktime": "video/quicktime",
+    "video/avi": "video/x-msvideo",
+    "video/msvideo": "video/x-msvideo",
+    "application/ogg": "video/ogg",
+    "application/x-matroska": "video/x-matroska",
+  };
+  return aliases[cleanType] || cleanType;
+}
+
+function mimeFromExtension(filename = "") {
+  const extension = path.extname(String(filename)).toLowerCase();
+  const map = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".jfif": "image/jpeg",
+    ".pjpeg": "image/jpeg",
+    ".pjp": "image/jpeg",
+    ".png": "image/png",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".avif": "image/avif",
+    ".bmp": "image/bmp",
+    ".dib": "image/bmp",
+    ".mp4": "video/mp4",
+    ".m4v": "video/x-m4v",
+    ".webm": "video/webm",
+    ".ogv": "video/ogg",
+    ".ogg": "video/ogg",
+    ".mov": "video/quicktime",
+    ".qt": "video/quicktime",
+    ".mpeg": "video/mpeg",
+    ".mpg": "video/mpeg",
+    ".avi": "video/x-msvideo",
+    ".mkv": "video/x-matroska",
+  };
+  return map[extension] || "";
+}
+
+function normalizeAllowedMime(mimeType = "", kind) {
+  const cleanType = normalizeMimeAlias(mimeType);
   const allowed = kind === "image" ? allowedImageMimeTypes : allowedVideoMimeTypes;
   return allowed.has(cleanType) ? cleanType : "";
+}
+
+function mimeFromUpload(file, kind) {
+  return mimeCandidatesFromUpload(file, kind)[0] || "";
+}
+
+function mimeCandidatesFromUpload(file, kind) {
+  return [
+    normalizeAllowedMime(file?.mimetype, kind),
+    normalizeAllowedMime(mimeFromExtension(file?.originalname), kind),
+  ].filter((mimeType, index, list) => mimeType && list.indexOf(mimeType) === index);
 }
 
 function mimeFromDataUrl(value = "") {
@@ -1072,9 +1159,10 @@ function mimeFromDataUrl(value = "") {
 }
 
 function isAllowedDataUrl(value = "", kind) {
-  const mimeType = mimeFromDataUrl(value);
+  const rawMimeType = mimeFromDataUrl(value);
+  const mimeType = normalizeAllowedMime(rawMimeType, kind);
   const allowed = kind === "image" ? allowedImageMimeTypes : allowedVideoMimeTypes;
-  return allowed.has(mimeType) && String(value).startsWith(`data:${mimeType};base64,`);
+  return allowed.has(mimeType) && String(value).startsWith(`data:${rawMimeType};base64,`);
 }
 
 function hasMagicBytes(buffer, kind, mimeType) {
@@ -1085,18 +1173,25 @@ function hasMagicBytes(buffer, kind, mimeType) {
   if (mime === "image/png") return buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
   if (mime === "image/gif") return buffer.subarray(0, 4).toString("ascii") === "GIF8";
   if (mime === "image/webp") return buffer.subarray(0, 4).toString("ascii") === "RIFF" && buffer.subarray(8, 12).toString("ascii") === "WEBP";
+  if (mime === "image/avif") return buffer.subarray(4, 8).toString("ascii") === "ftyp" && buffer.subarray(8, 16).toString("ascii").includes("avif");
+  if (mime === "image/bmp") return buffer.subarray(0, 2).toString("ascii") === "BM";
   if (mime === "video/webm") return buffer.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
+  if (mime === "video/x-matroska") return buffer.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
   if (mime === "video/ogg") return buffer.subarray(0, 4).toString("ascii") === "OggS";
-  if (mime === "video/mp4" || mime === "video/quicktime") return buffer.subarray(4, 8).toString("ascii") === "ftyp";
+  if (mime === "video/mp4" || mime === "video/quicktime" || mime === "video/x-m4v") return buffer.subarray(4, 8).toString("ascii") === "ftyp";
+  if (mime === "video/mpeg") return buffer.subarray(0, 3).equals(Buffer.from([0x00, 0x00, 0x01]));
+  if (mime === "video/x-msvideo") return buffer.subarray(0, 4).toString("ascii") === "RIFF" && buffer.subarray(8, 12).toString("ascii") === "AVI ";
   return false;
 }
 
 function assertUploadedFile(file, kind) {
   if (!file?.path) throw Object.assign(new Error("invalid_upload"), { status: 400 });
-  const mimeType = normalizeAllowedMime(file.mimetype, kind);
-  if (!mimeType) throw Object.assign(new Error("unsupported_upload_type"), { status: 400 });
+  const mimeTypes = mimeCandidatesFromUpload(file, kind);
+  if (!mimeTypes.length) throw Object.assign(new Error("unsupported_upload_type"), { status: 400 });
   const header = fs.readFileSync(file.path).subarray(0, 32);
-  if (!hasMagicBytes(header, kind, mimeType)) throw Object.assign(new Error("invalid_upload_signature"), { status: 400 });
+  const mimeType = mimeTypes.find((candidate) => hasMagicBytes(header, kind, candidate));
+  if (!mimeType) throw Object.assign(new Error("invalid_upload_signature"), { status: 400 });
+  file.detectedMimeType = mimeType;
 }
 
 function savePostVideoFile(postId, videoFile) {
@@ -1137,7 +1232,8 @@ function savePostVideoFile(postId, videoFile) {
 
 function moveUploadedFile(postId, file, index) {
   const directory = path.join(uploadRoot, "posts", postId);
-  const extension = extensionFromMime(file.mimetype) || path.extname(file.originalname).slice(1) || "bin";
+  const mimeType = file.detectedMimeType || mimeFromUpload(file, file.fieldname === "images" ? "image" : "video") || file.mimetype;
+  const extension = extensionFromMime(mimeType) || path.extname(file.originalname).slice(1) || "bin";
   const storedName = `${file.fieldname}-${index + 1}.${extension}`;
   const targetPath = path.join(directory, storedName);
   fs.mkdirSync(directory, { recursive: true });
@@ -1150,7 +1246,7 @@ function moveUploadedFile(postId, file, index) {
   }
   return {
     name: String(file.originalname || storedName).slice(0, 80),
-    type: String(file.mimetype || "").slice(0, 80),
+    type: String(mimeType || "").slice(0, 80),
     size: file.size,
     src: `/uploads/posts/${postId}/${storedName}`,
   };
