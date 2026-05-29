@@ -205,7 +205,7 @@ button {
 }
 
 .site-footer a:hover {
-  border-color: rgba(111, 224, 205, 0.44);
+  border-color: rgba(var(--theme-mid-rgb), 0.44);
   color: #ffffff;
 }
 
@@ -451,7 +451,7 @@ button {
   border: 2px solid #080911;
   border-radius: 999px;
   color: #07110f;
-  background: #6fe0cd;
+  background: var(--theme-mid);
   font-size: 10px;
   font-weight: 1000;
   line-height: 1;
@@ -627,7 +627,7 @@ textarea:focus {
   top: -8px;
   right: -8px;
   border-color: #0f0d1a;
-  box-shadow: 0 0 13px rgba(111, 224, 205, 0.75);
+  box-shadow: 0 0 13px rgba(var(--theme-mid-rgb), 0.75);
 }
 
 .notification-panel {
@@ -680,8 +680,8 @@ textarea:focus {
 }
 
 .notification-panel-item.unread {
-  border-color: rgba(111, 224, 205, 0.38);
-  box-shadow: inset 3px 0 0 #6fe0cd;
+  border-color: rgba(var(--theme-mid-rgb), 0.38);
+  box-shadow: inset 3px 0 0 var(--theme-mid);
 }
 
 .notification-panel-item strong {
@@ -760,7 +760,7 @@ textarea:focus {
   border-radius: 8px;
   color: var(--text);
   background:
-    radial-gradient(circle at 85% 0%, rgba(111, 224, 205, 0.15), transparent 34%),
+    radial-gradient(circle at 85% 0%, rgba(var(--theme-mid-rgb), 0.15), transparent 34%),
     linear-gradient(180deg, rgba(17, 19, 33, 0.98), rgba(8, 9, 17, 0.98));
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.58);
 }
@@ -778,7 +778,7 @@ textarea:focus {
 
 .important-notice-card header span {
   display: block;
-  color: #6fe0cd;
+  color: var(--theme-mid);
   font-size: 12px;
   font-weight: 900;
 }
@@ -864,9 +864,9 @@ textarea:focus {
 
 .important-notice-card footer button:last-child,
 .important-notice-card footer a {
-  border-color: rgba(111, 224, 205, 0.44);
+  border-color: rgba(var(--theme-mid-rgb), 0.44);
   color: #061310;
-  background: linear-gradient(135deg, #6fe0cd, #b8fff3);
+  background: linear-gradient(135deg, var(--theme-mid), var(--theme-soft));
 }
 
 @media (max-width: 620px) {
@@ -1110,10 +1110,10 @@ textarea:focus {
   justify-content: center;
   width: 58px;
   height: 58px;
-  border: 1px solid rgba(111, 224, 205, 0.42);
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.42);
   border-radius: 50%;
   color: #0f141b;
-  background: linear-gradient(135deg, #6fe0cd, #ffe879);
+  background: linear-gradient(135deg, var(--theme-mid), #ffe879);
   font-size: 24px;
   font-weight: 1000;
 }
@@ -1302,8 +1302,8 @@ textarea:focus {
 
 .account-inline-button.active {
   color: #07110f;
-  border-color: rgba(111, 224, 205, 0.55);
-  background: #6fe0cd;
+  border-color: rgba(var(--theme-mid-rgb), 0.55);
+  background: var(--theme-mid);
 }
 
 .account-sound-control {
@@ -1320,8 +1320,8 @@ textarea:focus {
 }
 
 .notification-item.unread {
-  border-color: rgba(111, 224, 205, 0.46);
-  background: rgba(111, 224, 205, 0.08);
+  border-color: rgba(var(--theme-mid-rgb), 0.46);
+  background: rgba(var(--theme-mid-rgb), 0.08);
 }
 
 .notification-row {
@@ -1353,8 +1353,8 @@ textarea:focus {
   height: 7px;
   margin-right: 7px;
   border-radius: 50%;
-  background: #6fe0cd;
-  box-shadow: 0 0 16px rgba(111, 224, 205, 0.7);
+  background: var(--theme-mid);
+  box-shadow: 0 0 16px rgba(var(--theme-mid-rgb), 0.7);
 }
 
 .account-permission-list {
@@ -1382,7 +1382,7 @@ textarea:focus {
   border: 0;
   border-radius: 999px;
   background: transparent;
-  accent-color: #6fe0cd;
+  accent-color: var(--theme-mid);
 }
 
 .volume-knob em {
@@ -1747,7 +1747,7 @@ textarea:focus {
 
 .board-hero .hero-shade {
   background:
-    radial-gradient(circle at 80% 0%, rgba(111, 224, 205, 0.13), transparent 34%),
+    radial-gradient(circle at 80% 0%, rgba(var(--theme-mid-rgb), 0.13), transparent 34%),
     linear-gradient(180deg, rgba(5, 6, 11, 1), rgba(8, 9, 17, 0.96));
 }
 
@@ -1764,7 +1764,7 @@ textarea:focus {
   display: inline-block;
   margin: 0 0 18px;
   padding-top: 18px;
-  color: #6fe0cd;
+  color: var(--theme-mid);
   font-size: 11px;
   font-weight: 1000;
   letter-spacing: 0.08em;
@@ -1777,7 +1777,7 @@ textarea:focus {
   left: 0;
   width: 120px;
   height: 3px;
-  background: #6fe0cd;
+  background: var(--theme-mid);
 }
 
 .board-hero .hero-copy h1 {
@@ -1817,8 +1817,8 @@ textarea:focus {
 
 .category-strip.board-tabs button.active {
   color: #05060b;
-  border-color: #6fe0cd;
-  background: #6fe0cd;
+  border-color: var(--theme-mid);
+  background: var(--theme-mid);
 }
 
 .board-page-mode .feed-card {
@@ -1861,7 +1861,7 @@ textarea:focus {
 .board-page-mode .status {
   border-radius: 6px;
   color: #05060b;
-  background: #6fe0cd;
+  background: var(--theme-mid);
 }
 
 .board-page-mode .guide-stats,
@@ -2418,19 +2418,19 @@ p {
 }
 
 .pve-guide-editor.is-pvp {
-  border-color: rgba(111, 224, 205, 0.32);
+  border-color: rgba(var(--theme-mid-rgb), 0.32);
   background: rgba(6, 19, 22, 0.66);
 }
 
 .pve-guide-editor.is-pvp .pve-editor-head span,
 .pve-guide-editor.is-pvp .pve-mini-section h3,
 .pve-guide-view.is-pvp .pve-guide-view-head span {
-  color: #6fe0cd;
+  color: var(--theme-mid);
 }
 
 .pve-guide-editor.is-pvp label,
 .pve-guide-editor.is-pvp .pve-note-field {
-  color: #6fe0cd;
+  color: var(--theme-mid);
 }
 
 .pve-hero-grid,
@@ -2599,10 +2599,10 @@ p {
   gap: 4px;
   min-height: 118px;
   padding: 10px;
-  border: 1px solid rgba(111, 224, 205, 0.22);
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.22);
   border-radius: 8px;
   color: #d9d4ee;
-  background: rgba(111, 224, 205, 0.06);
+  background: rgba(var(--theme-mid-rgb), 0.06);
   text-align: center;
 }
 
@@ -2612,13 +2612,13 @@ p {
   width: 58px;
   height: 58px;
   overflow: hidden;
-  border: 1px solid rgba(111, 224, 205, 0.42);
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.42);
   border-radius: 999px;
   color: #07110f;
-  background: radial-gradient(circle at 35% 28%, #fff, #bffff2 48%, #6fe0cd);
+  background: radial-gradient(circle at 35% 28%, #fff, var(--theme-soft) 48%, var(--theme-mid));
   font-style: normal;
   font-weight: 1000;
-  box-shadow: 0 0 18px rgba(111, 224, 205, 0.22);
+  box-shadow: 0 0 18px rgba(var(--theme-mid-rgb), 0.22);
 }
 
 .strategy-pet-card i img {
@@ -2961,7 +2961,7 @@ p {
 .notice-page-topbar nav a:hover,
 .board-mode-topbar nav a.active,
 .board-mode-topbar nav a:hover {
-  color: #6fe0cd;
+  color: var(--theme-mid);
 }
 
 .board-mode-topbar {
@@ -2978,7 +2978,7 @@ p {
   min-height: 280px;
   padding: 44px max(22px, calc((100vw - 980px) / 2));
   background:
-    radial-gradient(circle at 80% 0%, rgba(111, 224, 205, 0.13), transparent 34%),
+    radial-gradient(circle at 80% 0%, rgba(var(--theme-mid-rgb), 0.13), transparent 34%),
     linear-gradient(180deg, rgba(5, 6, 11, 1), rgba(8, 9, 17, 0.96));
 }
 
@@ -2989,9 +2989,9 @@ p {
 .notice-page-hero span {
   display: inline-block;
   margin-bottom: 18px;
-  border-top: 3px solid #6fe0cd;
+  border-top: 3px solid var(--theme-mid);
   padding-top: 18px;
-  color: #6fe0cd;
+  color: var(--theme-mid);
   font-size: 11px;
   font-weight: 1000;
   letter-spacing: 0.12em;
@@ -3194,7 +3194,7 @@ p {
 }
 
 .notice-table a:hover {
-  color: #6fe0cd;
+  color: var(--theme-mid);
 }
 
 .role-icon {
@@ -3294,7 +3294,7 @@ p {
   min-height: 100vh;
   color: #f4f1ff;
   background:
-    radial-gradient(circle at 78% 4%, rgba(111, 224, 205, 0.16), transparent 30%),
+    radial-gradient(circle at 78% 4%, rgba(var(--theme-mid-rgb), 0.16), transparent 30%),
     radial-gradient(circle at 10% 88%, rgba(var(--theme-mid-rgb), 0.16), transparent 28%),
     #05060b;
 }
@@ -3316,8 +3316,8 @@ p {
 .notice-compose-hero span {
   width: max-content;
   padding-top: 14px;
-  border-top: 3px solid #6fe0cd;
-  color: #6fe0cd;
+  border-top: 3px solid var(--theme-mid);
+  color: var(--theme-mid);
   font-size: 11px;
   font-weight: 1000;
   letter-spacing: 0.12em;
@@ -3341,7 +3341,7 @@ p {
   display: grid;
   gap: 16px;
   padding: 22px;
-  border: 1px solid rgba(111, 224, 205, 0.18);
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.18);
   border-radius: 14px;
   background:
     linear-gradient(180deg, rgba(14, 16, 27, 0.96), rgba(8, 9, 16, 0.92));
@@ -3357,7 +3357,7 @@ p {
 .notice-compose-form label {
   display: grid;
   gap: 8px;
-  color: #6fe0cd;
+  color: var(--theme-mid);
   font-size: 12px;
   font-weight: 1000;
 }
@@ -3393,9 +3393,9 @@ p {
 }
 
 .notice-compose-actions button {
-  border-color: rgba(111, 224, 205, 0.42);
+  border-color: rgba(var(--theme-mid-rgb), 0.42);
   color: #07110f;
-  background: #6fe0cd;
+  background: var(--theme-mid);
 }
 
 .legal-shell {
@@ -3455,7 +3455,7 @@ p {
 }
 
 .legal-card a {
-  color: #6fe0cd;
+  color: var(--theme-mid);
   font-weight: 900;
 }
 
@@ -4179,11 +4179,11 @@ p {
 .notice-detail .post-article-section {
   min-height: 420px;
   padding: clamp(30px, 5vw, 56px);
-  border: 1px solid rgba(111, 224, 205, 0.2);
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.2);
   border-radius: 18px;
   color: #efeaff;
   background:
-    radial-gradient(circle at 92% 10%, rgba(111, 224, 205, 0.08), transparent 34%),
+    radial-gradient(circle at 92% 10%, rgba(var(--theme-mid-rgb), 0.08), transparent 34%),
     linear-gradient(180deg, rgba(14, 16, 27, 0.98), rgba(8, 9, 16, 0.94));
   box-shadow: 0 26px 58px rgba(0, 0, 0, 0.32);
 }
@@ -4202,7 +4202,7 @@ p {
 .notice-detail .post-media img,
 .notice-detail .post-media video,
 .notice-detail .youtube-embed {
-  border-color: rgba(111, 224, 205, 0.16);
+  border-color: rgba(var(--theme-mid-rgb), 0.16);
   background: rgba(5, 6, 11, 0.72);
 }
 
@@ -4319,8 +4319,8 @@ p {
 .post-vote-button.active,
 .comment-vote-button.active {
   color: #07110f;
-  border-color: rgba(111, 224, 205, 0.55);
-  background: #6fe0cd;
+  border-color: rgba(var(--theme-mid-rgb), 0.55);
+  background: var(--theme-mid);
 }
 
 .pve-guide-view {
@@ -4349,7 +4349,7 @@ p {
 }
 
 .pve-guide-view.is-pvp {
-  border-color: rgba(111, 224, 205, 0.28);
+  border-color: rgba(var(--theme-mid-rgb), 0.28);
   background: rgba(6, 19, 22, 0.72);
 }
 
@@ -4358,8 +4358,8 @@ p {
 .pve-guide-view.is-pvp .pve-guide-pets span,
 .pve-guide-view.is-pvp .pve-guide-specs span,
 .pve-guide-view.is-pvp .pve-guide-note {
-  border-color: rgba(111, 224, 205, 0.22);
-  background: rgba(111, 224, 205, 0.06);
+  border-color: rgba(var(--theme-mid-rgb), 0.22);
+  background: rgba(var(--theme-mid-rgb), 0.06);
 }
 
 .pve-guide-summary .strategy-caution {
