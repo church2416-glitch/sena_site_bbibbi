@@ -163,6 +163,18 @@ export function initDb({ adminUser, adminPassword }) {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     );
 
+    CREATE TABLE IF NOT EXISTS coupon_codes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT NOT NULL UNIQUE,
+      label TEXT,
+      active INTEGER NOT NULL DEFAULT 1,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_by INTEGER,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_posts_category_created ON posts(category, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_media_post ON post_media(post_id, sort_order);
     CREATE INDEX IF NOT EXISTS idx_post_votes_user ON post_votes(user_id, created_at DESC);
@@ -172,6 +184,7 @@ export function initDb({ adminUser, adminPassword }) {
     CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_id, read_at, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_guild_sheets_type ON guild_war_sheets(sheet_type, updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_coupon_requests_user_created ON coupon_requests(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_coupon_codes_active_order ON coupon_codes(active, sort_order, id);
   `);
 
   migrateUsersTable();

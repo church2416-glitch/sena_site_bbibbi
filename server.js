@@ -54,8 +54,10 @@ const naverRedirectUri = process.env.NAVER_REDIRECT_URI || `${siteUrl}/auth/nave
 const googleClientId = process.env.GOOGLE_CLIENT_ID || "";
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
 const googleRedirectUri = process.env.GOOGLE_REDIRECT_URI || `${siteUrl}/auth/google/callback`;
-const couponRedeemUrl = process.env.COUPON_REDEEM_URL || "";
+const couponRedeemUrl = process.env.COUPON_REDEEM_URL || "https://coupon.netmarble.com/api/coupon";
 const couponApiToken = process.env.COUPON_API_TOKEN || "";
+const couponGameCode = process.env.COUPON_GAME_CODE || "tskgb";
+const couponLangCd = process.env.COUPON_LANG_CD || "EN_US";
 const internalNoticeCategory = "\uacf5\uc9c0\uc0ac\ud56d";
 const defaultGuildSeasonSettings = {
   seasonNote: "세븐나이츠 리버스 길드전",
@@ -471,8 +473,47 @@ function serializeCouponRequest(row) {
   };
 }
 
+function serializeCouponCode(row) {
+  return {
+    id: row.id,
+    code: row.code,
+    label: row.label || "",
+    active: Boolean(row.active),
+    sortOrder: Number(row.sort_order) || 0,
+    createdAt: row.created_at,
+  };
+}
+
+function normalizeCouponRedeemUrl(url) {
+  const value = String(url || "").trim();
+  if (!value) return "";
+  if (value.endsWith("/api/coupon")) return value;
+  if (/^https:\/\/coupon\.netmarble\.com\/[^/]+\/?$/i.test(value)) return "https://coupon.netmarble.com/api/coupon";
+  return value;
+}
+
+function couponResultMessage(payload, statusCode) {
+  if (payload?.message) return String(payload.message);
+  if (payload?.errorMessage) return String(payload.errorMessage);
+  const errorMap = {
+    200: "쿠폰 보상이 지급되었습니다.",
+    22003: "회원번호를 확인해주세요.",
+    22004: "쿠폰번호를 확인해주세요.",
+    24002: "유효하지 않은 쿠폰 코드입니다.",
+    24003: "만료되었거나 이미 사용된 쿠폰입니다.",
+    24004: "교환 가능 횟수가 종료된 쿠폰입니다.",
+    24005: "사용 대상이 아닌 쿠폰입니다.",
+    24006: "모든 쿠폰이 사용되었습니다.",
+    24012: "아이템 지급 중 오류가 발생했습니다.",
+    99999: "쿠폰 서버에서 알 수 없는 오류가 발생했습니다.",
+  };
+  const code = payload?.errorCode || payload?.code || statusCode;
+  return errorMap[code] || `쿠폰 처리 결과 코드 ${code || statusCode}`;
+}
+
 async function sendCouponToGame({ uid, couponCode }) {
-  if (!couponRedeemUrl) {
+  const redeemUrl = normalizeCouponRedeemUrl(couponRedeemUrl);
+  if (!redeemUrl) {
     return {
       status: "pending",
       message: "공식 쿠폰 API가 아직 설정되지 않아 내부 기록만 저장했습니다.",
@@ -483,31 +524,57 @@ async function sendCouponToGame({ uid, couponCode }) {
   const headers = {
     "Content-Type": "application/json",
     "User-Agent": "bbitsena-coupon-tool/1.0",
+    Origin: "https://coupon.netmarble.com",
+    Referer: `https://coupon.netmarble.com/${couponGameCode}`,
   };
   if (couponApiToken) headers.Authorization = `Bearer ${couponApiToken}`;
 
-  const response = await fetch(couponRedeemUrl, {
+  const response = await fetch(redeemUrl, {
     method: "POST",
     headers,
-    body: JSON.stringify({ uid, couponCode }),
+    body: JSON.stringify({
+      gameCode: couponGameCode,
+      couponCode,
+      langCd: couponLangCd,
+      pid: uid,
+    }),
   });
   const contentType = response.headers.get("content-type") || "";
   const payload = contentType.includes("application/json")
     ? await response.json().catch(() => ({}))
     : { text: await response.text().catch(() => "") };
 
-  if (!response.ok) {
+  if (!response.ok || payload.success === false || (payload.errorCode && Number(payload.errorCode) !== 200)) {
     return {
       status: "failed",
-      message: payload.error || payload.message || `쿠폰 전송 실패 (${response.status})`,
+      message: payload.error || couponResultMessage(payload, response.status),
       response: payload,
     };
   }
 
   return {
     status: "sent",
-    message: payload.message || "쿠폰 전송 요청이 완료되었습니다.",
+    message: couponResultMessage(payload, response.status),
     response: payload,
+  };
+}
+
+function insertCouponRequest({ userId, uid, couponCode, result }) {
+  const id = crypto.randomUUID();
+  db.prepare(
+    `
+      INSERT INTO coupon_requests (
+        id, user_id, uid, coupon_code, status, message, response_json
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `,
+  ).run(id, userId, uid, couponCode, result.status, result.message, JSON.stringify(result.response || {}));
+  return {
+    id,
+    uid,
+    couponCode,
+    status: result.status,
+    message: result.message,
+    createdAt: new Date().toISOString(),
   };
 }
 
@@ -1846,7 +1913,116 @@ app.get("/api/coupon/requests", requireMember, (req, res) => {
       LIMIT 10
     `,
   ).all(req.user.id);
-  res.json({ requests: rows.map(serializeCouponRequest), configured: Boolean(couponRedeemUrl) });
+  const codes = db.prepare(
+    `
+      SELECT id, code, label, active, sort_order, created_at
+      FROM coupon_codes
+      WHERE active = 1
+      ORDER BY sort_order ASC, id ASC
+    `,
+  ).all();
+  res.json({
+    requests: rows.map(serializeCouponRequest),
+    codes: codes.map(serializeCouponCode),
+    configured: Boolean(normalizeCouponRedeemUrl(couponRedeemUrl)),
+  });
+});
+
+app.get("/api/coupon/codes", requireMember, (req, res) => {
+  const rows = db.prepare(
+    `
+      SELECT id, code, label, active, sort_order, created_at
+      FROM coupon_codes
+      WHERE active = 1
+      ORDER BY sort_order ASC, id ASC
+    `,
+  ).all();
+  res.json({ codes: rows.map(serializeCouponCode) });
+});
+
+app.post("/api/coupon/codes", requireContentManager, (req, res) => {
+  const rawText = String(req.body?.codes || "");
+  const rows = rawText
+    .split(/\r?\n|,/)
+    .map((line) => sanitizeCouponInput(line, 80).toUpperCase())
+    .filter((code) => /^[A-Z0-9_-]{3,80}$/.test(code));
+  const uniqueCodes = [...new Set(rows)].slice(0, 100);
+  if (!uniqueCodes.length) {
+    return res.status(400).json({ error: "저장할 쿠폰 코드를 입력해주세요." });
+  }
+
+  const insert = db.transaction((codes) => {
+    let added = 0;
+    const maxOrder = Number(db.prepare("SELECT COALESCE(MAX(sort_order), 0) AS value FROM coupon_codes").get()?.value) || 0;
+    const statement = db.prepare(
+      `
+        INSERT OR IGNORE INTO coupon_codes (code, label, active, sort_order, created_by)
+        VALUES (?, '', 1, ?, ?)
+      `,
+    );
+    codes.forEach((code, index) => {
+      const result = statement.run(code, maxOrder + index + 1, req.user.id);
+      added += result.changes;
+    });
+    return added;
+  });
+
+  const added = insert(uniqueCodes);
+  res.status(201).json({ ok: true, added });
+});
+
+app.delete("/api/coupon/codes/:id", requireContentManager, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: "쿠폰 ID가 올바르지 않습니다." });
+  db.prepare("UPDATE coupon_codes SET active = 0, updated_at = datetime('now') WHERE id = ?").run(id);
+  res.json({ ok: true });
+});
+
+app.post("/api/coupon/send-all", requireMember, async (req, res) => {
+  if (checkRateLimit(req, res, `coupon:bulk:${req.user.id}`, 3, couponRateWindowMs)) return;
+
+  const uid = sanitizeCouponInput(req.body?.uid, 40);
+  if (!/^[A-Z0-9_-]{3,80}$/i.test(uid)) {
+    return res.status(400).json({ error: "회원번호는 영문, 숫자, _, - 조합으로 3자 이상 입력해주세요." });
+  }
+
+  const codes = db.prepare(
+    `
+      SELECT code
+      FROM coupon_codes
+      WHERE active = 1
+      ORDER BY sort_order ASC, id ASC
+      LIMIT 100
+    `,
+  ).all().map((row) => row.code);
+
+  if (!codes.length) {
+    return res.status(400).json({ error: "저장된 쿠폰 코드가 없습니다." });
+  }
+
+  const requests = [];
+  for (const couponCode of codes) {
+    let result;
+    try {
+      result = await sendCouponToGame({ uid, couponCode });
+    } catch (error) {
+      result = {
+        status: "failed",
+        message: "쿠폰 API 연결 중 오류가 발생했습니다.",
+        response: { error: error.message },
+      };
+    }
+    requests.push(insertCouponRequest({ userId: req.user.id, uid, couponCode, result }));
+  }
+
+  res.json({
+    ok: true,
+    sent: requests.filter((item) => item.status === "sent").length,
+    failed: requests.filter((item) => item.status === "failed").length,
+    pending: requests.filter((item) => item.status === "pending").length,
+    requests,
+    configured: Boolean(normalizeCouponRedeemUrl(couponRedeemUrl)),
+  });
 });
 
 app.post("/api/coupon/send", requireMember, async (req, res) => {
@@ -1861,7 +2037,6 @@ app.post("/api/coupon/send", requireMember, async (req, res) => {
     return res.status(400).json({ error: "쿠폰 코드는 영문, 숫자, _, - 조합으로 3자 이상 입력해주세요." });
   }
 
-  const id = crypto.randomUUID();
   let result;
   try {
     result = await sendCouponToGame({ uid, couponCode });
@@ -1873,24 +2048,11 @@ app.post("/api/coupon/send", requireMember, async (req, res) => {
     };
   }
 
-  db.prepare(
-    `
-      INSERT INTO coupon_requests (
-        id, user_id, uid, coupon_code, status, message, response_json
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
-    `,
-  ).run(id, req.user.id, uid, couponCode, result.status, result.message, JSON.stringify(result.response || {}));
+  const request = insertCouponRequest({ userId: req.user.id, uid, couponCode, result });
 
   res.status(result.status === "failed" ? 502 : 200).json({
-    request: {
-      id,
-      uid,
-      couponCode,
-      status: result.status,
-      message: result.message,
-      createdAt: new Date().toISOString(),
-    },
-    configured: Boolean(couponRedeemUrl),
+    request,
+    configured: Boolean(normalizeCouponRedeemUrl(couponRedeemUrl)),
   });
 });
 

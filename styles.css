@@ -2660,12 +2660,59 @@ p {
   align-items: end;
 }
 
+.coupon-form.stacked {
+  grid-template-columns: 1fr auto;
+}
+
 .coupon-form label {
   display: grid;
   gap: 7px;
   color: #f8ec93;
   font-size: 12px;
   font-weight: 900;
+}
+
+.coupon-form.stacked label {
+  grid-column: 1 / -1;
+}
+
+.coupon-form textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.coupon-code-list {
+  display: grid;
+  gap: 8px;
+}
+
+.coupon-code-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.16);
+  border-radius: 8px;
+  background: rgba(5, 6, 12, 0.5);
+}
+
+.coupon-code-row span {
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 1000;
+}
+
+.coupon-code-row strong {
+  overflow: hidden;
+  color: #fff;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coupon-code-remove {
+  min-height: 28px;
+  padding: 0 10px;
 }
 
 .coupon-history {

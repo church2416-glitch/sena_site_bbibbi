@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>쿠폰 - bbitsena</title>
-    <link rel="stylesheet" href="styles.css?v=coupon-tool-20260530" />
+    <link rel="stylesheet" href="styles.css?v=coupon-bulk-20260530" />
   </head>
   <body class="coupon-page">
     <main class="coupon-shell">
@@ -19,25 +19,38 @@
         <div class="coupon-head">
           <div>
             <span>COUPON TOOL</span>
-            <h1>UID 쿠폰 전송</h1>
-            <p>UID와 쿠폰 코드를 입력하면 서버에서 쿠폰 전송 요청을 처리합니다.</p>
+            <h1>회원번호 쿠폰 일괄 사용</h1>
+            <p>회원번호를 입력하면 저장된 쿠폰을 위에서부터 하나씩 자동으로 사용합니다.</p>
           </div>
           <a href="index.html">메인으로</a>
         </div>
 
-        <form id="couponForm" class="coupon-form">
+        <form id="couponBulkForm" class="coupon-form">
           <label>
-            UID
-            <input id="couponUidInput" name="uid" type="text" maxlength="40" autocomplete="off" placeholder="UID 입력" required />
+            회원번호
+            <input id="couponUidInput" name="uid" type="text" maxlength="40" autocomplete="off" placeholder="회원번호 입력" required />
           </label>
-          <label>
-            쿠폰 코드
-            <input id="couponCodeInput" name="couponCode" type="text" maxlength="80" autocomplete="off" placeholder="쿠폰 코드 입력" required />
-          </label>
-          <button class="submit-button" id="couponSubmitButton" type="submit">쿠폰 전송</button>
+          <button class="submit-button" id="couponBulkButton" type="submit">저장된 쿠폰 전부 사용</button>
         </form>
 
-        <p class="coupon-status" id="couponStatus" role="status">쿠폰 API 연결 상태를 확인하는 중입니다.</p>
+        <div class="coupon-code-list" id="couponCodeList"></div>
+        <p class="coupon-status" id="couponStatus" role="status">쿠폰 목록을 불러오는 중입니다.</p>
+      </section>
+
+      <section class="coupon-panel" id="couponAdminPanel" hidden>
+        <div class="coupon-head compact">
+          <div>
+            <span>ADMIN</span>
+            <h2>쿠폰 코드 저장</h2>
+          </div>
+        </div>
+        <form id="couponCodeForm" class="coupon-form stacked">
+          <label>
+            쿠폰 코드
+            <textarea id="couponCodesInput" rows="5" placeholder="쿠폰 코드를 줄바꿈 또는 쉼표로 입력"></textarea>
+          </label>
+          <button class="ghost-button" id="couponCodeSaveButton" type="submit">쿠폰 저장</button>
+        </form>
       </section>
 
       <section class="coupon-panel">
@@ -53,6 +66,6 @@
     </main>
 
     <script src="theme.js"></script>
-    <script src="coupon.js?v=coupon-tool-20260530"></script>
+    <script src="coupon.js?v=coupon-bulk-20260530"></script>
   </body>
 </html>

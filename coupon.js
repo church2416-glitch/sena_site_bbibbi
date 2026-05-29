@@ -1,10 +1,16 @@
-const couponForm = document.querySelector("#couponForm");
+const couponBulkForm = document.querySelector("#couponBulkForm");
 const couponUidInput = document.querySelector("#couponUidInput");
-const couponCodeInput = document.querySelector("#couponCodeInput");
-const couponSubmitButton = document.querySelector("#couponSubmitButton");
+const couponBulkButton = document.querySelector("#couponBulkButton");
 const couponStatus = document.querySelector("#couponStatus");
 const couponHistory = document.querySelector("#couponHistory");
 const couponReloadButton = document.querySelector("#couponReloadButton");
+const couponCodeList = document.querySelector("#couponCodeList");
+const couponAdminPanel = document.querySelector("#couponAdminPanel");
+const couponCodeForm = document.querySelector("#couponCodeForm");
+const couponCodesInput = document.querySelector("#couponCodesInput");
+const couponCodeSaveButton = document.querySelector("#couponCodeSaveButton");
+
+let savedCouponCodes = [];
 
 function formatCouponDate(value) {
   const raw = String(value || "").trim();
@@ -24,9 +30,41 @@ function formatCouponDate(value) {
 }
 
 function statusLabel(status) {
-  if (status === "sent") return "전송 완료";
+  if (status === "sent") return "사용 완료";
   if (status === "failed") return "실패";
-  return "연동 대기";
+  return "대기";
+}
+
+function canManageCoupons(user) {
+  return Boolean(user?.canManageContent || user?.canAccessAdminDb || user?.isAdmin);
+}
+
+function renderCodeList() {
+  couponCodeList.innerHTML = "";
+  if (!savedCouponCodes.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "저장된 쿠폰 코드가 없습니다.";
+    couponCodeList.append(empty);
+    return;
+  }
+
+  savedCouponCodes.forEach((item, index) => {
+    const row = document.createElement("article");
+    const order = document.createElement("span");
+    const code = document.createElement("strong");
+    const remove = document.createElement("button");
+    row.className = "coupon-code-row";
+    order.textContent = String(index + 1).padStart(2, "0");
+    code.textContent = item.code;
+    remove.type = "button";
+    remove.className = "ghost-button coupon-code-remove";
+    remove.textContent = "삭제";
+    remove.hidden = couponAdminPanel.hidden;
+    remove.addEventListener("click", () => deleteCouponCode(item.id));
+    row.append(order, code, remove);
+    couponCodeList.append(row);
+  });
 }
 
 function renderHistory(items = []) {
@@ -46,57 +84,102 @@ function renderHistory(items = []) {
     const message = document.createElement("p");
     row.className = `coupon-history-row is-${item.status || "pending"}`;
     code.textContent = item.couponCode || "-";
-    meta.textContent = `${statusLabel(item.status)} · UID ${item.uid || "-"} · ${formatCouponDate(item.createdAt)}`;
+    meta.textContent = `${statusLabel(item.status)} · 회원번호 ${item.uid || "-"} · ${formatCouponDate(item.createdAt)}`;
     message.textContent = item.message || "처리 메시지가 없습니다.";
     row.append(code, meta, message);
     couponHistory.append(row);
   });
 }
 
+async function loadCurrentUser() {
+  const response = await fetch("/api/me");
+  if (!response.ok) return null;
+  const data = await response.json().catch(() => ({}));
+  return data.user || null;
+}
+
 async function loadCouponHistory() {
   const response = await fetch("/api/coupon/requests");
   if (!response.ok) {
-    couponStatus.textContent = "쿠폰 내역을 불러오지 못했습니다.";
+    couponStatus.textContent = "쿠폰 정보를 불러오지 못했습니다.";
     renderHistory([]);
     return;
   }
   const data = await response.json();
-  couponStatus.textContent = data.configured
-    ? "쿠폰 API가 연결되어 있습니다."
-    : "공식 쿠폰 API 주소가 아직 설정되지 않아 전송 요청은 내부 기록으로 저장됩니다.";
+  savedCouponCodes = data.codes || [];
+  couponStatus.textContent = savedCouponCodes.length
+    ? `${savedCouponCodes.length}개의 쿠폰이 저장되어 있습니다.`
+    : "저장된 쿠폰이 없습니다. 관리자에게 쿠폰 등록을 요청해주세요.";
+  renderCodeList();
   renderHistory(data.requests || []);
 }
 
-async function submitCoupon(event) {
+async function submitBulkCoupons(event) {
   event.preventDefault();
-  couponSubmitButton.disabled = true;
-  couponSubmitButton.textContent = "전송 중";
-  couponStatus.textContent = "쿠폰 전송 요청을 처리하는 중입니다.";
-
-  const payload = {
-    uid: couponUidInput.value,
-    couponCode: couponCodeInput.value,
-  };
+  couponBulkButton.disabled = true;
+  couponBulkButton.textContent = "사용 중";
+  couponStatus.textContent = "저장된 쿠폰을 순서대로 사용하는 중입니다.";
 
   try {
-    const response = await fetch("/api/coupon/send", {
+    const response = await fetch("/api/coupon/send-all", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ uid: couponUidInput.value }),
     });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || data.request?.message || "쿠폰 전송 실패");
-    couponStatus.textContent = data.request?.message || "쿠폰 전송 요청이 처리되었습니다.";
-    couponCodeInput.value = "";
+    if (!response.ok) throw new Error(data.error || "쿠폰 일괄 사용에 실패했습니다.");
+    couponStatus.textContent = `완료: 성공 ${data.sent}개, 실패 ${data.failed}개, 대기 ${data.pending}개`;
     await loadCouponHistory();
   } catch (error) {
-    couponStatus.textContent = error.message || "쿠폰 전송 실패";
+    couponStatus.textContent = error.message || "쿠폰 일괄 사용에 실패했습니다.";
   } finally {
-    couponSubmitButton.disabled = false;
-    couponSubmitButton.textContent = "쿠폰 전송";
+    couponBulkButton.disabled = false;
+    couponBulkButton.textContent = "저장된 쿠폰 전부 사용";
   }
 }
 
-couponForm?.addEventListener("submit", submitCoupon);
+async function saveCouponCodes(event) {
+  event.preventDefault();
+  couponCodeSaveButton.disabled = true;
+  couponCodeSaveButton.textContent = "저장 중";
+
+  try {
+    const response = await fetch("/api/coupon/codes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ codes: couponCodesInput.value }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "쿠폰 저장에 실패했습니다.");
+    couponCodesInput.value = "";
+    couponStatus.textContent = `${data.added || 0}개의 쿠폰을 새로 저장했습니다.`;
+    await loadCouponHistory();
+  } catch (error) {
+    couponStatus.textContent = error.message || "쿠폰 저장에 실패했습니다.";
+  } finally {
+    couponCodeSaveButton.disabled = false;
+    couponCodeSaveButton.textContent = "쿠폰 저장";
+  }
+}
+
+async function deleteCouponCode(id) {
+  if (!id) return;
+  const response = await fetch(`/api/coupon/codes/${id}`, { method: "DELETE" });
+  if (!response.ok) {
+    couponStatus.textContent = "쿠폰 삭제에 실패했습니다.";
+    return;
+  }
+  couponStatus.textContent = "쿠폰을 삭제했습니다.";
+  await loadCouponHistory();
+}
+
+async function initCouponPage() {
+  const user = await loadCurrentUser();
+  if (canManageCoupons(user)) couponAdminPanel.hidden = false;
+  await loadCouponHistory();
+}
+
+couponBulkForm?.addEventListener("submit", submitBulkCoupons);
+couponCodeForm?.addEventListener("submit", saveCouponCodes);
 couponReloadButton?.addEventListener("click", loadCouponHistory);
-loadCouponHistory();
+initCouponPage();
