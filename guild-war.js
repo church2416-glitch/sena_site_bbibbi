@@ -90,6 +90,7 @@ const GuildWar = (() => {
     "프레이야", "플라튼", "헬레니아",
   ];
   const characterImages = Object.fromEntries(characterCatalog.map((name) => [name, `assets/character/${name}.png`]));
+  let characterComboboxId = 0;
 
   const sheetDefaults = {
     attack: {
@@ -397,6 +398,7 @@ const GuildWar = (() => {
       select.append(option);
     }
     select.value = normalized;
+    syncCharacterCombobox(select);
   }
 
   function readGearFields(form, fallback, sourcePrefix = "ally") {
@@ -536,11 +538,111 @@ const GuildWar = (() => {
       option.textContent = characterName;
       select.append(option);
     });
+    syncCharacterCombobox(select);
+  }
+
+  function getCharacterMatches(query) {
+    const keyword = String(query || "").trim();
+    const source = keyword
+      ? characterCatalog.filter((characterName) => characterName.includes(keyword))
+      : characterCatalog;
+    return source.slice(0, 14);
+  }
+
+  function syncCharacterCombobox(select) {
+    if (!select?.dataset?.comboboxInputId) return;
+    const input = document.querySelector(`#${select.dataset.comboboxInputId}`);
+    if (input && input.value !== select.value) input.value = select.value || "";
+  }
+
+  function chooseCharacter(select, value) {
+    setSelectValue(select, value);
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  function renderCharacterComboboxMenu(select, input, menu) {
+    const matches = getCharacterMatches(input.value);
+    menu.replaceChildren();
+    if (!matches.length) {
+      const empty = document.createElement("div");
+      empty.className = "character-combobox-empty";
+      empty.textContent = "일치하는 영웅이 없습니다";
+      menu.append(empty);
+    } else {
+      matches.forEach((characterName) => {
+        const option = document.createElement("button");
+        option.type = "button";
+        option.textContent = characterName;
+        option.className = characterName === select.value ? "active" : "";
+        option.addEventListener("mousedown", (event) => event.preventDefault());
+        option.addEventListener("click", () => {
+          chooseCharacter(select, characterName);
+          menu.hidden = true;
+        });
+        menu.append(option);
+      });
+    }
+    menu.hidden = false;
+  }
+
+  function enhanceCharacterSelect(select) {
+    if (!select || select.disabled || select.dataset.comboboxReady === "true") return;
+
+    const wrapper = document.createElement("div");
+    const input = document.createElement("input");
+    const menu = document.createElement("div");
+    const inputId = `characterCombobox${++characterComboboxId}`;
+
+    wrapper.className = "character-combobox";
+    input.type = "text";
+    input.id = inputId;
+    input.className = "character-combobox-input";
+    input.placeholder = `${select.dataset.placeholder || "영웅"} 검색`;
+    input.autocomplete = "off";
+    input.spellcheck = false;
+    menu.className = "character-combobox-menu";
+    menu.hidden = true;
+
+    select.dataset.comboboxReady = "true";
+    select.dataset.comboboxInputId = inputId;
+    select.parentNode.insertBefore(wrapper, select);
+    wrapper.append(select, input, menu);
+
+    input.addEventListener("focus", () => renderCharacterComboboxMenu(select, input, menu));
+    input.addEventListener("input", () => renderCharacterComboboxMenu(select, input, menu));
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        menu.hidden = true;
+        syncCharacterCombobox(select);
+      }
+      if (event.key === "Enter") {
+        event.preventDefault();
+        const firstMatch = getCharacterMatches(input.value)[0];
+        if (firstMatch) {
+          chooseCharacter(select, firstMatch);
+          menu.hidden = true;
+        }
+      }
+    });
+    input.addEventListener("blur", () => {
+      window.setTimeout(() => {
+        const typedName = input.value.trim();
+        if (characterCatalog.includes(typedName)) {
+          chooseCharacter(select, typedName);
+        } else {
+          syncCharacterCombobox(select);
+        }
+        menu.hidden = true;
+      }, 120);
+    });
+    select.addEventListener("change", () => syncCharacterCombobox(select));
+    syncCharacterCombobox(select);
   }
 
   function initCharacterSelects(form) {
     form.querySelectorAll("[data-character-select]").forEach((select) => {
       if (!select.options.length) renderCharacterOptions(select);
+      enhanceCharacterSelect(select);
     });
   }
 
