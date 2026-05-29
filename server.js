@@ -45,6 +45,7 @@ const naverRedirectUri = process.env.NAVER_REDIRECT_URI || `${siteUrl}/auth/nave
 const googleClientId = process.env.GOOGLE_CLIENT_ID || "";
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
 const googleRedirectUri = process.env.GOOGLE_REDIRECT_URI || `${siteUrl}/auth/google/callback`;
+const internalNoticeCategory = "\uacf5\uc9c0\uc0ac\ud56d";
 const defaultGuildSeasonSettings = {
   seasonNote: "세븐나이츠 리버스 길드전",
   round: 0,
@@ -818,6 +819,15 @@ function canManagePost(user, post) {
   return post.author_id === user.id && hasPermission(user, "canEditOwnPosts");
 }
 
+function canManageNoticePosts(user) {
+  const flags = roleFlags(user);
+  return Boolean(flags.isSuperAdmin || flags.canManageContent || flags.canAccessAdminDb);
+}
+
+function isInternalNoticeCategory(category) {
+  return String(category || "").trim() === internalNoticeCategory;
+}
+
 function serializeNotification(row) {
   return {
     id: row.id,
@@ -1477,6 +1487,11 @@ app.post("/api/posts", requireContentAccess, requirePermission("canWritePosts", 
     ? null
     : normalizePostMedia(req.body?.media && typeof req.body.media === "object" ? req.body.media : {});
 
+  if (isInternalNoticeCategory(category) && !canManageNoticePosts(req.user)) {
+    cleanupUploadedFiles(req.files || {});
+    return res.status(403).json({ error: "\uacf5\uc9c0\uc0ac\ud56d\uc740 \uad00\ub9ac\uc790\ub9cc \uc791\uc131\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4." });
+  }
+
   if (!title || title.length > 70) {
     return res.status(400).json({ error: "제목은 1~70자로 입력해주세요." });
   }
@@ -1579,6 +1594,11 @@ app.patch("/api/posts/:id", requireContentAccess, requireMediaUploadPermission, 
     return res.status(400).json({ error: "입력값 길이가 허용 범위를 넘었습니다." });
   }
 
+  if ((isInternalNoticeCategory(category) || isInternalNoticeCategory(post.category)) && !canManageNoticePosts(req.user)) {
+    cleanupUploadedFiles(req.files || {});
+    return res.status(403).json({ error: "\uacf5\uc9c0\uc0ac\ud56d\uc740 \uad00\ub9ac\uc790\ub9cc \uc218\uc815\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4." });
+  }
+
   const existingMedia = safeJsonParse(post.media_json, {});
   let media = existingMedia;
   try {
@@ -1650,6 +1670,10 @@ app.delete("/api/posts/:id", requireContentAccess, (req, res) => {
   }
   if (!canManagePost(req.user, post)) {
     return res.status(403).json({ error: "게시글 삭제 권한이 없습니다." });
+  }
+
+  if (isInternalNoticeCategory(post.category) && !canManageNoticePosts(req.user)) {
+    return res.status(403).json({ error: "\uacf5\uc9c0\uc0ac\ud56d\uc740 \uad00\ub9ac\uc790\ub9cc \uc0ad\uc81c\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4." });
   }
 
   db.prepare("UPDATE posts SET status = 'deleted', updated_at = datetime('now') WHERE id = ?").run(id);
@@ -2306,6 +2330,12 @@ app.delete("/api/admin/posts/:id", requireContentManager, (req, res) => {
   const result = db.prepare("DELETE FROM posts WHERE id = ?").run(id);
   if (!result.changes) return res.status(404).json({ error: "게시글을 찾을 수 없습니다." });
   res.json({ ok: true });
+});
+
+app.get("/api/site-notices", (req, res) => {
+  const notices = selectPostRows("posts.status = 'published' AND posts.category = ?", [internalNoticeCategory])
+    .map(serializePost);
+  res.json(notices);
 });
 
 app.get("/api/notices", async (req, res) => {

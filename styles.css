@@ -2075,6 +2075,12 @@ p {
   font-weight: 1000;
 }
 
+.notice-empty-cell {
+  height: 132px;
+  color: #9d96bb !important;
+  text-align: center !important;
+}
+
 .notice-page-footer {
   margin-top: 18px;
 }
