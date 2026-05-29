@@ -3149,6 +3149,158 @@ p {
   color: var(--muted);
 }
 
+/* Post detail keeps the guide-document layout, but uses the site dark theme. */
+.post-page {
+  color: #f4f1ff;
+  background:
+    radial-gradient(circle at 74% 4%, rgba(var(--theme-mid-rgb), 0.22), transparent 30%),
+    radial-gradient(circle at 8% 84%, rgba(64, 210, 163, 0.08), transparent 26%),
+    var(--bg);
+}
+
+.post-page .brand {
+  color: #fff;
+}
+
+.post-page .brand small,
+.post-page .brand-kicker {
+  color: var(--muted);
+}
+
+.post-head {
+  border-color: rgba(var(--theme-mid-rgb), 0.24);
+  color: #fff;
+  background:
+    linear-gradient(90deg, rgba(5, 6, 11, 0.98), rgba(8, 9, 17, 0.74)),
+    radial-gradient(circle at 76% 0%, rgba(var(--theme-mid-rgb), 0.28), transparent 34%),
+    #080913;
+  box-shadow: var(--shadow);
+}
+
+.post-head p {
+  color: #c9c4df;
+}
+
+.post-side-panel,
+.post-meta,
+.post-section,
+.compact-post-list,
+.post-nav a,
+.post-actions a,
+.not-found a,
+.comment-item,
+.comment-form button {
+  border-color: rgba(var(--theme-mid-rgb), 0.2);
+  background: rgba(13, 14, 23, 0.88);
+  box-shadow: var(--shadow);
+}
+
+.post-side-panel strong,
+.post-meta dd,
+.post-section h2,
+.compact-post-list span,
+.post-nav strong,
+.post-actions a,
+.not-found a,
+.comment-item strong,
+.post-vote-button {
+  color: #f5f1ff;
+}
+
+.post-side-panel a,
+.post-side-panel span {
+  border-top-color: rgba(var(--theme-mid-rgb), 0.14);
+  color: #cfc7ff;
+}
+
+.post-meta div {
+  border-left-color: rgba(var(--theme-mid-rgb), 0.12);
+  background: rgba(8, 9, 16, 0.72);
+}
+
+.post-meta dt,
+.post-media figcaption,
+.comment-item time,
+.compact-post-list small,
+.post-nav span {
+  color: var(--muted);
+}
+
+.post-section p,
+.post-content p,
+.comment-item p {
+  color: #d4d0e8;
+}
+
+.post-inline-note,
+.comment-reply {
+  border-color: rgba(var(--theme-mid-rgb), 0.2);
+  color: #bdb7d5;
+  background: rgba(5, 6, 11, 0.52);
+}
+
+.post-media img,
+.post-media video,
+.youtube-embed,
+.comment-form textarea {
+  border-color: rgba(var(--theme-mid-rgb), 0.18);
+  background: rgba(5, 6, 11, 0.72);
+}
+
+.comment-form textarea {
+  color: #f4f1ff;
+}
+
+.post-tags span,
+.comment-vote-button {
+  border-color: rgba(var(--theme-mid-rgb), 0.22);
+  color: #d9d1ff;
+  background: var(--accent-weak);
+}
+
+.post-nav a:hover,
+.compact-post-list a:hover,
+.compact-post-list a.active {
+  border-color: var(--accent-strong);
+  background: var(--accent-weak);
+}
+
+.post-vote-button.active,
+.comment-vote-button.active {
+  color: #07110f;
+  border-color: rgba(111, 224, 205, 0.55);
+  background: #6fe0cd;
+}
+
+.pve-guide-view {
+  border-color: rgba(255, 218, 94, 0.28);
+  background: rgba(14, 13, 8, 0.72);
+}
+
+.pve-guide-view-head span,
+.pve-mini-section h3 {
+  color: #f8ec93;
+}
+
+.pve-guide-view-head h2,
+.pve-guide-view b {
+  color: #fff;
+}
+
+.pve-guide-summary span,
+.pve-guide-heroes span,
+.pve-guide-specs span,
+.pve-guide-note {
+  border-color: rgba(255, 218, 94, 0.22);
+  color: #d9d4ee;
+  background: rgba(255, 218, 94, 0.06);
+}
+
+.pve-guide-view em,
+.pve-guide-view small {
+  color: #bcb6d4;
+}
+
 .admin-dashboard-page {
   min-height: 100vh;
   color: #232323;
