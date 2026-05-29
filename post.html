@@ -374,7 +374,8 @@
 
       function renderPveGuide(body, guide) {
         if (!guide || typeof guide !== "object") return;
-        const hasPayload = [guide.type, guide.boss, guide.power, guide.formation, guide.note].some(Boolean)
+        const mode = guide.mode === "pvp" ? "pvp" : "pve";
+        const hasPayload = [guide.type, guide.boss, guide.power, guide.formation, guide.allyTeam, guide.winPlan, guide.caution, guide.note].some(Boolean)
           || (Array.isArray(guide.heroes) && guide.heroes.length)
           || (Array.isArray(guide.specs) && guide.specs.length);
         if (!hasPayload) return;
@@ -387,27 +388,46 @@
         const specList = document.createElement("div");
         const note = document.createElement("p");
 
-        shell.className = "pve-guide-view";
+        shell.className = `pve-guide-view is-${mode}`;
         head.className = "pve-guide-view-head";
         summary.className = "pve-guide-summary";
         heroList.className = "pve-guide-heroes";
         specList.className = "pve-guide-specs";
         note.className = "pve-guide-note";
 
-        title.textContent = guide.boss || "PVE 공략";
-        head.innerHTML = `<span>${guide.type || "PVE 공략"}</span>`;
-        head.prepend(title);
+        const typeLabel = document.createElement("span");
+        title.textContent = guide.boss || (mode === "pvp" ? "PVP 공략" : "PVE 공략");
+        typeLabel.textContent = guide.type || (mode === "pvp" ? "PVP 공략" : "PVE 공략");
+        head.append(title, typeLabel);
         shell.append(head);
 
-        [
-          ["권장", guide.power],
-          ["배치", guide.formation],
-        ].forEach(([label, value]) => {
+        const summaryItems = mode === "pvp"
+          ? [
+              ["상대", guide.boss],
+              ["우리", guide.allyTeam],
+              ["승리", guide.winPlan || guide.power],
+              ["포지션", guide.formation],
+            ]
+          : [
+              ["권장", guide.power],
+              ["배치", guide.formation],
+            ];
+        summaryItems.forEach(([label, value]) => {
           if (!value) return;
           const item = document.createElement("span");
-          item.innerHTML = `<b>${label}</b>${value}`;
+          const name = document.createElement("b");
+          name.textContent = label;
+          item.append(name, document.createTextNode(value));
           summary.append(item);
         });
+        if (mode === "pvp" && guide.caution) {
+          const item = document.createElement("span");
+          const label = document.createElement("b");
+          item.className = "strategy-caution";
+          label.textContent = "주의";
+          item.append(label, document.createTextNode(guide.caution));
+          summary.append(item);
+        }
         if (summary.children.length) shell.append(summary);
 
         if (guide.formationType) {

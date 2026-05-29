@@ -805,11 +805,15 @@ function normalizePveGuide(value) {
     ? items.map(mapper).filter((item) => Object.values(item).some(Boolean)).slice(0, limit)
     : [];
   return {
+    mode: ["pve", "pvp"].includes(String(raw.mode || "")) ? String(raw.mode) : "pve",
     type: String(raw.type || "").trim().slice(0, 30),
     boss: String(raw.boss || "").trim().slice(0, 40),
     power: String(raw.power || "").trim().slice(0, 40),
     formation: String(raw.formation || "").trim().slice(0, 60),
     formationType: ["att", "bal", "base", "def"].includes(String(raw.formationType || "")) ? String(raw.formationType) : "",
+    allyTeam: String(raw.allyTeam || "").trim().slice(0, 80),
+    winPlan: String(raw.winPlan || "").trim().slice(0, 80),
+    caution: String(raw.caution || "").trim().slice(0, 400),
     note: String(raw.note || "").trim().slice(0, 1000),
     heroes: cleanList(raw.heroes, 8, (hero) => ({
       name: String(hero?.name || "").trim().slice(0, 30),

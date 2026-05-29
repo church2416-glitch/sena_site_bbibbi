@@ -70,15 +70,15 @@
           <section class="pve-guide-editor" id="pveGuideEditor" hidden>
             <div class="pve-editor-head">
               <div>
-                <span>PVE 공략 전용</span>
-                <h2>레이드 공략 데이터</h2>
+                <span id="strategyEditorKicker">PVE 공략 전용</span>
+                <h2 id="strategyEditorTitle">레이드 공략 데이터</h2>
               </div>
-              <small>입력한 내용은 상세페이지에서 공략 카드로 표시됩니다.</small>
+              <small id="strategyEditorDesc">입력한 내용은 상세페이지에서 공략 카드로 표시됩니다.</small>
             </div>
             <div class="pve-editor-grid">
               <label>
-                공략 유형
-                <select data-pve-field="type">
+                <span id="strategyTypeLabel">공략 유형</span>
+                <select data-pve-field="type" id="strategyTypeInput">
                   <option value="일반 레이드">일반 레이드</option>
                   <option value="돌발 레이드">돌발 레이드</option>
                   <option value="파괴신">파괴신</option>
@@ -86,16 +86,16 @@
                 </select>
               </label>
               <label>
-                보스 / 콘텐츠
-                <input data-pve-field="boss" type="text" maxlength="40" placeholder="레오니드, 파멸의 눈동자" />
+                <span id="strategyBossLabel">보스 / 콘텐츠</span>
+                <input data-pve-field="boss" id="strategyBossInput" type="text" maxlength="40" placeholder="레오니드, 파멸의 눈동자" />
               </label>
               <label>
-                권장 전투력
-                <input data-pve-field="power" type="text" maxlength="40" placeholder="20턴 SS 500만, 관우 6초 필수" />
+                <span id="strategyPowerLabel">권장 전투력</span>
+                <input data-pve-field="power" id="strategyPowerInput" type="text" maxlength="40" placeholder="20턴 SS 500만, 관우 6초 필수" />
               </label>
               <label>
-              배치 / 진형
-              <input data-pve-field="formation" type="text" maxlength="60" placeholder="앞열 탱커 / 뒷열 딜러 4" />
+              <span id="strategyFormationLabel">배치 / 진형</span>
+              <input data-pve-field="formation" id="strategyFormationInput" type="text" maxlength="60" placeholder="앞열 탱커 / 뒷열 딜러 4" />
             </label>
             <label>
               진형 이미지
@@ -108,17 +108,34 @@
               </select>
             </label>
           </div>
+            <div class="pve-mini-section pvp-only" id="pvpExtraFields" hidden>
+              <h3>PVP 전용 체크</h3>
+              <div class="pve-editor-grid">
+                <label>
+                  우리 조합
+                  <input data-pve-field="allyTeam" type="text" maxlength="80" placeholder="우리 덱 3~5명을 적어주세요" />
+                </label>
+                <label>
+                  승리 조건
+                  <input data-pve-field="winPlan" type="text" maxlength="80" placeholder="선턴, 생존, 반격, 면역 제거 등" />
+                </label>
+                <label class="wide-field">
+                  주의점
+                  <textarea data-pve-field="caution" rows="3" maxlength="400" placeholder="상대 핵심 스킬, 밴/대체 영웅, 위험한 상황을 적어주세요"></textarea>
+                </label>
+              </div>
+            </div>
             <div class="pve-mini-section">
-              <h3>핵심 영웅</h3>
+              <h3 id="strategyHeroTitle">핵심 영웅</h3>
               <div class="pve-hero-grid" id="pveHeroGrid"></div>
             </div>
             <div class="pve-mini-section">
-              <h3>스펙 체크</h3>
+              <h3 id="strategySpecTitle">스펙 체크</h3>
               <div class="pve-spec-grid" id="pveSpecGrid"></div>
             </div>
             <label class="pve-note-field">
-              운영 메모
-              <textarea data-pve-field="note" rows="5" maxlength="1000" placeholder="스킬 순서, 주의할 패턴, 대체 영웅 등을 적어주세요."></textarea>
+              <span id="strategyNoteLabel">운영 메모</span>
+              <textarea data-pve-field="note" id="strategyNoteInput" rows="5" maxlength="1000" placeholder="스킬 순서, 주의할 패턴, 대체 영웅 등을 적어주세요."></textarea>
             </label>
           </section>
           <section class="editor-box" aria-label="본문 작성기">
@@ -186,6 +203,17 @@
       const pveGuideEditor = document.querySelector("#pveGuideEditor");
       const pveHeroGrid = document.querySelector("#pveHeroGrid");
       const pveSpecGrid = document.querySelector("#pveSpecGrid");
+      const pvpExtraFields = document.querySelector("#pvpExtraFields");
+      const strategyEditorKicker = document.querySelector("#strategyEditorKicker");
+      const strategyEditorTitle = document.querySelector("#strategyEditorTitle");
+      const strategyEditorDesc = document.querySelector("#strategyEditorDesc");
+      const strategyTypeInput = document.querySelector("#strategyTypeInput");
+      const strategyBossInput = document.querySelector("#strategyBossInput");
+      const strategyPowerInput = document.querySelector("#strategyPowerInput");
+      const strategyFormationInput = document.querySelector("#strategyFormationInput");
+      const strategyNoteInput = document.querySelector("#strategyNoteInput");
+      const strategyHeroTitle = document.querySelector("#strategyHeroTitle");
+      const strategySpecTitle = document.querySelector("#strategySpecTitle");
       let imageFiles = [];
       let videoFiles = [];
       let isUploading = false;
@@ -194,6 +222,47 @@
       const maxImageSize = 8 * 1024 * 1024;
       const maxVideoSize = 500 * 1024 * 1024;
       const strategyCategories = new Set(["PVE 공략", "파괴신", "공성전", "PVP 게시판", "PVP 공략"]);
+      const pvpCategories = new Set(["PVP 게시판", "PVP 공략"]);
+      const strategyModeConfig = {
+        pve: {
+          kicker: "PVE 공략 전용",
+          title: "레이드 공략 데이터",
+          desc: "보스, 권장 스펙, 진형과 핵심 영웅을 상세페이지 카드로 정리합니다.",
+          typeLabel: "공략 유형",
+          bossLabel: "보스 / 콘텐츠",
+          powerLabel: "권장 전투력",
+          formationLabel: "배치 / 진형",
+          heroTitle: "핵심 영웅",
+          specTitle: "스펙 체크",
+          noteLabel: "운영 메모",
+          bossPlaceholder: "레오니드, 파멸의 눈동자",
+          powerPlaceholder: "20턴 SS 500만, 관우 6초 필수",
+          formationPlaceholder: "앞열 탱커 / 뒷열 딜러 4",
+          notePlaceholder: "스킬 순서, 주의할 패턴, 대체 영웅 등을 적어주세요.",
+          heroRolePlaceholder: "역할 / 대체",
+          typeOptions: ["일반 레이드", "돌발 레이드", "파괴신", "공성전"],
+          specLabels: ["공격력", "방어", "속공", "치명", "막기", "기타"],
+        },
+        pvp: {
+          kicker: "PVP 공략 전용",
+          title: "상대 덱 카운터 데이터",
+          desc: "상대 조합은 고정하고, 우리 조합과 승리 조건을 따로 정리합니다.",
+          typeLabel: "PVP 유형",
+          bossLabel: "상대 조합",
+          powerLabel: "핵심 조건",
+          formationLabel: "우리 진형 / 포지션",
+          heroTitle: "카운터 핵심 영웅",
+          specTitle: "체크 포인트",
+          noteLabel: "운영 메모",
+          bossPlaceholder: "상대 덱 영웅 3~5명",
+          powerPlaceholder: "선턴, 반격 변수, 생존 조건",
+          formationPlaceholder: "공격진형 5-4-3, 밸런스진형 1-2-3",
+          notePlaceholder: "상대 스킬 대응, 밴/대체, 턴 운영을 적어주세요.",
+          heroRolePlaceholder: "역할 / 카운터 포인트",
+          typeOptions: ["결투장", "방어덱 카운터", "공격덱 운영", "금지/주의 조합"],
+          specLabels: ["속공", "생존", "반격", "면역", "제압", "주의"],
+        },
+      };
       const characterCatalog = [
         "겔리두스", "나타", "델론즈", "라드그리드", "라이언", "란드그리드", "레긴레이프", "레이첼", "로지", "루디",
         "룩", "리나", "린", "멜키르", "미스트", "밀리아", "바네사", "발리스타", "브브", "성진우",
@@ -229,6 +298,72 @@
           }
           select.append(option);
         });
+      }
+
+      function setText(id, value) {
+        const target = document.querySelector(id);
+        if (target) target.textContent = value;
+      }
+
+      function isPvpCategory() {
+        return pvpCategories.has(categoryInput.value);
+      }
+
+      function getStrategyMode() {
+        if (!strategyCategories.has(categoryInput.value)) return "";
+        return isPvpCategory() ? "pvp" : "pve";
+      }
+
+      function applyStrategyTypeOptions(mode) {
+        if (!strategyTypeInput) return;
+        const current = strategyTypeInput.value;
+        const options = strategyModeConfig[mode]?.typeOptions || [];
+        strategyTypeInput.innerHTML = "";
+        options.forEach((item) => {
+          const option = document.createElement("option");
+          option.value = item;
+          option.textContent = item;
+          strategyTypeInput.append(option);
+        });
+        strategyTypeInput.value = options.includes(current) ? current : options[0] || "";
+      }
+
+      function resetEmptySpecLabels(mode) {
+        const defaults = strategyModeConfig[mode]?.specLabels || [];
+        const allDefaults = [...strategyModeConfig.pve.specLabels, ...strategyModeConfig.pvp.specLabels];
+        defaults.forEach((label, index) => {
+          const input = pveGuideEditor.querySelector(`[data-pve-spec-label="${index}"]`);
+          if (!input) return;
+          if (!input.value || allDefaults.includes(input.value)) input.value = label;
+        });
+      }
+
+      function configureStrategyEditor(mode) {
+        const config = strategyModeConfig[mode];
+        if (!config) return;
+        pveGuideEditor.dataset.mode = mode;
+        pveGuideEditor.classList.toggle("is-pvp", mode === "pvp");
+        pveGuideEditor.classList.toggle("is-pve", mode === "pve");
+        if (strategyEditorKicker) strategyEditorKicker.textContent = config.kicker;
+        if (strategyEditorTitle) strategyEditorTitle.textContent = config.title;
+        if (strategyEditorDesc) strategyEditorDesc.textContent = config.desc;
+        setText("#strategyTypeLabel", config.typeLabel);
+        setText("#strategyBossLabel", config.bossLabel);
+        setText("#strategyPowerLabel", config.powerLabel);
+        setText("#strategyFormationLabel", config.formationLabel);
+        if (strategyHeroTitle) strategyHeroTitle.textContent = config.heroTitle;
+        if (strategySpecTitle) strategySpecTitle.textContent = config.specTitle;
+        setText("#strategyNoteLabel", config.noteLabel);
+        if (strategyBossInput) strategyBossInput.placeholder = config.bossPlaceholder;
+        if (strategyPowerInput) strategyPowerInput.placeholder = config.powerPlaceholder;
+        if (strategyFormationInput) strategyFormationInput.placeholder = config.formationPlaceholder;
+        if (strategyNoteInput) strategyNoteInput.placeholder = config.notePlaceholder;
+        if (pvpExtraFields) pvpExtraFields.hidden = mode !== "pvp";
+        applyStrategyTypeOptions(mode);
+        pveGuideEditor.querySelectorAll("[data-pve-hero-role]").forEach((input) => {
+          input.placeholder = config.heroRolePlaceholder;
+        });
+        resetEmptySpecLabels(mode);
       }
 
       function createPveRows() {
@@ -270,18 +405,25 @@
 
       function togglePveEditor() {
         if (!pveGuideEditor) return;
-        pveGuideEditor.hidden = !isPveCategory();
+        const mode = getStrategyMode();
+        pveGuideEditor.hidden = !mode;
+        if (mode) configureStrategyEditor(mode);
       }
 
       function readPveGuide() {
-        if (!isPveCategory()) return null;
+        const mode = getStrategyMode();
+        if (!mode) return null;
         const field = (name) => pveGuideEditor.querySelector(`[data-pve-field="${name}"]`)?.value.trim() || "";
         return {
+          mode,
           type: field("type"),
           boss: field("boss"),
           power: field("power"),
           formation: field("formation"),
           formationType: field("formationType"),
+          allyTeam: field("allyTeam"),
+          winPlan: field("winPlan"),
+          caution: field("caution"),
           note: field("note"),
           heroes: Array.from({ length: 5 }).map((_, index) => ({
             name: pveGuideEditor.querySelector(`[data-pve-hero-name="${index}"]`)?.value.trim() || "",
