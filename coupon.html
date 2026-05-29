@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>쿠폰 - bbitsena</title>
-    <link rel="stylesheet" href="styles.css?v=coupon-upload-20260530" />
+    <link rel="stylesheet" href="styles.css?v=coupon-user-upload-20260530" />
   </head>
   <body class="coupon-page">
     <main class="coupon-shell">
@@ -15,28 +15,29 @@
         <small>SEVENKNIGHT : REBIRTH</small>
       </a>
 
-      <section class="coupon-panel" id="couponAdminPanel" hidden>
+      <section class="coupon-panel">
         <div class="coupon-head">
           <div>
-            <span>ADMIN UPLOAD</span>
-            <h1>쿠폰 업로드</h1>
-            <p>관리자가 쿠폰 코드를 여러 개 저장해두면, 사용자가 회원번호로 한 번에 사용할 수 있습니다.</p>
+            <span>COUPON BOOK</span>
+            <h1>쿠폰 등록</h1>
+            <p>새 쿠폰 코드를 발견하면 쿠폰북에 등록해주세요. 저장된 코드는 모든 유저가 회원번호로 한 번에 사용할 수 있습니다.</p>
           </div>
           <a href="index.html">메인으로</a>
         </div>
         <form id="couponCodeForm" class="coupon-form stacked">
           <label>
             쿠폰 코드
-            <textarea id="couponCodesInput" rows="7" placeholder="쿠폰 코드를 줄바꿈, 쉼표, 공백으로 구분해서 입력"></textarea>
+            <textarea id="couponCodesInput" rows="5" placeholder="쿠폰 코드를 줄바꿈, 쉼표, 공백으로 구분해서 입력"></textarea>
           </label>
-          <button class="submit-button" id="couponCodeSaveButton" type="submit">쿠폰 업로드</button>
+          <button class="submit-button" id="couponCodeSaveButton" type="submit">쿠폰 등록</button>
         </form>
+        <p class="coupon-help">일반 유저는 한 번에 최대 20개까지 등록할 수 있고, 관리자는 최대 100개까지 등록할 수 있습니다.</p>
       </section>
 
       <section class="coupon-panel">
         <div class="coupon-head">
           <div>
-            <span>COUPON TOOL</span>
+            <span>REDEEM TOOL</span>
             <h1>회원번호 쿠폰 일괄 사용</h1>
             <p>회원번호를 입력하면 저장된 쿠폰을 위에서부터 하나씩 자동으로 사용합니다.</p>
           </div>
@@ -68,6 +69,6 @@
     </main>
 
     <script src="theme.js"></script>
-    <script src="coupon.js?v=coupon-upload-20260530"></script>
+    <script src="coupon.js?v=coupon-user-upload-20260530"></script>
   </body>
 </html>

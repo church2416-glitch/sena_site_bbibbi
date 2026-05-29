@@ -604,6 +604,59 @@ function insertCouponRequest({ userId, uid, couponCode, result }) {
   };
 }
 
+function createAuditLog({ actorId = null, action, targetType = "", targetId = "", details = {} }) {
+  if (!action) return;
+  db.prepare(
+    `
+      INSERT INTO audit_logs (actor_id, action, target_type, target_id, details_json)
+      VALUES (?, ?, ?, ?, ?)
+    `,
+  ).run(actorId, action, targetType, String(targetId || ""), JSON.stringify(details || {}));
+}
+
+function isExpiredCouponResult(result) {
+  const response = result?.response || {};
+  const code = Number(response.errorCode || response.code || response.resultCode || 0);
+  const message = String(result?.message || response.message || response.errorMessage || "");
+  if ([24004, 24006].includes(code)) return true;
+  if (code === 24003) return false;
+  return /유효기간|만료|종료/.test(message);
+}
+
+function notifySuperAdmins({ actorId, couponCode, message }) {
+  const admins = db
+    .prepare("SELECT id FROM users WHERE role = 'superadmin'")
+    .all();
+  admins.forEach((admin) => {
+    createNotification({
+      recipientId: admin.id,
+      actorId: admin.id === actorId ? null : actorId,
+      type: "coupon_expired",
+      targetType: "coupon",
+      targetId: couponCode,
+      message,
+    });
+  });
+}
+
+function deactivateExpiredCoupon(couponCode, actorId) {
+  const result = db
+    .prepare("UPDATE coupon_codes SET active = 0, updated_at = datetime('now') WHERE code = ? AND active = 1")
+    .run(couponCode);
+  if (!result.changes) return false;
+
+  const message = `${couponCode} 쿠폰이 만료되어 쿠폰북에서 삭제 처리됨`;
+  createAuditLog({
+    actorId,
+    action: "coupon.expired.auto_remove",
+    targetType: "coupon",
+    targetId: couponCode,
+    details: { couponCode, message },
+  });
+  notifySuperAdmins({ actorId, couponCode, message });
+  return true;
+}
+
 setInterval(() => {
   const now = Date.now();
   for (const [key, bucket] of authRateLimits.entries()) {
@@ -1986,13 +2039,14 @@ app.get("/api/coupon/codes", requireMember, (req, res) => {
   res.json({ codes: rows.map(serializeCouponCode) });
 });
 
-app.post("/api/coupon/codes", requireContentManager, (req, res) => {
+app.post("/api/coupon/codes", requireMember, (req, res) => {
+  if (checkRateLimit(req, res, `coupon:codes:${req.user.id}`, 5, couponRateWindowMs)) return;
   const rawText = String(req.body?.codes || "");
   const rows = rawText
     .split(/[\s,]+/)
     .map((line) => sanitizeCouponInput(line, 80).toUpperCase())
     .filter((code) => /^[A-Z0-9_-]{3,80}$/.test(code));
-  const uniqueCodes = [...new Set(rows)].slice(0, 100);
+  const uniqueCodes = [...new Set(rows)].slice(0, roleFlags(req.user).canManageContent ? 100 : 20);
   if (!uniqueCodes.length) {
     return res.status(400).json({ error: "저장할 쿠폰 코드를 입력해주세요." });
   }
@@ -2014,13 +2068,28 @@ app.post("/api/coupon/codes", requireContentManager, (req, res) => {
   });
 
   const added = insert(uniqueCodes);
+  createAuditLog({
+    actorId: req.user.id,
+    action: "coupon.codes.add",
+    targetType: "coupon",
+    targetId: uniqueCodes.join(","),
+    details: { added, submitted: uniqueCodes.length, codes: uniqueCodes },
+  });
   res.status(201).json({ ok: true, added });
 });
 
 app.delete("/api/coupon/codes/:id", requireContentManager, (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: "쿠폰 ID가 올바르지 않습니다." });
+  const row = db.prepare("SELECT code FROM coupon_codes WHERE id = ?").get(id);
   db.prepare("UPDATE coupon_codes SET active = 0, updated_at = datetime('now') WHERE id = ?").run(id);
+  createAuditLog({
+    actorId: req.user.id,
+    action: "coupon.codes.delete",
+    targetType: "coupon",
+    targetId: row?.code || id,
+    details: { id, code: row?.code || "" },
+  });
   res.json({ ok: true });
 });
 
@@ -2058,6 +2127,12 @@ app.post("/api/coupon/send-all", requireMember, async (req, res) => {
         response: { error: error.message },
       };
     }
+    if (isExpiredCouponResult(result) && deactivateExpiredCoupon(couponCode, req.user.id)) {
+      result = {
+        ...result,
+        message: "유효기간이 만료되었습니다. 만료된 쿠폰은 쿠폰북에서 삭제 처리되었습니다.",
+      };
+    }
     requests.push(insertCouponRequest({ userId: req.user.id, uid, couponCode, result }));
   }
 
@@ -2091,6 +2166,13 @@ app.post("/api/coupon/send", requireMember, async (req, res) => {
       status: "failed",
       message: "쿠폰 API 연결 중 오류가 발생했습니다.",
       response: { error: error.message },
+    };
+  }
+
+  if (isExpiredCouponResult(result) && deactivateExpiredCoupon(couponCode, req.user.id)) {
+    result = {
+      ...result,
+      message: "유효기간이 만료되었습니다. 만료된 쿠폰은 쿠폰북에서 삭제 처리되었습니다.",
     };
   }
 
@@ -2724,11 +2806,41 @@ app.get("/auth/google/callback", async (req, res) => {
 });
 
 app.get("/api/admin/db-status", requireAdmin, (req, res) => {
-  const tables = ["users", "posts", "post_media", "post_votes", "post_comments", "comment_votes", "notifications", "guild_war_sheets", "app_settings", "audit_logs"];
+  const tables = [
+    "users",
+    "posts",
+    "post_media",
+    "post_votes",
+    "post_comments",
+    "comment_votes",
+    "notifications",
+    "guild_war_sheets",
+    "coupon_codes",
+    "coupon_requests",
+    "app_settings",
+    "audit_logs",
+  ];
   const counts = Object.fromEntries(
     tables.map((table) => [table, db.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get().count]),
   );
-  res.json({ ok: true, counts });
+  const recentAudit = db.prepare(
+    `
+      SELECT
+        audit_logs.id,
+        audit_logs.action,
+        audit_logs.target_type,
+        audit_logs.target_id,
+        audit_logs.details_json,
+        audit_logs.created_at,
+        users.display_name AS actor_name,
+        users.username AS actor_username
+      FROM audit_logs
+      LEFT JOIN users ON users.id = audit_logs.actor_id
+      ORDER BY datetime(audit_logs.created_at) DESC
+      LIMIT 12
+    `,
+  ).all();
+  res.json({ ok: true, counts, recentAudit });
 });
 
 app.get("/api/guild-war/season", (req, res) => {

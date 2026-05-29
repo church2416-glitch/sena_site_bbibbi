@@ -13,10 +13,14 @@ const metricSheets = document.querySelector("#metricSheets");
 const dbUsers = document.querySelector("#dbUsers");
 const dbPosts = document.querySelector("#dbPosts");
 const dbMedia = document.querySelector("#dbMedia");
+const dbCoupons = document.querySelector("#dbCoupons");
+const dbCouponRequests = document.querySelector("#dbCouponRequests");
+const dbNotifications = document.querySelector("#dbNotifications");
 const dbAudit = document.querySelector("#dbAudit");
 const dailyChart = document.querySelector("#dailyChart");
 const dailyTable = document.querySelector("#dailyTable");
 const databaseTable = document.querySelector("#databaseTable");
+const adminAuditList = document.querySelector("#adminAuditList");
 const recentUsers = document.querySelector("#recentUsers");
 const recentPosts = document.querySelector("#recentPosts");
 const contentCount = document.querySelector("#contentCount");
@@ -217,6 +221,8 @@ function renderDatabaseTable(counts) {
     comment_votes: counts.comment_votes,
     notifications: counts.notifications,
     guild_war_sheets: counts.guild_war_sheets,
+    coupon_codes: counts.coupon_codes,
+    coupon_requests: counts.coupon_requests,
     app_settings: counts.app_settings,
     audit_logs: counts.audit_logs,
   };
@@ -224,6 +230,9 @@ function renderDatabaseTable(counts) {
   setText(dbUsers, formatNumber(counts.users));
   setText(dbPosts, formatNumber(counts.posts));
   setText(dbMedia, formatNumber(counts.post_media));
+  setText(dbCoupons, formatNumber(counts.coupon_codes));
+  setText(dbCouponRequests, formatNumber(counts.coupon_requests));
+  setText(dbNotifications, formatNumber(counts.notifications));
   setText(dbAudit, formatNumber(counts.audit_logs));
 
   databaseTable.innerHTML = "";
@@ -236,6 +245,53 @@ function renderDatabaseTable(counts) {
     tr.append(name, value);
     databaseTable.append(tr);
   });
+}
+
+function renderAuditList(rows = []) {
+  if (!adminAuditList) return;
+  adminAuditList.innerHTML = "";
+  if (!rows.length) {
+    adminAuditList.append(emptyRow("아직 운영 로그가 없습니다."));
+    return;
+  }
+
+  rows.forEach((row) => {
+    const item = document.createElement("article");
+    const title = document.createElement("strong");
+    const meta = document.createElement("span");
+    const details = document.createElement("small");
+    let parsed = {};
+    try {
+      parsed = JSON.parse(row.details_json || "{}");
+    } catch {
+      parsed = {};
+    }
+    item.className = "admin-audit-row";
+    title.textContent = parsed.message || row.action || "운영 로그";
+    meta.textContent = [
+      row.actor_name || row.actor_username || "system",
+      row.target_type,
+      row.target_id,
+      formatCouponLikeDate(row.created_at),
+    ].filter(Boolean).join(" · ");
+    details.textContent = row.action || "";
+    item.append(title, meta, details);
+    adminAuditList.append(item);
+  });
+}
+
+function formatCouponLikeDate(value) {
+  const raw = String(value || "").trim();
+  const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(raw) ? `${raw.replace(" ", "T")}Z` : raw;
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return raw || "-";
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }
 
 function renderGuildSeasonSettings(settings) {
@@ -629,6 +685,7 @@ async function loadDashboard() {
   renderChart(dashboard.daily || []);
   renderDailyTable(dashboard.daily || []);
   renderDatabaseTable(dbStatus.counts || {});
+  renderAuditList(dbStatus.recentAudit || []);
   await loadGuildSeasonSettings();
   await loadImportantNoticeSettings();
   await loadMainHeroSettings();

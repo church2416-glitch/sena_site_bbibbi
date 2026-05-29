@@ -2795,6 +2795,13 @@ p {
   font-size: 13px;
 }
 
+.coupon-help {
+  margin: -6px 0 0;
+  color: #bdb7d5;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .coupon-head a,
 .ghost-button {
   display: inline-flex;
@@ -4597,6 +4604,35 @@ p {
   min-height: calc(100vh - 118px);
 }
 
+.admin-view[data-admin-section="database"].active {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-view[data-admin-section="database"] .admin-wide-panel {
+  min-height: auto;
+}
+
+.admin-view[data-admin-section="database"] .admin-panel {
+  padding: 14px 18px;
+}
+
+.admin-view[data-admin-section="database"] .admin-panel-head {
+  margin-bottom: 12px;
+}
+
+.admin-db-metrics {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
+
+.admin-db-metrics article {
+  padding: 12px 14px;
+}
+
+.admin-db-metrics strong {
+  font-size: 22px;
+}
+
 .admin-chart-panel {
   min-height: 408px;
 }
@@ -5066,6 +5102,51 @@ p {
   padding: 28px 0;
   color: #9a9a9a;
   font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-audit-list {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-quick-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #dcdcdc;
+  border-radius: 4px;
+  color: #333;
+  background: #f8f8f8;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-audit-row {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  background: #fbfbfb;
+}
+
+.admin-audit-row strong {
+  color: #252525;
+  font-size: 13px;
+}
+
+.admin-audit-row span,
+.admin-audit-row small {
+  color: #777;
+  font-size: 12px;
   font-weight: 800;
 }
 
