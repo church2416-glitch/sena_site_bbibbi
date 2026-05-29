@@ -26,6 +26,7 @@ function appendNameWithRole(target, name, role) {
   image.title = icon.label;
   image.loading = "lazy";
   target.textContent = "";
+  target.classList.add("role-name");
   target.append(image, document.createTextNode(name || "관리자"));
 }
 

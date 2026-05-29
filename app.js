@@ -574,6 +574,7 @@ function createRoleIcon(role) {
 
 function appendNameWithRole(target, name, role) {
   target.textContent = "";
+  target.classList.add("role-name");
   target.append(createRoleIcon(role), document.createTextNode(name || "익명"));
 }
 

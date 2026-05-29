@@ -195,6 +195,7 @@
         image.title = icon.label;
         image.loading = "lazy";
         target.textContent = "";
+        target.classList.add("role-name");
         target.append(image, document.createTextNode(name || "익명"));
       }
 
