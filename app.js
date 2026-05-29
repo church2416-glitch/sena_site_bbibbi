@@ -387,11 +387,21 @@ function stopHeroSlider() {
   }
 }
 
-function setHeroSlide(index, { restart = true } = {}) {
+function animateHeroImage(direction = "next") {
+  if (!heroImage || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  heroImage.classList.remove("slide-in-next", "slide-in-prev");
+  void heroImage.offsetWidth;
+  heroImage.classList.add(direction === "prev" ? "slide-in-prev" : "slide-in-next");
+}
+
+function setHeroSlide(index, { restart = true, direction = "next" } = {}) {
   const slides = getMainHeroSlides();
   if (!slides.length) return;
   heroSlideIndex = (index + slides.length) % slides.length;
-  if (heroImage) heroImage.src = slides[heroSlideIndex];
+  if (heroImage) {
+    heroImage.src = slides[heroSlideIndex];
+    animateHeroImage(direction);
+  }
   if (heroSlideDots) {
     [...heroSlideDots.children].forEach((button, dotIndex) => {
       button.classList.toggle("active", dotIndex === heroSlideIndex);
@@ -414,7 +424,7 @@ function renderHeroSliderControls() {
     dot.type = "button";
     dot.className = "hero-slide-dot";
     dot.setAttribute("aria-label", `${index + 1}번 배너 보기`);
-    dot.addEventListener("click", () => setHeroSlide(index));
+    dot.addEventListener("click", () => setHeroSlide(index, { direction: index < heroSlideIndex ? "prev" : "next" }));
     heroSlideDots.append(dot);
   });
 }
@@ -425,7 +435,7 @@ function startHeroSlider() {
   const activeGroup = getBoardGroup(activeCategory) || "overview";
   if (activeGroup !== "overview" || slides.length < 2) return;
   heroSlideTimer = setInterval(() => {
-    setHeroSlide(heroSlideIndex + 1, { restart: false });
+    setHeroSlide(heroSlideIndex + 1, { restart: false, direction: "next" });
   }, Math.max(3, Number(mainHeroSettings.intervalSeconds) || 5) * 1000);
 }
 
@@ -1881,8 +1891,8 @@ notificationSoundButton?.addEventListener("click", toggleNotificationSound);
 notificationSoundTestButton?.addEventListener("click", testNotificationSound);
 notificationVolumeInput?.addEventListener("input", () => changeNotificationVolume(notificationVolumeInput.value));
 notificationVolumeInput?.addEventListener("change", () => changeNotificationVolume(notificationVolumeInput.value, true));
-heroPrevButton?.addEventListener("click", () => setHeroSlide(heroSlideIndex - 1));
-heroNextButton?.addEventListener("click", () => setHeroSlide(heroSlideIndex + 1));
+heroPrevButton?.addEventListener("click", () => setHeroSlide(heroSlideIndex - 1, { direction: "prev" }));
+heroNextButton?.addEventListener("click", () => setHeroSlide(heroSlideIndex + 1, { direction: "next" }));
 logoutButton?.addEventListener("click", logout);
 document.addEventListener("click", () => {
   closeGuideAdminMenu();
