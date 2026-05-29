@@ -36,6 +36,15 @@ const sessionSecret = process.env.SESSION_SECRET || "dev-session-secret-change-m
 const adminUser = process.env.ADMIN_USER || "admin";
 const adminPassword = process.env.ADMIN_PASSWORD || "admin";
 const siteUrl = process.env.SITE_URL || "https://www.bbitsena.com";
+const siteOrigin = new URL(siteUrl).origin;
+const siteHostname = new URL(siteUrl).hostname;
+const allowedRequestOrigins = new Set([
+  siteOrigin,
+  siteHostname.startsWith("www.") ? `${new URL(siteUrl).protocol}//${siteHostname.slice(4)}` : `${new URL(siteUrl).protocol}//www.${siteHostname}`,
+  ...(process.env.ALLOWED_ORIGINS || "").split(",").map((origin) => origin.trim()).filter(Boolean),
+]);
+const cookieDomain = process.env.COOKIE_DOMAIN
+  || (siteHostname === "bbitsena.com" || siteHostname.endsWith(".bbitsena.com") ? ".bbitsena.com" : undefined);
 const kakaoClientId = process.env.KAKAO_CLIENT_ID || "";
 const kakaoClientSecret = process.env.KAKAO_CLIENT_SECRET || "";
 const kakaoRedirectUri = process.env.KAKAO_REDIRECT_URI || `${siteUrl}/auth/kakao/callback`;
@@ -392,13 +401,15 @@ function verifyOAuthState(state, provider) {
   }
 }
 
-function setAuthCookie(res, username) {
-  res.cookie(authCookieName, signSession(username), {
+function setAuthCookie(res, username, remember = false) {
+  const options = {
     httpOnly: true,
     sameSite: "lax",
     secure: cookieSecure,
-    maxAge: 1000 * 60 * 60 * 24 * 7,
-  });
+    maxAge: remember ? 1000 * 60 * 60 * 24 * 30 : 1000 * 60 * 60 * 24,
+  };
+  if (cookieDomain) options.domain = cookieDomain;
+  res.cookie(authCookieName, signSession(username), options);
 }
 
 function getRateKey(req, scope) {
@@ -545,13 +556,12 @@ function requireCsrf(req, res, next) {
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
   const origin = req.headers.origin;
   const referer = req.headers.referer;
-  const allowedOrigin = new URL(siteUrl).origin;
-  if (origin && origin !== allowedOrigin) {
+  if (origin && !allowedRequestOrigins.has(origin)) {
     return res.status(403).json({ error: "허용되지 않은 요청 출처입니다." });
   }
   if (!origin && referer) {
     try {
-      if (new URL(referer).origin !== allowedOrigin) {
+      if (!allowedRequestOrigins.has(new URL(referer).origin)) {
         return res.status(403).json({ error: "허용되지 않은 요청 출처입니다." });
       }
     } catch {
@@ -1290,14 +1300,14 @@ app.get("/api/me", (req, res) => {
 
 app.post("/api/login", (req, res) => {
   if (checkRateLimit(req, res, "login", 8)) return;
-  const { username, password } = req.body || {};
+  const { username, password, remember } = req.body || {};
   const user = findUserByUsername(username);
 
   if (!user || !verifyPassword(password, user.password_hash)) {
     return res.status(401).json({ error: "아이디 또는 비밀번호가 올바르지 않습니다." });
   }
 
-  setAuthCookie(res, user.username);
+  setAuthCookie(res, user.username, Boolean(remember));
   res.json(serializeUser(user));
 });
 
@@ -1348,7 +1358,9 @@ app.post("/api/register", (req, res) => {
 });
 
 app.post("/api/logout", (req, res) => {
-  res.clearCookie(authCookieName);
+  const options = { httpOnly: true, sameSite: "lax", secure: cookieSecure };
+  if (cookieDomain) options.domain = cookieDomain;
+  res.clearCookie(authCookieName, options);
   res.json({ loggedIn: false, role: "guest" });
 });
 

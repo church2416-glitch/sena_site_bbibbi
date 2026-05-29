@@ -596,10 +596,12 @@ async function submitLogin(event) {
   const formData = new FormData(loginForm);
   const response = await fetch("/api/login", {
     method: "POST",
+    credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       username: formData.get("username"),
       password: formData.get("password"),
+      remember: Boolean(formData.get("remember")),
     }),
   });
 
