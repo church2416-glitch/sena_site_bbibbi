@@ -61,10 +61,24 @@
           <div class="top-actions">
             <a class="write-button" href="upload.html" target="_blank" rel="noopener">글쓰기</a>
             <button class="mobile-login-button" id="mobileLoginButton" type="button">로그인</button>
-            <button class="icon-button" type="button" aria-label="접기">⌁</button>
+            <button class="icon-button notification-top-button" id="notificationTopButton" type="button" aria-label="알림" aria-expanded="false">
+              ⌁
+              <span class="notification-badge" id="notificationBadge" hidden>0</span>
+            </button>
             <button class="icon-button" type="button" aria-label="메시지">□</button>
             <button class="avatar theme-button" id="themeButton" type="button" aria-label="사이트 설정" aria-expanded="false"></button>
           </div>
+
+          <section class="notification-panel" id="notificationPanel" aria-label="알림 목록" hidden>
+            <div class="notification-panel-head">
+              <strong>알림</strong>
+              <button class="account-link-button" id="notificationPanelReadButton" type="button">모두 읽음</button>
+            </div>
+            <div class="notification-panel-list" id="notificationPanelList">
+              <p class="account-empty">알림이 없습니다.</p>
+            </div>
+            <button class="ghost-button notification-panel-profile" id="notificationPanelProfileButton" type="button">내 정보에서 보기</button>
+          </section>
 
           <section class="settings-panel" id="settingsPanel" aria-label="사이트 설정" hidden>
             <div class="settings-head">
@@ -114,7 +128,6 @@
             <button id="providerLoginOpenButton" type="button">로그인</button>
             <button class="ghost-login-button profile-info-button" id="profileButton" type="button" hidden>
               내 정보
-              <span class="notification-badge" id="notificationBadge" hidden>0</span>
             </button>
             <button class="ghost-login-button" id="logoutButton" type="button" hidden>로그아웃</button>
             <a href="#" id="roleText">회원가입</a>
@@ -366,6 +379,6 @@
     </div>
 
     <script src="theme.js"></script>
-    <script src="app.js?v=pve-tabs-20260530"></script>
+    <script src="app.js?v=top-notifications-20260530"></script>
   </body>
 </html>

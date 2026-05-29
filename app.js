@@ -176,6 +176,11 @@ const signupButton = document.querySelector("#signupButton");
 const signupCloseButton = document.querySelector("#signupCloseButton");
 const signupToLoginButton = document.querySelector("#signupToLoginButton");
 const profileButton = document.querySelector("#profileButton");
+const notificationTopButton = document.querySelector("#notificationTopButton");
+const notificationPanel = document.querySelector("#notificationPanel");
+const notificationPanelList = document.querySelector("#notificationPanelList");
+const notificationPanelReadButton = document.querySelector("#notificationPanelReadButton");
+const notificationPanelProfileButton = document.querySelector("#notificationPanelProfileButton");
 const notificationBadge = document.querySelector("#notificationBadge");
 const logoutButton = document.querySelector("#logoutButton");
 const loginStateText = document.querySelector("#loginStateText");
@@ -866,6 +871,59 @@ function renderNotificationList(notifications = []) {
   });
 }
 
+function renderNotificationPanelList(notifications = []) {
+  if (!notificationPanelList) return;
+  notificationPanelList.innerHTML = "";
+
+  if (!notifications.length) {
+    const empty = document.createElement("p");
+    empty.className = "account-empty";
+    empty.textContent = "알림이 없습니다.";
+    notificationPanelList.append(empty);
+    return;
+  }
+
+  notifications.slice(0, 8).forEach((notification) => {
+    const link = document.createElement("a");
+    const title = document.createElement("strong");
+    const meta = document.createElement("small");
+    link.className = "notification-panel-item";
+    link.classList.toggle("unread", !notification.readAt);
+    link.href = `post.html?id=${encodeURIComponent(notification.postId || notification.targetId)}`;
+    title.textContent = notification.message || "새 알림이 있습니다.";
+    meta.textContent = [notification.postTitle, formatFeedDate(notification.createdAt)].filter(Boolean).join(" · ");
+    link.append(title, meta);
+    notificationPanelList.append(link);
+  });
+}
+
+async function loadNotificationPanel() {
+  if (!currentUser?.loggedIn) {
+    renderNotificationPanelList([]);
+    return;
+  }
+  const response = await fetch("/api/me/notifications").catch(() => null);
+  if (!response?.ok) {
+    renderNotificationPanelList([]);
+    return;
+  }
+  const data = await response.json().catch(() => ({}));
+  syncNotificationUnreadCount(data.unreadCount);
+  renderNotificationPanelList(Array.isArray(data.notifications) ? data.notifications : []);
+}
+
+async function toggleNotificationPanel(forceOpen) {
+  if (!notificationPanel) return;
+  if (!currentUser?.loggedIn) {
+    openLoginModal();
+    return;
+  }
+  const willOpen = typeof forceOpen === "boolean" ? forceOpen : notificationPanel.hidden;
+  notificationPanel.hidden = !willOpen;
+  notificationTopButton?.setAttribute("aria-expanded", String(willOpen));
+  if (willOpen) await loadNotificationPanel();
+}
+
 async function loadNotificationBadge() {
   try {
     const response = await fetch("/api/me/notifications");
@@ -897,6 +955,9 @@ function connectNotificationStream() {
       playNotificationSound();
       notificationBroadcastChannel?.postMessage({ type: "notification", notification: data.notification });
     }
+    if (!notificationPanel?.hidden) {
+      loadNotificationPanel();
+    }
     if (!profileModal?.hidden && data.notification) {
       loadAccountDashboard();
     }
@@ -914,6 +975,7 @@ async function markNotificationsRead() {
     body: JSON.stringify({}),
   });
   syncNotificationUnreadCount(0);
+  await loadNotificationPanel();
   await loadAccountDashboard();
 }
 
@@ -925,6 +987,7 @@ async function deleteNotification(id) {
   if (response.ok) {
     const data = await response.json().catch(() => ({}));
     setNotificationBadge(data.unreadCount || 0);
+    await loadNotificationPanel();
     await loadAccountDashboard();
   }
 }
@@ -935,6 +998,7 @@ async function clearNotifications() {
   });
   if (response.ok) {
     syncNotificationUnreadCount(0);
+    await loadNotificationPanel();
     await loadAccountDashboard();
   }
 }
@@ -1543,6 +1607,16 @@ loginForm?.addEventListener("submit", submitLogin);
 profileButton?.addEventListener("click", openProfileModal);
 profileCloseButton?.addEventListener("click", closeProfileModal);
 profileForm?.addEventListener("submit", submitProfile);
+notificationTopButton?.addEventListener("click", (event) => {
+  event.stopPropagation();
+  toggleNotificationPanel();
+});
+notificationPanel?.addEventListener("click", (event) => event.stopPropagation());
+notificationPanelReadButton?.addEventListener("click", markNotificationsRead);
+notificationPanelProfileButton?.addEventListener("click", () => {
+  toggleNotificationPanel(false);
+  openProfileModal();
+});
 notificationReadButton?.addEventListener("click", markNotificationsRead);
 notificationClearButton?.addEventListener("click", clearNotifications);
 notificationSoundButton?.addEventListener("click", toggleNotificationSound);
@@ -1550,6 +1624,9 @@ notificationSoundTestButton?.addEventListener("click", testNotificationSound);
 notificationVolumeInput?.addEventListener("input", () => changeNotificationVolume(notificationVolumeInput.value));
 notificationVolumeInput?.addEventListener("change", () => changeNotificationVolume(notificationVolumeInput.value, true));
 logoutButton?.addEventListener("click", logout);
+document.addEventListener("click", () => {
+  if (!notificationPanel?.hidden) toggleNotificationPanel(false);
+});
 signupButton?.addEventListener("click", () => {
   openSignupModal();
 });
