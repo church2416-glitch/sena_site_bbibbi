@@ -130,13 +130,15 @@
               <div class="pve-editor-grid">
                 <label>
                   메인펫
-                  <select data-pve-field="mainPet" id="strategyMainPetInput"></select>
+                  <input data-pve-field="mainPet" id="strategyMainPetInput" type="text" maxlength="30" list="strategyPetOptions" placeholder="메인펫 이름" />
                 </label>
                 <label>
                   대체펫
-                  <select data-pve-field="subPet" id="strategySubPetInput"></select>
+                  <input data-pve-field="subPet" id="strategySubPetInput" type="text" maxlength="30" list="strategyPetOptions" placeholder="대체펫 이름" />
                 </label>
               </div>
+              <datalist id="strategyPetOptions"></datalist>
+              <datalist id="strategyHeroOptions"></datalist>
             </div>
             <div class="pve-mini-section">
               <h3 id="strategyHeroTitle">핵심 영웅</h3>
@@ -253,6 +255,8 @@
       const strategyMainPetInput = document.querySelector("#strategyMainPetInput");
       const strategySubPetInput = document.querySelector("#strategySubPetInput");
       const strategyBossOptions = document.querySelector("#strategyBossOptions");
+      const strategyPetOptions = document.querySelector("#strategyPetOptions");
+      const strategyHeroOptions = document.querySelector("#strategyHeroOptions");
       let imageFiles = [];
       let videoFiles = [];
       let isUploading = false;
@@ -346,6 +350,15 @@
         });
       }
 
+      function fillDatalist(datalist, items) {
+        if (!datalist || datalist.children.length) return;
+        items.forEach((item) => {
+          const option = document.createElement("option");
+          option.value = item;
+          datalist.append(option);
+        });
+      }
+
       function setText(id, value) {
         const target = document.querySelector(id);
         if (target) target.textContent = value;
@@ -431,25 +444,20 @@
       }
 
       function createPveRows() {
-        if (strategyMainPetInput && !strategyMainPetInput.children.length) {
-          fillSelect(strategyMainPetInput, petCatalog, "메인펫 선택");
-        }
-        if (strategySubPetInput && !strategySubPetInput.children.length) {
-          fillSelect(strategySubPetInput, petCatalog, "대체펫 선택");
-        }
+        fillDatalist(strategyPetOptions, petCatalog);
+        fillDatalist(strategyHeroOptions, characterCatalog);
         if (pveHeroGrid && !pveHeroGrid.children.length) {
           Array.from({ length: 10 }).forEach((_, index) => {
             const row = document.createElement("label");
             row.dataset.pveHeroRow = String(index);
             row.innerHTML = `
               영웅 ${index + 1}
-              <select data-pve-hero-name="${index}"></select>
+              <input data-pve-hero-name="${index}" type="text" maxlength="30" list="strategyHeroOptions" placeholder="영웅 이름" />
               <input data-pve-hero-role="${index}" type="text" maxlength="40" placeholder="역할 / 대체" />
               <select data-pve-hero-accessory="${index}"></select>
               <select data-pve-hero-refine="${index}"></select>
               <select data-pve-hero-grade="${index}"></select>
             `;
-            fillSelect(row.querySelector(`[data-pve-hero-name="${index}"]`), characterCatalog, "영웅 선택");
             fillSelect(row.querySelector(`[data-pve-hero-accessory="${index}"]`), accessoryTypes, "반지");
             fillSelect(row.querySelector(`[data-pve-hero-refine="${index}"]`), accessoryRefines, "세공");
             fillSelect(row.querySelector(`[data-pve-hero-grade="${index}"]`), accessoryGrades, "성급");
