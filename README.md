@@ -1,13 +1,57 @@
-# 삣삐이 온다
+# BBITSENA
 
-다크 퍼플 사이파이 느낌의 공략 공유 커뮤니티 정적 웹사이트입니다.
+SevenKnights: Rebirth strategy community site for posts, notices, guild-war sheets, PVE/PVP guides, notifications, and coupon tools.
 
-## 실행
+## Main Features
 
-`index.html` 파일을 브라우저로 열면 바로 사용할 수 있습니다.
+- Community board with categories, search, recommendations, comments, replies, media uploads, YouTube embeds, drafts, and post edit/delete.
+- Notice board for operator notices with a dedicated notice list, notice detail view, and notice upload page.
+- Highlighted popular-post tab that collects posts with recommendations.
+- Admin quick post menu from the main list for moving posts, hiding/deleting posts, opening edit view, and pinning posts to the top.
+- Guild-war sheet writer and public viewer for attack/defense sheets, formations, heroes, pets, gear, rings, skill order, and memo tips.
+- PVE/PVP guide input forms with hero, pet, formation, ring, stat, and memo data.
+- Login and account system with local login plus Kakao/Google flow, profile page, role icons, and nickname editing.
+- Role and permission system for superadmin, admin, elite, user, and blocked users.
+- Realtime-style notifications for comments, replies, recommendations, and mentions.
+- Coupon utility that sends stored coupon codes to a member UID.
+- Admin database page for users, content, important popup notices, guild-war season data, and main hero slider images.
+- Main hero image carousel with admin-managed images, arrows, dots, and slide animation.
+- Theme/settings panel for color themes and display preferences.
 
-검색, 게시판 탭, 게시글 상세 보기, 추천, 트렌딩 목록이 동작합니다. 공략 업로드는 `글쓰기` 버튼으로 열리는 `upload.html` 새 창에서 진행합니다.
+## Server
 
-업로드 페이지에서는 일반 게시글과 `guild-war-admin.html` 자유 게시판 작성기를 선택할 수 있습니다. 작성기는 공격 족보와 방어 족보를 따로 저장하며, 일반 사용자는 `guild-war.html` 공개 화면에서 탭으로 나눠 봅니다.
+The production server runs with Node.js, Express, SQLite, PM2, and Nginx.
 
-업로드한 공략과 추천 상태는 현재 브라우저의 `localStorage`에 저장됩니다.
+```bash
+npm install
+npm start
+```
+
+Local app URL:
+
+```text
+http://localhost:3000
+```
+
+## Important Files
+
+- `server.js`: API server, auth, uploads, notices, posts, admin tools, coupons.
+- `db.js`: SQLite schema and migrations.
+- `app.js`: main page behavior, board filtering, notifications, hero carousel.
+- `index.html`: main community page.
+- `post.html`: post detail and comments.
+- `upload.html`: post/PVE/PVP guide upload page.
+- `notices.html`, `notices.js`, `notice-upload.html`: notice list and notice writing flow.
+- `guild-war.html`, `guild-war-admin.html`, `guild-war.js`: guild-war sheet viewer/writer.
+- `admin.html`, `admin.js`: admin dashboard.
+- `coupon.html`, `coupon.js`: coupon sending tool.
+- `styles.css`: shared site styling.
+
+## Deployment Note
+
+Typical deployment flow:
+
+```bash
+git pull origin main
+pm2 restart bbibbi --update-env
+```
