@@ -3909,9 +3909,45 @@ p {
 }
 
 .comment-reply {
-  margin-left: 28px;
+  position: relative;
+  margin-left: clamp(28px, 5vw, 64px);
+  padding-left: 30px;
   border-color: #d8d4c8;
   background: #fffdf7;
+}
+
+.comment-reply::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: -11px;
+  bottom: 18px;
+  width: 1px;
+  background: rgba(var(--theme-mid-rgb), 0.34);
+}
+
+.comment-reply::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 30px;
+  width: 14px;
+  height: 1px;
+  background: rgba(var(--theme-mid-rgb), 0.34);
+}
+
+.comment-reply-meta {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  max-width: 100%;
+  padding: 3px 9px;
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.24);
+  border-radius: 999px;
+  color: var(--theme-mid);
+  background: rgba(var(--theme-mid-rgb), 0.08);
+  font-size: 11px;
+  font-weight: 900;
 }
 
 .comment-item > div {
@@ -7167,6 +7203,7 @@ p {
 
   .comment-reply {
     margin-left: 12px;
+    padding-left: 24px;
   }
 
   .account-volume-control {

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>게시글 상세 - 삐삐 길드</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=threaded-replies-20260530" />
   </head>
   <body class="post-page">
     <main class="post-shell">
@@ -832,17 +832,26 @@
           return;
         }
 
+        const commentMap = new Map(comments.map((comment) => [comment.id, comment]));
+
         comments.forEach((comment) => {
           const item = document.createElement("article");
           const head = document.createElement("div");
           const author = document.createElement("strong");
           const date = document.createElement("time");
+          const replyMeta = document.createElement("span");
           const content = document.createElement("p");
           const actions = document.createElement("div");
           const voteButton = document.createElement("button");
           const replyButton = document.createElement("button");
+          const parentComment = comment.parentId ? commentMap.get(comment.parentId) : null;
 
           item.className = comment.parentId ? "comment-item comment-reply" : "comment-item";
+          if (comment.parentId) {
+            replyMeta.className = "comment-reply-meta";
+            replyMeta.textContent = `ㄴ ${parentComment?.author || "댓글"}님에게 답글`;
+            item.append(replyMeta);
+          }
           appendNameWithRole(author, comment.author || "익명", comment.authorRole);
           date.textContent = formatKstDate(comment.createdAt);
           content.textContent = comment.content || "";
