@@ -364,7 +364,7 @@ const GuildWar = (() => {
 
   function parseGear(line) {
     const parts = String(line || "")
-      .split("/")
+      .split(/\s+\/\s+/)
       .map((part) => part.trim());
     return [...parts, "", "", "", "", ""].slice(0, 6);
   }
