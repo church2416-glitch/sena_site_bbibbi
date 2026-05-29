@@ -794,6 +794,31 @@ function sanitizeStoredMedia(media = {}) {
     videoFile: videos[0] || null,
     youtube: String(media.youtube || "").trim().slice(0, 240),
     youtubeEmbed: normalizeYoutubeEmbedUrl(media.youtubeEmbed || media.youtube),
+    pveGuide: normalizePveGuide(media.pveGuide),
+  };
+}
+
+function normalizePveGuide(value) {
+  const raw = typeof value === "string" ? safeJsonParse(value, {}) : value;
+  if (!raw || typeof raw !== "object") return null;
+  const cleanList = (items, limit, mapper) => Array.isArray(items)
+    ? items.map(mapper).filter((item) => Object.values(item).some(Boolean)).slice(0, limit)
+    : [];
+  return {
+    type: String(raw.type || "").trim().slice(0, 30),
+    boss: String(raw.boss || "").trim().slice(0, 40),
+    power: String(raw.power || "").trim().slice(0, 40),
+    formation: String(raw.formation || "").trim().slice(0, 60),
+    note: String(raw.note || "").trim().slice(0, 1000),
+    heroes: cleanList(raw.heroes, 8, (hero) => ({
+      name: String(hero?.name || "").trim().slice(0, 30),
+      role: String(hero?.role || "").trim().slice(0, 40),
+    })),
+    specs: cleanList(raw.specs, 6, (spec) => ({
+      label: String(spec?.label || "").trim().slice(0, 30),
+      value: String(spec?.value || "").trim().slice(0, 40),
+      memo: String(spec?.memo || "").trim().slice(0, 80),
+    })),
   };
 }
 
@@ -936,6 +961,7 @@ function normalizePostMedia(media = {}) {
     videoFile: normalizedVideo,
     youtube: String(media.youtube || "").trim().slice(0, 240),
     youtubeEmbed: normalizeYoutubeEmbedUrl(media.youtubeEmbed || media.youtube),
+    pveGuide: normalizePveGuide(media.pveGuide),
   };
 }
 
@@ -1098,6 +1124,7 @@ function buildUploadedPostMedia(postId, body, files = {}) {
     videos,
     youtube: String(body.youtube || "").trim().slice(0, 240),
     youtubeEmbed: normalizeYoutubeEmbedUrl(body.youtubeEmbed || body.youtube),
+    pveGuide: normalizePveGuide(body.pveGuide),
   };
 }
 

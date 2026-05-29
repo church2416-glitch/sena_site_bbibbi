@@ -369,6 +369,66 @@
         });
 
         renderPostMedia(body, guide.media || {});
+        renderPveGuide(body, guide.media?.pveGuide);
+      }
+
+      function renderPveGuide(body, guide) {
+        if (!guide || typeof guide !== "object") return;
+        const hasPayload = [guide.type, guide.boss, guide.power, guide.formation, guide.note].some(Boolean)
+          || (Array.isArray(guide.heroes) && guide.heroes.length)
+          || (Array.isArray(guide.specs) && guide.specs.length);
+        if (!hasPayload) return;
+
+        const shell = document.createElement("section");
+        const head = document.createElement("div");
+        const title = document.createElement("h2");
+        const summary = document.createElement("div");
+        const heroList = document.createElement("div");
+        const specList = document.createElement("div");
+        const note = document.createElement("p");
+
+        shell.className = "pve-guide-view";
+        head.className = "pve-guide-view-head";
+        summary.className = "pve-guide-summary";
+        heroList.className = "pve-guide-heroes";
+        specList.className = "pve-guide-specs";
+        note.className = "pve-guide-note";
+
+        title.textContent = guide.boss || "PVE 공략";
+        head.innerHTML = `<span>${guide.type || "PVE 공략"}</span>`;
+        head.prepend(title);
+        shell.append(head);
+
+        [
+          ["권장", guide.power],
+          ["배치", guide.formation],
+        ].forEach(([label, value]) => {
+          if (!value) return;
+          const item = document.createElement("span");
+          item.innerHTML = `<b>${label}</b>${value}`;
+          summary.append(item);
+        });
+        if (summary.children.length) shell.append(summary);
+
+        (guide.heroes || []).filter((hero) => hero.name || hero.role).forEach((hero) => {
+          const card = document.createElement("span");
+          card.innerHTML = `<b>${hero.name || "-"}</b><small>${hero.role || "핵심 영웅"}</small>`;
+          heroList.append(card);
+        });
+        if (heroList.children.length) shell.append(heroList);
+
+        (guide.specs || []).filter((spec) => spec.label || spec.value || spec.memo).forEach((spec) => {
+          const row = document.createElement("span");
+          row.innerHTML = `<b>${spec.label || "-"}</b><em>${spec.value || "-"}</em><small>${spec.memo || ""}</small>`;
+          specList.append(row);
+        });
+        if (specList.children.length) shell.append(specList);
+
+        if (guide.note) {
+          note.textContent = guide.note;
+          shell.append(note);
+        }
+        body.append(shell);
       }
 
       function isReservedMediaAsset(image = {}) {

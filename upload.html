@@ -67,6 +67,50 @@
             요약
             <textarea id="summaryInput" name="summary" maxlength="220" placeholder="핵심 내용을 짧게 적어주세요." required></textarea>
           </label>
+          <section class="pve-guide-editor" id="pveGuideEditor" hidden>
+            <div class="pve-editor-head">
+              <div>
+                <span>PVE 공략 전용</span>
+                <h2>레이드 공략 데이터</h2>
+              </div>
+              <small>입력한 내용은 상세페이지에서 공략 카드로 표시됩니다.</small>
+            </div>
+            <div class="pve-editor-grid">
+              <label>
+                공략 유형
+                <select data-pve-field="type">
+                  <option value="일반 레이드">일반 레이드</option>
+                  <option value="돌발 레이드">돌발 레이드</option>
+                  <option value="파괴신">파괴신</option>
+                  <option value="공성전">공성전</option>
+                </select>
+              </label>
+              <label>
+                보스 / 콘텐츠
+                <input data-pve-field="boss" type="text" maxlength="40" placeholder="레오니드, 파멸의 눈동자" />
+              </label>
+              <label>
+                권장 전투력
+                <input data-pve-field="power" type="text" maxlength="40" placeholder="20턴 SS 500만, 관우 6초 필수" />
+              </label>
+              <label>
+                배치 / 진형
+                <input data-pve-field="formation" type="text" maxlength="60" placeholder="앞열 탱커 / 뒷열 딜러 4" />
+              </label>
+            </div>
+            <div class="pve-mini-section">
+              <h3>핵심 영웅</h3>
+              <div class="pve-hero-grid" id="pveHeroGrid"></div>
+            </div>
+            <div class="pve-mini-section">
+              <h3>스펙 체크</h3>
+              <div class="pve-spec-grid" id="pveSpecGrid"></div>
+            </div>
+            <label class="pve-note-field">
+              운영 메모
+              <textarea data-pve-field="note" rows="5" maxlength="1000" placeholder="스킬 순서, 주의할 패턴, 대체 영웅 등을 적어주세요."></textarea>
+            </label>
+          </section>
           <section class="editor-box" aria-label="본문 작성기">
             <div class="editor-toolbar" aria-label="본문 도구">
               <button type="button" data-insert="## 소제목">소제목</button>
@@ -128,6 +172,10 @@
       const youtubeField = document.querySelector("#youtubeField");
       const mediaPreview = document.querySelector("#mediaPreview");
       const bodyInput = document.querySelector("#bodyInput");
+      const categoryInput = document.querySelector("#categoryInput");
+      const pveGuideEditor = document.querySelector("#pveGuideEditor");
+      const pveHeroGrid = document.querySelector("#pveHeroGrid");
+      const pveSpecGrid = document.querySelector("#pveSpecGrid");
       let imageFiles = [];
       let videoFiles = [];
       let isUploading = false;
@@ -135,6 +183,85 @@
       let draftTimer = null;
       const maxImageSize = 8 * 1024 * 1024;
       const maxVideoSize = 500 * 1024 * 1024;
+      const pveCategories = new Set(["PVE 공략", "파괴신", "공성전"]);
+
+      function createPveRows() {
+        if (pveHeroGrid && !pveHeroGrid.children.length) {
+          Array.from({ length: 5 }).forEach((_, index) => {
+            const row = document.createElement("label");
+            row.innerHTML = `
+              영웅 ${index + 1}
+              <input data-pve-hero-name="${index}" type="text" maxlength="30" placeholder="영웅 이름" />
+              <input data-pve-hero-role="${index}" type="text" maxlength="40" placeholder="역할 / 대체" />
+            `;
+            pveHeroGrid.append(row);
+          });
+        }
+        if (pveSpecGrid && !pveSpecGrid.children.length) {
+          ["공격력", "방어", "속공", "치명", "막기", "기타"].forEach((label, index) => {
+            const row = document.createElement("label");
+            row.innerHTML = `
+              ${label}
+              <input data-pve-spec-label="${index}" type="text" maxlength="30" value="${label}" />
+              <input data-pve-spec-value="${index}" type="text" maxlength="40" placeholder="권장 수치" />
+              <input data-pve-spec-memo="${index}" type="text" maxlength="80" placeholder="메모" />
+            `;
+            pveSpecGrid.append(row);
+          });
+        }
+      }
+
+      function isPveCategory() {
+        return pveCategories.has(categoryInput.value);
+      }
+
+      function togglePveEditor() {
+        if (!pveGuideEditor) return;
+        pveGuideEditor.hidden = !isPveCategory();
+      }
+
+      function readPveGuide() {
+        if (!isPveCategory()) return null;
+        const field = (name) => pveGuideEditor.querySelector(`[data-pve-field="${name}"]`)?.value.trim() || "";
+        return {
+          type: field("type"),
+          boss: field("boss"),
+          power: field("power"),
+          formation: field("formation"),
+          note: field("note"),
+          heroes: Array.from({ length: 5 }).map((_, index) => ({
+            name: pveGuideEditor.querySelector(`[data-pve-hero-name="${index}"]`)?.value.trim() || "",
+            role: pveGuideEditor.querySelector(`[data-pve-hero-role="${index}"]`)?.value.trim() || "",
+          })),
+          specs: Array.from({ length: 6 }).map((_, index) => ({
+            label: pveGuideEditor.querySelector(`[data-pve-spec-label="${index}"]`)?.value.trim() || "",
+            value: pveGuideEditor.querySelector(`[data-pve-spec-value="${index}"]`)?.value.trim() || "",
+            memo: pveGuideEditor.querySelector(`[data-pve-spec-memo="${index}"]`)?.value.trim() || "",
+          })),
+        };
+      }
+
+      function restorePveGuide(pveGuide) {
+        if (!pveGuide || typeof pveGuide !== "object") return;
+        Object.entries(pveGuide).forEach(([key, value]) => {
+          const input = pveGuideEditor.querySelector(`[data-pve-field="${key}"]`);
+          if (input && typeof value === "string") input.value = value;
+        });
+        (pveGuide.heroes || []).forEach((hero, index) => {
+          const name = pveGuideEditor.querySelector(`[data-pve-hero-name="${index}"]`);
+          const role = pveGuideEditor.querySelector(`[data-pve-hero-role="${index}"]`);
+          if (name) name.value = hero.name || "";
+          if (role) role.value = hero.role || "";
+        });
+        (pveGuide.specs || []).forEach((spec, index) => {
+          const label = pveGuideEditor.querySelector(`[data-pve-spec-label="${index}"]`);
+          const value = pveGuideEditor.querySelector(`[data-pve-spec-value="${index}"]`);
+          const memo = pveGuideEditor.querySelector(`[data-pve-spec-memo="${index}"]`);
+          if (label) label.value = spec.label || "";
+          if (value) value.value = spec.value || "";
+          if (memo) memo.value = spec.memo || "";
+        });
+      }
 
       function normalizeTags(value) {
         return value
@@ -163,6 +290,7 @@
           tags: String(formData.get("tags") || ""),
           youtube: youtubeInput.value.trim(),
           youtubeVisible: !youtubeField.hidden,
+          pveGuide: readPveGuide(),
           savedAt: new Date().toISOString(),
         };
       }
@@ -202,6 +330,8 @@
           form.elements.namedItem("tags").value = draft.tags || "";
           youtubeInput.value = draft.youtube || "";
           youtubeField.hidden = !draft.youtubeVisible && !youtubeInput.value.trim();
+          togglePveEditor();
+          restorePveGuide(draft.pveGuide);
           draftState.textContent = "임시저장 불러옴";
           renderMediaPreview();
         } catch {
@@ -323,6 +453,10 @@
       });
 
       youtubeInput.addEventListener("input", renderMediaPreview);
+      categoryInput.addEventListener("change", () => {
+        togglePveEditor();
+        scheduleDraftSave();
+      });
 
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -340,6 +474,8 @@
         formData.set("attachment", fileInput.files[0]?.name || "");
         formData.set("youtube", youtubeInput.value.trim());
         formData.set("youtubeEmbed", getYoutubeEmbed(youtubeInput.value));
+        const pveGuide = readPveGuide();
+        if (pveGuide) formData.set("pveGuide", JSON.stringify(pveGuide));
         imageFiles.forEach((file) => formData.append("images", file));
         videoFiles.forEach((file) => formData.append("videos", file));
 
@@ -373,6 +509,8 @@
         location.href = `post.html?id=${encodeURIComponent(saved.id)}`;
       });
 
+      createPveRows();
+      togglePveEditor();
       restoreDraft();
     </script>
     <script src="notification-client.js"></script>
