@@ -232,7 +232,13 @@ const importantNoticeConfirmButton = document.querySelector("#importantNoticeCon
 const importantNoticeHideTodayButton = document.querySelector("#importantNoticeHideTodayButton");
 const importantNoticeActionLink = document.querySelector("#importantNoticeActionLink");
 
+const popularBoardCategory = "__popular";
+
 const boardInfo = {
+  [popularBoardCategory]: {
+    title: "인기글",
+    desc: "추천을 받은 게시글을 모아보는 공간",
+  },
   공지사항: {
     title: "공지사항",
     desc: "운영 공지와 중요한 안내를 확인하는 게시판",
@@ -307,7 +313,10 @@ const boardCategoryGroups = {
 };
 
 const boardTabSets = {
-  overview: [{ filter: "전체", label: "전체 게시판" }],
+  overview: [
+    { filter: "전체", label: "전체 게시판" },
+    { filter: popularBoardCategory, label: "인기글" },
+  ],
   pvp: [
     { filter: "PVP 게시판", label: "PVP 게시판" },
     { filter: "PVP 공략", label: "PVP 공략" },
@@ -429,6 +438,7 @@ function normalizeBoard(value) {
 }
 
 function getBoardGroup(category) {
+  if (category === popularBoardCategory) return "overview";
   if (category === "전체") return "overview";
   return boardCategoryGroups[category] || "";
 }
@@ -1269,11 +1279,23 @@ function getFilteredGuides() {
       .toLowerCase();
     const matchesQuery = !query || haystack.includes(query);
     const guideCategory = normalizeBoard(guide.category);
-    const matchesCategory = activeCategory === "전체"
-      ? !overviewExcludedCategories.has(guideCategory)
-      : guideCategory === activeCategory;
+    const matchesCategory = activeCategory === popularBoardCategory
+      ? !overviewExcludedCategories.has(guideCategory) && Number(guide.votes || 0) > 0
+      : activeCategory === "전체"
+        ? !overviewExcludedCategories.has(guideCategory)
+        : guideCategory === activeCategory;
     return matchesQuery && matchesCategory;
   });
+
+  if (activeCategory === popularBoardCategory) {
+    return filteredGuides.sort((left, right) => {
+      const voteDiff = Number(right.votes || 0) - Number(left.votes || 0);
+      if (voteDiff) return voteDiff;
+      const viewDiff = Number(right.views || 0) - Number(left.views || 0);
+      if (viewDiff) return viewDiff;
+      return new Date(right.createdAt || 0) - new Date(left.createdAt || 0);
+    });
+  }
 
   return filteredGuides;
 }
