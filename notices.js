@@ -7,6 +7,28 @@ function formatNumber(value) {
   return new Intl.NumberFormat("ko-KR").format(Number(value) || 0);
 }
 
+const roleIconMap = {
+  superadmin: { label: "최고관리자", src: "assets/common/최고관리자.png" },
+  admin: { label: "관리자", src: "assets/common/관리자.png" },
+  elite: { label: "정예", src: "assets/common/정예.png" },
+  verified: { label: "정예", src: "assets/common/정예.png" },
+  user: { label: "일반", src: "assets/common/일반.png" },
+  blocked: { label: "기본", src: "assets/common/기본.png" },
+  default: { label: "기본", src: "assets/common/기본.png" },
+};
+
+function appendNameWithRole(target, name, role) {
+  const icon = roleIconMap[role] || roleIconMap.default;
+  const image = document.createElement("img");
+  image.className = "role-icon";
+  image.src = icon.src;
+  image.alt = icon.label;
+  image.title = icon.label;
+  image.loading = "lazy";
+  target.textContent = "";
+  target.append(image, document.createTextNode(name || "관리자"));
+}
+
 function parseNoticeDate(value) {
   const raw = String(value || "").trim();
   if (!raw) return null;
@@ -71,7 +93,7 @@ function renderNotices(items) {
     link.href = `post.html?id=${encodeURIComponent(item.id)}`;
     link.textContent = item.title || "제목 없음";
     titleCell.append(link);
-    author.textContent = item.author || item.authorUsername || "관리자";
+    appendNameWithRole(author, item.author || item.authorUsername || "관리자", item.authorRole);
     meta.textContent = `${formatDate(item.createdAt || item.date)} · 조회 ${formatNumber(item.views)}`;
     row.append(number, titleCell, author, meta);
     noticePageList.append(row);

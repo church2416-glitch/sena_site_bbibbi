@@ -757,6 +757,7 @@ function serializePost(row) {
     createdAt: row.created_at,
     author: row.author_name || row.author_username || "익명",
     authorUsername: row.author_username || "",
+    authorRole: normalizeRole(row.author_role || "user"),
   };
 }
 
@@ -808,6 +809,7 @@ function serializeComment(row) {
     updatedAt: row.updated_at,
     author: row.author_name || row.author_username || "익명",
     authorUsername: row.author_username || "",
+    authorRole: normalizeRole(row.author_role || "user"),
     postTitle: row.post_title || "",
     postCategory: row.post_category || "",
   };
@@ -1106,7 +1108,8 @@ function selectPostRows(where = "posts.status = 'published'", params = []) {
         SELECT
           posts.*,
           users.display_name AS author_name,
-          users.username AS author_username
+          users.username AS author_username,
+          users.role AS author_role
         FROM posts
         LEFT JOIN users ON users.id = posts.author_id
         WHERE ${where}
@@ -1124,6 +1127,7 @@ function selectCommentRows(where = "post_comments.status = 'published'", params 
           post_comments.*,
           users.display_name AS author_name,
           users.username AS author_username,
+          users.role AS author_role,
           posts.title AS post_title,
           posts.category AS post_category
         FROM post_comments

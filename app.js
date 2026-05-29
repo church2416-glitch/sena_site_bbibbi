@@ -537,6 +537,33 @@ function getAccountRoleLabel(user) {
   return "일반 회원";
 }
 
+const roleIconMap = {
+  superadmin: { label: "최고관리자", src: "assets/common/최고관리자.png" },
+  admin: { label: "관리자", src: "assets/common/관리자.png" },
+  elite: { label: "정예", src: "assets/common/정예.png" },
+  verified: { label: "정예", src: "assets/common/정예.png" },
+  user: { label: "일반", src: "assets/common/일반.png" },
+  blocked: { label: "기본", src: "assets/common/기본.png" },
+  guest: { label: "기본", src: "assets/common/기본.png" },
+  default: { label: "기본", src: "assets/common/기본.png" },
+};
+
+function createRoleIcon(role) {
+  const icon = roleIconMap[role] || roleIconMap.default;
+  const img = document.createElement("img");
+  img.className = "role-icon";
+  img.src = icon.src;
+  img.alt = icon.label;
+  img.title = icon.label;
+  img.loading = "lazy";
+  return img;
+}
+
+function appendNameWithRole(target, name, role) {
+  target.textContent = "";
+  target.append(createRoleIcon(role), document.createTextNode(name || "익명"));
+}
+
 function getProviderLabel(provider) {
   const labels = {
     kakao: "카카오",
@@ -805,7 +832,7 @@ async function pollNotificationsForSound() {
 async function loadAccountDashboard() {
   if (!profileModal || profileModal.hidden || !currentUser?.loggedIn) return;
 
-  setAccountText(accountName, currentUser.displayName || currentUser.username);
+  if (accountName) appendNameWithRole(accountName, currentUser.displayName || currentUser.username, currentUser.role);
   setAccountText(accountMeta, currentUser.email || getProviderLabel(currentUser.provider));
   if (accountAvatar) accountAvatar.textContent = (currentUser.displayName || currentUser.username || "?").slice(0, 1).toUpperCase();
   renderAccountPostList(accountPostList, [], "불러오는 중...", () => "");
@@ -823,7 +850,7 @@ async function loadAccountDashboard() {
     const notifications = Array.isArray(activity.notifications) ? activity.notifications : [];
     const displayName = user.displayName || user.username || currentUser.displayName || currentUser.username || "-";
 
-    setAccountText(accountName, displayName);
+    if (accountName) appendNameWithRole(accountName, displayName, user.role);
     setAccountText(accountMeta, [user.email, getProviderLabel(user.provider)].filter(Boolean).join(" · "));
     if (accountAvatar) accountAvatar.textContent = displayName.slice(0, 1).toUpperCase();
     setAccountText(accountStatPosts, formatNumber(Number(stats.postCount) || 0));
@@ -998,6 +1025,7 @@ function renderGuides() {
     const comment = document.createElement("span");
     const summary = document.createElement("p");
     const meta = document.createElement("div");
+    const author = document.createElement("span");
     const stats = document.createElement("div");
     const voteButton = document.createElement("button");
     const time = document.createElement("span");
@@ -1022,8 +1050,10 @@ function renderGuides() {
     summary.textContent = guide.summary;
     time.textContent = guide.createdAt;
     views.textContent = `조회 ${formatNumber(guide.views || guide.votes)}`;
+    appendNameWithRole(author, guide.author || guide.authorUsername || "익명", guide.authorRole);
 
     title.append(comment);
+    meta.append(author);
     [guide.game, ...guide.tags].forEach((item) => {
       const node = document.createElement("span");
       node.textContent = item;
