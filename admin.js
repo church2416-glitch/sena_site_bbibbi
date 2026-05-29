@@ -74,7 +74,7 @@ const roleDefaults = {
     canUploadMedia: true,
     canEditOwnPosts: true,
     canManageOwnComments: true,
-    canManageGuild: false,
+    canManageGuild: true,
     canAccessAdminDb: false,
     canManageUsers: false,
     canManageContent: false,
