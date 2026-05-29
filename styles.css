@@ -5454,7 +5454,7 @@ p {
 
 .gear-editor-row {
   display: grid;
-  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  grid-template-columns: repeat(6, minmax(120px, 1fr));
   gap: 10px;
   margin: 0;
   padding: 14px;
@@ -5487,11 +5487,11 @@ p {
 }
 
 .gear-editor-row .accessory-editor {
-  grid-column: span 2;
+  grid-column: span 3;
 }
 
 .gear-editor-row > input:last-child {
-  grid-column: span 2;
+  grid-column: span 3;
 }
 
 .accessory-editor {
@@ -6138,6 +6138,31 @@ p {
   background: rgba(244, 223, 127, 0.08);
   font-size: 10px;
   font-weight: 900;
+  text-align: center;
+}
+
+.table-row .gear-stack-cell {
+  display: grid;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.table-row .gear-stack-cell i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 4px 7px;
+  border: 1px solid rgba(244, 223, 127, 0.25);
+  border-radius: 5px;
+  color: #f1e4a0;
+  background: rgba(244, 223, 127, 0.08);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1.15;
   text-align: center;
 }
 

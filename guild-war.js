@@ -371,12 +371,14 @@ const GuildWar = (() => {
         String(line.armor || "").trim(),
         String(line.accessory || "").trim(),
         String(line.memo || "").trim(),
+        String(line.weapon2 || line.weaponAlt || "").trim(),
+        String(line.armor2 || line.armorAlt || "").trim(),
       ];
     }
     const parts = String(line || "")
       .split(/\s+\/\s+/)
       .map((part) => part.trim());
-    return [...parts, "", "", "", "", ""].slice(0, 6);
+    return [...parts, "", "", "", "", "", "", ""].slice(0, 8);
   }
 
   function parseAccessory(value) {
@@ -429,6 +431,8 @@ const GuildWar = (() => {
       field(form, `gearSet${index}`).value = toAdminInputValue(parts[1]);
       field(form, `gearWeapon${index}`).value = toAdminInputValue(parts[2]);
       field(form, `gearArmor${index}`).value = toAdminInputValue(parts[3]);
+      field(form, `gearWeapon2${index}`).value = toAdminInputValue(parts[6]);
+      field(form, `gearArmor2${index}`).value = toAdminInputValue(parts[7]);
       setSelectValue(field(form, `gearAccessoryType${index}`), toAdminInputValue(accessory.type));
       setSelectValue(field(form, `gearAccessoryRefine${index}`), toAdminInputValue(accessory.refine));
       setSelectValue(field(form, `gearAccessoryGrade${index}`), accessory.grade);
@@ -491,6 +495,8 @@ const GuildWar = (() => {
         set: field(form, `gearSet${index}`).value.trim(),
         weapon: field(form, `gearWeapon${index}`).value.trim(),
         armor: field(form, `gearArmor${index}`).value.trim(),
+        weapon2: field(form, `gearWeapon2${index}`).value.trim(),
+        armor2: field(form, `gearArmor2${index}`).value.trim(),
         accessory,
         memo: field(form, `gearMemo${index}`).value.trim(),
       };
@@ -729,7 +735,7 @@ const GuildWar = (() => {
   function syncAdminModeVisibility(mode) {
     const isDefense = mode === "defense";
     setText("#formationTypeLabelText", isDefense ? "진형" : "상대 진형");
-    setText("#enemyTeamLabelText", isDefense ? "방어덱" : "상대 방어대");
+    setText("#enemyTeamLabelText", isDefense ? "방어덱" : "상대 방어덱");
     setText("#enemyPositionLabelText", isDefense ? "자리 지정" : "상대 자리 지정");
     setText("#enemyPetLabelText", isDefense ? "메인펫" : "상대 펫");
     document.querySelector("#adminPlanRow")?.classList.toggle("hidden", isDefense);
@@ -817,9 +823,20 @@ const GuildWar = (() => {
       const hero = document.createElement("b");
       hero.textContent = parts[0] || "영웅";
       row.append(hero);
-      parts.slice(1, 4).forEach((part) => {
+      const setCell = document.createElement("span");
+      setCell.textContent = parts[1] || "-";
+      row.append(setCell);
+      [
+        [parts[2], parts[6]],
+        [parts[3], parts[7]],
+      ].forEach(([firstValue, secondValue]) => {
         const cell = document.createElement("span");
-        cell.textContent = part || "-";
+        const first = document.createElement("i");
+        const second = document.createElement("i");
+        cell.className = "gear-stack-cell";
+        first.textContent = firstValue || "-";
+        second.textContent = secondValue || "-";
+        cell.append(first, second);
         row.append(cell);
       });
       row.append(renderAccessoryCell(parts[4]));
@@ -875,10 +892,10 @@ const GuildWar = (() => {
     const planIndex = Math.min(Math.max(Number(activePlanIndex) || 0, 0), planCards.length - 1);
     setText("#publicModeLabel", modeLabels[mode]);
     setText("#targetSelectLabel", mode === "attack" ? "공격 대상" : "방어 대상");
-    setText("#publicDefensePanelTitle", mode === "attack" ? "상대 방어대" : "방어덱");
+    setText("#publicDefensePanelTitle", mode === "attack" ? "상대 방어덱" : "방어덱");
     setText("#publicDefensePanelSubtitle", mode === "attack" ? "공격 진형" : "진형");
     setText("#primaryFormationHint", mode === "attack" ? allyFormation.label : "권장");
-    setText("#activeCompositionLabel", planCards[planIndex].label);
+    setText("#activeCompositionLabel", allyFormation.label);
     document.querySelectorAll("[data-plan-card]").forEach((card) => {
       const isActive = Number(card.dataset.planCard) === planIndex;
       card.classList.toggle("active", isActive);

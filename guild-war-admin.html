@@ -91,7 +91,7 @@
 
           <div class="guild-form-grid" id="teamEditor">
             <label>
-              <span id="enemyTeamLabelText">상대 방어대</span>
+              <span id="enemyTeamLabelText">상대 방어덱</span>
               <div class="character-select-grid">
                 <select name="enemyHero0" data-character-select data-placeholder="1번 영웅"></select>
                 <select name="enemyHero1" data-character-select data-placeholder="2번 영웅"></select>
@@ -162,8 +162,10 @@
               <legend>장비 1</legend>
               <select name="gearHero0" data-character-select data-gear-hero readonly disabled data-placeholder="영웅"></select>
               <input name="gearSet0" maxlength="18" placeholder="세트" list="gearSetOptions" />
-              <input name="gearWeapon0" maxlength="18" placeholder="무기" />
-              <input name="gearArmor0" maxlength="18" placeholder="방어구" />
+              <input name="gearWeapon0" maxlength="18" placeholder="무기 1" />
+              <input name="gearWeapon20" maxlength="18" placeholder="무기 2" />
+              <input name="gearArmor0" maxlength="18" placeholder="방어구 1" />
+              <input name="gearArmor20" maxlength="18" placeholder="방어구 2" />
               <div class="accessory-editor">
                 <select name="gearAccessoryType0">
                   <option value="">반지</option>
@@ -197,8 +199,10 @@
               <legend>장비 2</legend>
               <select name="gearHero1" data-character-select data-gear-hero readonly disabled data-placeholder="영웅"></select>
               <input name="gearSet1" maxlength="18" placeholder="세트" list="gearSetOptions" />
-              <input name="gearWeapon1" maxlength="18" placeholder="무기" />
-              <input name="gearArmor1" maxlength="18" placeholder="방어구" />
+              <input name="gearWeapon1" maxlength="18" placeholder="무기 1" />
+              <input name="gearWeapon21" maxlength="18" placeholder="무기 2" />
+              <input name="gearArmor1" maxlength="18" placeholder="방어구 1" />
+              <input name="gearArmor21" maxlength="18" placeholder="방어구 2" />
               <div class="accessory-editor">
                 <select name="gearAccessoryType1">
                   <option value="">반지</option>
@@ -232,8 +236,10 @@
               <legend>장비 3</legend>
               <select name="gearHero2" data-character-select data-gear-hero readonly disabled data-placeholder="영웅"></select>
               <input name="gearSet2" maxlength="18" placeholder="세트" list="gearSetOptions" />
-              <input name="gearWeapon2" maxlength="18" placeholder="무기" />
-              <input name="gearArmor2" maxlength="18" placeholder="방어구" />
+              <input name="gearWeapon2" maxlength="18" placeholder="무기 1" />
+              <input name="gearWeapon22" maxlength="18" placeholder="무기 2" />
+              <input name="gearArmor2" maxlength="18" placeholder="방어구 1" />
+              <input name="gearArmor22" maxlength="18" placeholder="방어구 2" />
               <div class="accessory-editor">
                 <select name="gearAccessoryType2">
                   <option value="">반지</option>
@@ -319,7 +325,7 @@
     </main>
 
     <script src="theme.js"></script>
-    <script src="guild-war.js?v=gear-fields-20260530"></script>
+    <script src="guild-war.js?v=gear-pairs-20260530"></script>
     <script>
       const form = document.querySelector("#guildForm");
       const saveState = document.querySelector("#saveState");
