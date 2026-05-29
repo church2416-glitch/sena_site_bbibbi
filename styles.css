@@ -3477,7 +3477,7 @@ p {
 
 .notice-detail .post-body-layout {
   display: block;
-  max-width: 820px;
+  max-width: min(1040px, calc(100vw - 96px));
   margin: -44px auto 0;
 }
 
@@ -3525,7 +3525,7 @@ p {
 .notice-detail .post-nav,
 .notice-detail .post-list-section,
 .notice-detail .post-actions {
-  max-width: 820px;
+  max-width: min(1040px, calc(100vw - 96px));
   margin-inline: auto;
 }
 
