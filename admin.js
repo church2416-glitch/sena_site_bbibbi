@@ -45,6 +45,12 @@ const importantNoticeActionLabel = document.querySelector("#importantNoticeActio
 const importantNoticeActionUrl = document.querySelector("#importantNoticeActionUrl");
 const importantNoticeContent = document.querySelector("#importantNoticeContent");
 const importantNoticeSaveState = document.querySelector("#importantNoticeSaveState");
+const mainHeroForm = document.querySelector("#mainHeroForm");
+const mainHeroImageFile = document.querySelector("#mainHeroImageFile");
+const mainHeroImageName = document.querySelector("#mainHeroImageName");
+const mainHeroImageUrl = document.querySelector("#mainHeroImageUrl");
+const mainHeroInterval = document.querySelector("#mainHeroInterval");
+const mainHeroSaveState = document.querySelector("#mainHeroSaveState");
 
 const viewTitles = {
   dashboard: "대시보드",
@@ -357,6 +363,74 @@ async function saveImportantNoticeSettings(event) {
   setText(importantNoticeSaveState, "저장됨");
 }
 
+function renderMainHeroSettings(hero) {
+  if (!mainHeroForm || !hero) return;
+  mainHeroImageUrl.value = (hero.imageUrls || []).join("\n");
+  mainHeroInterval.value = Math.max(3, Math.min(20, Number(hero.intervalSeconds) || 5));
+  setText(mainHeroSaveState, "불러옴");
+}
+
+async function loadMainHeroSettings() {
+  if (!mainHeroForm) return;
+  const response = await fetch("/api/main-hero");
+  if (!response.ok) return;
+  const data = await response.json();
+  renderMainHeroSettings(data.hero);
+}
+
+async function uploadMainHeroImage() {
+  const files = [...(mainHeroImageFile?.files || [])].slice(0, 10);
+  const existingUrls = mainHeroImageUrl.value
+    .split(/\n+/)
+    .map((url) => url.trim())
+    .filter(Boolean)
+    .slice(0, 10);
+  if (!files.length) return existingUrls;
+  setText(mainHeroSaveState, "이미지 업로드 중");
+  const formData = new FormData();
+  files.forEach((file) => formData.append("images", file));
+  const response = await fetch("/api/admin/main-hero/image", {
+    method: "POST",
+    body: formData,
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || "이미지 업로드 실패");
+  }
+  const nextUrls = [...existingUrls, ...(data.imageUrls || [])].slice(0, 10);
+  mainHeroImageUrl.value = nextUrls.join("\n");
+  mainHeroImageFile.value = "";
+  if (mainHeroImageName) mainHeroImageName.textContent = `${data.imageUrls?.length || files.length}장 업로드 완료`;
+  return nextUrls;
+}
+
+async function saveMainHeroSettings(event) {
+  event.preventDefault();
+  let imageUrls;
+  try {
+    imageUrls = await uploadMainHeroImage();
+  } catch (err) {
+    setText(mainHeroSaveState, err.message || "업로드 실패");
+    return;
+  }
+  setText(mainHeroSaveState, "저장 중");
+  const response = await fetch("/api/admin/main-hero", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      imageUrls,
+      intervalSeconds: Number(mainHeroInterval.value) || 5,
+    }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    setText(mainHeroSaveState, data.error || "실패");
+    return;
+  }
+  renderMainHeroSettings(data.hero);
+  setText(mainHeroSaveState, "저장됨");
+}
+
 function renderUsers(users) {
   if (!recentUsers) return;
   recentUsers.innerHTML = "";
@@ -557,6 +631,7 @@ async function loadDashboard() {
   renderDatabaseTable(dbStatus.counts || {});
   await loadGuildSeasonSettings();
   await loadImportantNoticeSettings();
+  await loadMainHeroSettings();
   await loadManagementLists();
 }
 
@@ -587,6 +662,14 @@ importantNoticeImageFile?.addEventListener("change", () => {
   const totalKb = files.reduce((sum, file) => sum + file.size / 1024, 0);
   if (importantNoticeImageName) {
     importantNoticeImageName.textContent = files.length ? `${files.length}장 · ${formatNumber(totalKb)}KB` : "선택된 이미지 없음";
+  }
+});
+mainHeroForm?.addEventListener("submit", saveMainHeroSettings);
+mainHeroImageFile?.addEventListener("change", () => {
+  const files = [...(mainHeroImageFile.files || [])];
+  const totalKb = files.reduce((sum, file) => sum + file.size / 1024, 0);
+  if (mainHeroImageName) {
+    mainHeroImageName.textContent = files.length ? `${files.length}장 · ${formatNumber(totalKb)}KB` : "선택된 이미지 없음";
   }
 });
 

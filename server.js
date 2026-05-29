@@ -78,6 +78,11 @@ const defaultImportantNoticeSettings = {
   actionUrl: "",
   updatedAt: "",
 };
+const defaultMainHeroSettings = {
+  imageUrls: [],
+  intervalSeconds: 5,
+  updatedAt: "",
+};
 const maxPostImageSize = 25 * 1024 * 1024;
 const maxPostVideoSize = 500 * 1024 * 1024;
 const uploadRoot = path.join(__dirname, "uploads");
@@ -236,6 +241,27 @@ const uploadNoticeImage = multer({
   fileFilter(req, file, cb) {
     if (mimeFromUpload(file, "image")) return cb(null, true);
     return cb(new Error("unsupported_notice_image"));
+  },
+});
+const uploadHeroImage = multer({
+  storage: multer.diskStorage({
+    destination(req, file, cb) {
+      const directory = path.join(uploadRoot, "hero");
+      fs.mkdirSync(directory, { recursive: true });
+      cb(null, directory);
+    },
+    filename(req, file, cb) {
+      const extension = extensionFromMime(mimeFromUpload(file, "image")) || path.extname(file.originalname).slice(1) || "png";
+      cb(null, `hero-${Date.now().toString(36)}-${crypto.randomBytes(5).toString("hex")}.${extension}`);
+    },
+  }),
+  limits: {
+    fileSize: maxPostImageSize,
+    files: 10,
+  },
+  fileFilter(req, file, cb) {
+    if (mimeFromUpload(file, "image")) return cb(null, true);
+    return cb(new Error("unsupported_hero_image"));
   },
 });
 
@@ -884,6 +910,25 @@ function normalizeImportantNoticeSettings(value = {}) {
     imageUrls: imageUrls.length ? imageUrls : legacyImageUrl ? [legacyImageUrl] : [],
     actionLabel: String(value.actionLabel || "").trim().slice(0, 30),
     actionUrl: normalizeSafeUrl(value.actionUrl, { allowRelative: true }).slice(0, 500),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function getMainHeroSettings() {
+  return readSetting("mainHero", defaultMainHeroSettings);
+}
+
+function normalizeMainHeroSettings(value = {}) {
+  const imageUrls = Array.isArray(value.imageUrls)
+    ? value.imageUrls
+      .map((url) => normalizeSafeUrl(url, { allowRelative: true, allowImagesOnly: true }).slice(0, 500))
+      .filter(Boolean)
+      .slice(0, 10)
+    : [];
+  const intervalSeconds = Math.max(3, Math.min(20, Number(value.intervalSeconds) || defaultMainHeroSettings.intervalSeconds));
+  return {
+    imageUrls,
+    intervalSeconds,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -2707,6 +2752,10 @@ app.get("/api/important-notice", (req, res) => {
   res.json({ ok: true, notice: settings });
 });
 
+app.get("/api/main-hero", (req, res) => {
+  res.json({ ok: true, hero: getMainHeroSettings() });
+});
+
 app.patch("/api/admin/guild-war/season", requireGuildManager, (req, res) => {
   const totalRound = Math.max(1, Math.min(365, Number(req.body.totalRound) || defaultGuildSeasonSettings.totalRound));
   const round = Math.max(0, Math.min(totalRound, Number(req.body.round) || 0));
@@ -2730,6 +2779,12 @@ app.patch("/api/admin/important-notice", requireContentManager, (req, res) => {
   res.json({ ok: true, notice: settings });
 });
 
+app.patch("/api/admin/main-hero", requireContentManager, (req, res) => {
+  const settings = normalizeMainHeroSettings(req.body || {});
+  writeSetting("mainHero", settings);
+  res.json({ ok: true, hero: settings });
+});
+
 app.post("/api/admin/important-notice/image", requireContentManager, (req, res) => {
   uploadNoticeImage.array("images", 6)(req, res, (err) => {
     if (err) {
@@ -2751,6 +2806,32 @@ app.post("/api/admin/important-notice/image", requireContentManager, (req, res) 
     res.status(201).json({
       ok: true,
       imageUrls: files.map((file) => `/uploads/notices/${file.filename}`),
+      fileNames: files.map((file) => file.originalname),
+    });
+  });
+});
+
+app.post("/api/admin/main-hero/image", requireContentManager, (req, res) => {
+  uploadHeroImage.array("images", 10)(req, res, (err) => {
+    if (err) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(413).json({ error: "이미지는 25MB 이하로 업로드해주세요." });
+      }
+      return res.status(400).json({ error: "이미지 파일만 업로드할 수 있습니다." });
+    }
+    const files = req.files || [];
+    if (!files.length) {
+      return res.status(400).json({ error: "업로드할 이미지가 없습니다." });
+    }
+    try {
+      files.forEach((file) => assertUploadedFile(file, "image"));
+    } catch {
+      cleanupUploadedFiles({ images: files });
+      return res.status(400).json({ error: "업로드 이미지 형식이 올바르지 않습니다." });
+    }
+    res.status(201).json({
+      ok: true,
+      imageUrls: files.map((file) => `/uploads/hero/${file.filename}`),
       fileNames: files.map((file) => file.originalname),
     });
   });

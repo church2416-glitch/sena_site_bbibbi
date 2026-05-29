@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>삣삐이 온다</title>
-    <link rel="stylesheet" href="styles.css?v=pve-tabs-20260530" />
+    <link rel="stylesheet" href="styles.css?v=hero-slider-20260530" />
   </head>
   <body>
     <header class="board-mode-topbar">
@@ -103,6 +103,9 @@
             <span>삣삐 커뮤니티</span>
             <a href="guild-war.html">길드전 가이드 보기</a>
           </div>
+          <button class="hero-slide-button prev" id="heroPrevButton" type="button" aria-label="이전 배너" hidden>‹</button>
+          <button class="hero-slide-button next" id="heroNextButton" type="button" aria-label="다음 배너" hidden>›</button>
+          <div class="hero-slide-dots" id="heroSlideDots" aria-label="배너 선택" hidden></div>
         </section>
 
         <div class="category-strip" aria-label="게시판 분류">
@@ -379,6 +382,6 @@
     </div>
 
     <script src="theme.js"></script>
-    <script src="app.js?v=top-notifications-20260530"></script>
+    <script src="app.js?v=hero-slider-20260530"></script>
   </body>
 </html>

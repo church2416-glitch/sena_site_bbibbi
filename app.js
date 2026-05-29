@@ -159,6 +159,9 @@ const heroKicker = document.querySelector(".hero-copy p");
 const heroTitle = document.querySelector(".hero-copy h1");
 const heroSubtitle = document.querySelector(".hero-copy span");
 const heroAction = document.querySelector(".hero-copy a");
+const heroPrevButton = document.querySelector("#heroPrevButton");
+const heroNextButton = document.querySelector("#heroNextButton");
+const heroSlideDots = document.querySelector("#heroSlideDots");
 const loginModal = document.querySelector("#loginModal");
 const signupModal = document.querySelector("#signupModal");
 const profileModal = document.querySelector("#profileModal");
@@ -343,6 +346,83 @@ const heroModes = {
     href: "upload.html",
   },
 };
+let mainHeroSettings = {
+  imageUrls: [],
+  intervalSeconds: 5,
+};
+let heroSlideIndex = 0;
+let heroSlideTimer = null;
+
+function getMainHeroSlides() {
+  return mainHeroSettings.imageUrls?.length ? mainHeroSettings.imageUrls : [heroModes.overview.image];
+}
+
+function stopHeroSlider() {
+  if (heroSlideTimer) {
+    clearInterval(heroSlideTimer);
+    heroSlideTimer = null;
+  }
+}
+
+function setHeroSlide(index, { restart = true } = {}) {
+  const slides = getMainHeroSlides();
+  if (!slides.length) return;
+  heroSlideIndex = (index + slides.length) % slides.length;
+  if (heroImage) heroImage.src = slides[heroSlideIndex];
+  if (heroSlideDots) {
+    [...heroSlideDots.children].forEach((button, dotIndex) => {
+      button.classList.toggle("active", dotIndex === heroSlideIndex);
+    });
+  }
+  if (restart) startHeroSlider();
+}
+
+function renderHeroSliderControls() {
+  const slides = getMainHeroSlides();
+  const enabled = slides.length > 1 && getBoardGroup(activeCategory) !== "pvp" && getBoardGroup(activeCategory) !== "pve";
+  if (heroPrevButton) heroPrevButton.hidden = !enabled;
+  if (heroNextButton) heroNextButton.hidden = !enabled;
+  if (!heroSlideDots) return;
+  heroSlideDots.hidden = !enabled;
+  heroSlideDots.innerHTML = "";
+  if (!enabled) return;
+  slides.forEach((_, index) => {
+    const dot = document.createElement("button");
+    dot.type = "button";
+    dot.className = "hero-slide-dot";
+    dot.setAttribute("aria-label", `${index + 1}번 배너 보기`);
+    dot.addEventListener("click", () => setHeroSlide(index));
+    heroSlideDots.append(dot);
+  });
+}
+
+function startHeroSlider() {
+  stopHeroSlider();
+  const slides = getMainHeroSlides();
+  const activeGroup = getBoardGroup(activeCategory) || "overview";
+  if (activeGroup !== "overview" || slides.length < 2) return;
+  heroSlideTimer = setInterval(() => {
+    setHeroSlide(heroSlideIndex + 1, { restart: false });
+  }, Math.max(3, Number(mainHeroSettings.intervalSeconds) || 5) * 1000);
+}
+
+async function loadMainHeroSettings() {
+  try {
+    const response = await fetch("/api/main-hero");
+    if (!response.ok) return;
+    const data = await response.json();
+    mainHeroSettings = {
+      imageUrls: Array.isArray(data.hero?.imageUrls) ? data.hero.imageUrls : [],
+      intervalSeconds: Number(data.hero?.intervalSeconds) || 5,
+    };
+    if ((getBoardGroup(activeCategory) || "overview") === "overview") {
+      renderHeroSliderControls();
+      setHeroSlide(0);
+    }
+  } catch {
+    // Keep the bundled default hero image.
+  }
+}
 
 function normalizeBoard(value) {
   return boardAliases[value] || value;
@@ -396,7 +476,13 @@ function renderHeroMode() {
   mainArea?.classList.toggle("board-page-mode", isBoardMode);
   hero?.classList.toggle("board-hero", isBoardMode);
 
-  if (heroImage) heroImage.src = mode.image;
+  renderHeroSliderControls();
+  if (isBoardMode) {
+    stopHeroSlider();
+    if (heroImage) heroImage.src = mode.image;
+  } else {
+    setHeroSlide(heroSlideIndex, { restart: true });
+  }
   if (heroKicker) heroKicker.textContent = mode.kicker;
   if (heroTitle) heroTitle.textContent = mode.title;
   if (heroSubtitle) heroSubtitle.textContent = mode.subtitle;
@@ -1623,6 +1709,8 @@ notificationSoundButton?.addEventListener("click", toggleNotificationSound);
 notificationSoundTestButton?.addEventListener("click", testNotificationSound);
 notificationVolumeInput?.addEventListener("input", () => changeNotificationVolume(notificationVolumeInput.value));
 notificationVolumeInput?.addEventListener("change", () => changeNotificationVolume(notificationVolumeInput.value, true));
+heroPrevButton?.addEventListener("click", () => setHeroSlide(heroSlideIndex - 1));
+heroNextButton?.addEventListener("click", () => setHeroSlide(heroSlideIndex + 1));
 logoutButton?.addEventListener("click", logout);
 document.addEventListener("click", () => {
   if (!notificationPanel?.hidden) toggleNotificationPanel(false);
@@ -1669,4 +1757,5 @@ window.addEventListener("focus", () => {
 
 fetchCurrentUser().then(renderAuthState);
 loadGuidesFromServer().then(renderGuides);
+loadMainHeroSettings();
 loadImportantNotice();

@@ -1542,6 +1542,60 @@ textarea:focus {
   object-fit: cover;
 }
 
+.hero-slide-button {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 46px;
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.36);
+  border-radius: 8px;
+  color: #fff;
+  background: rgba(5, 6, 12, 0.58);
+  font-size: 26px;
+  font-weight: 900;
+  transform: translateY(-50%);
+}
+
+.hero-slide-button.prev {
+  left: 14px;
+}
+
+.hero-slide-button.next {
+  right: 14px;
+}
+
+.hero-slide-button:hover {
+  border-color: rgba(var(--theme-light-rgb), 0.72);
+  background: rgba(var(--theme-dark-rgb), 0.72);
+}
+
+.hero-slide-dots {
+  position: absolute;
+  z-index: 3;
+  right: 18px;
+  bottom: 14px;
+  display: flex;
+  gap: 7px;
+}
+
+.hero-slide-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.hero-slide-dot.active {
+  border-color: var(--accent-strong);
+  background: var(--accent-strong);
+  box-shadow: 0 0 14px rgba(var(--theme-light-rgb), 0.72);
+}
+
 .hero-shade {
   background:
     linear-gradient(90deg, rgba(6, 6, 13, 0.95), rgba(6, 6, 13, 0.4) 46%, rgba(6, 6, 13, 0.1)),
