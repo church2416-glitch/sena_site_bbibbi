@@ -76,6 +76,21 @@ const GuildWar = (() => {
       },
     },
   };
+  const accessoryRefineAliases = {
+    불권: "불사세공",
+    권불: "불사세공",
+    불부: "불사세공",
+    불기: "불사세공",
+    부불: "부활세공",
+    부권: "부활세공",
+    권기: "권능세공",
+    권부: "권능세공",
+    권능: "권능세공",
+    기합: "기합세공",
+    철벽: "철벽세공",
+    불사: "불사세공",
+    부활: "부활세공",
+  };
 
   const petCatalog = ["루", "크리", "이린", "리첼", "파이크", "델로", "윈디", "제브", "유", "요랑", "연지", "카람", "제오", "멜페로"];
   const petImages = Object.fromEntries(petCatalog.map((name) => [name, `assets/pet/${name}.png`]));
@@ -317,9 +332,15 @@ const GuildWar = (() => {
     const refineMatch = text.match(/\(([^)]+)\)$/);
     return {
       type,
-      refine: refineMatch ? refineMatch[1].trim() : "-",
+      refine: normalizeAccessoryRefine(refineMatch ? refineMatch[1].trim() : "-"),
       grade: gradeMatch ? gradeMatch[1] : "",
     };
+  }
+
+  function normalizeAccessoryRefine(value) {
+    const refine = String(value || "").trim();
+    if (!refine || refine === "-") return refine;
+    return accessoryRefineAliases[refine] || refine;
   }
 
   function toAdminInputValue(value) {
@@ -339,7 +360,8 @@ const GuildWar = (() => {
   function formatAccessory(type, refine, grade) {
     if (!type || type === "-") return "-";
     const gradeText = grade ? ` ${formatAccessoryGrade(grade)}` : "";
-    const refineText = refine && refine !== "-" ? ` (${refine})` : "";
+    const normalizedRefine = normalizeAccessoryRefine(refine);
+    const refineText = normalizedRefine && normalizedRefine !== "-" ? ` (${normalizedRefine})` : "";
     return `${type}${gradeText}${refineText}`;
   }
 
