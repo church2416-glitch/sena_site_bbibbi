@@ -19,8 +19,8 @@
           <a href="index.html"><span>⌂</span>홈</a>
           <a href="notices.html"><span>▦</span>공지사항</a>
           <a href="index.html?board=전체" data-board-link="전체"><span>★</span>전체 게시판</a>
-          <a href="index.html?board=PVP 게시판" data-board-link="PVP 게시판"><span>✹</span>PVP 게시판</a>
-          <a href="index.html?board=PVE 공략" data-board-link="PVE 공략"><span>✦</span>PVE 공략</a>
+          <a href="index.html?board=PVP 게시판" data-board-link="PVP 게시판" data-board-group="pvp"><span>✹</span>PVP 게시판</a>
+          <a href="index.html?board=PVE 공략" data-board-link="PVE 공략" data-board-group="pve"><span>✦</span>PVE 게시판</a>
           <a href="upload.html" target="_blank" rel="noopener"><span>✦</span>공략 업로드</a>
           <a id="adminDashboardLink" href="admin.html" hidden><span>▣</span>관리자 DB</a>
           <a href="index.html?board=임시 채널1" data-board-link="임시 채널1"><span>⌬</span>임시 채널1</a>
@@ -79,16 +79,13 @@
         </section>
 
         <div class="category-strip" aria-label="게시판 분류">
-          <button class="active" type="button" data-filter="전체">전체 게시판</button>
-          <button type="button" data-filter="PVP 게시판">PVP 게시판</button>
-          <button type="button" data-filter="PVE 공략">PVE 공략</button>
-          <button type="button" data-filter="파괴신">파괴신</button>
-          <button type="button" data-filter="공성전">공성전</button>
-          <button type="button" data-filter="기술">기술</button>
-          <button type="button" data-filter="잡담">잡담</button>
-          <button type="button" data-filter="유머">유머</button>
-          <button type="button" data-filter="임시 채널1">임시 채널1</button>
-          <button type="button" data-filter="임시 채널2">임시 채널2</button>
+          <button class="active" type="button" data-filter="전체" data-filter-group="overview">전체 게시판</button>
+          <button type="button" data-filter="PVP 게시판" data-filter-group="pvp">PVP 게시판</button>
+          <button type="button" data-filter="PVP 공략" data-filter-group="pvp">PVP 공략</button>
+          <button type="button" data-filter="PVE 공략" data-filter-group="pve">PVE 공략</button>
+          <button type="button" data-filter="파괴신" data-filter-group="pve">파괴신</button>
+          <button type="button" data-filter="공성전" data-filter-group="pve">공성전</button>
+          <button type="button" data-filter="기술" data-filter-group="pve">기술</button>
         </div>
 
         <section class="feed-card" id="guides">

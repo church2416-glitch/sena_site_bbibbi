@@ -271,8 +271,21 @@ const boardAliases = {
   "아이템 고급": "임시 채널2",
 };
 const overviewExcludedCategories = new Set(["공지사항"]);
+const boardCategoryGroups = {
+  "PVP 게시판": "pvp",
+  "PVP 공략": "pvp",
+  "PVE 공략": "pve",
+  파괴신: "pve",
+  공성전: "pve",
+  기술: "pve",
+};
 function normalizeBoard(value) {
   return boardAliases[value] || value;
+}
+
+function getBoardGroup(category) {
+  if (category === "전체") return "overview";
+  return boardCategoryGroups[category] || "";
 }
 
 let activeCategory = boardInfo[normalizeBoard(initialBoard)] && normalizeBoard(initialBoard) !== "공지사항"
@@ -1001,10 +1014,18 @@ function renderGuides() {
   boardDesc.textContent = currentBoard.desc;
   boardCount.textContent = `${visibleGuides.length}개`;
   sideBoardLinks.forEach((link) => {
-    link.classList.toggle("active", link.dataset.boardLink === activeCategory);
+    const linkBoard = normalizeBoard(link.dataset.boardLink);
+    const linkGroup = link.dataset.boardGroup || getBoardGroup(linkBoard);
+    const isActive = linkBoard === activeCategory || (linkGroup && linkGroup === getBoardGroup(activeCategory));
+    link.classList.toggle("active", isActive);
   });
   categoryButtons.forEach((button) => {
-    button.classList.toggle("active", button.dataset.filter === activeCategory);
+    const filter = normalizeBoard(button.dataset.filter);
+    const filterGroup = button.dataset.filterGroup || getBoardGroup(filter);
+    const activeGroup = getBoardGroup(activeCategory) || "overview";
+    const isVisible = filterGroup === activeGroup;
+    button.hidden = !isVisible;
+    button.classList.toggle("active", filter === activeCategory);
   });
   renderBoardPulse(visibleGuides);
 
