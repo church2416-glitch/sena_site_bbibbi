@@ -249,8 +249,18 @@ button {
 
 .brand {
   display: grid;
-  gap: 4px;
+  grid-template-columns: auto 1fr;
+  gap: 4px 9px;
+  align-items: center;
   padding: 0 6px;
+}
+
+.site-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  grid-row: 1 / span 3;
+  filter: drop-shadow(0 0 10px rgba(var(--theme-mid-rgb), 0.35));
 }
 
 .brand-kicker {
@@ -1900,15 +1910,10 @@ p {
   text-decoration: none;
 }
 
-.notice-page-brand span {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.notice-page-brand .site-logo {
   width: 22px;
   height: 22px;
-  border-radius: 6px;
-  color: #061310;
-  background: #6fe0cd;
+  grid-row: auto;
 }
 
 .notice-page-topbar nav a {
@@ -2795,15 +2800,10 @@ p {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.admin-brand span {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.admin-brand .site-logo {
   width: 34px;
   height: 34px;
-  border-radius: 50%;
-  background: #ff342f;
-  font-weight: 900;
+  flex: 0 0 34px;
 }
 
 .admin-brand strong {
