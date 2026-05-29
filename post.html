@@ -20,6 +20,7 @@
           <span class="status" id="postCategory"></span>
           <h1 id="postTitle"></h1>
           <p id="postSummary"></p>
+          <div class="notice-hero-meta" id="noticeHeroMeta" hidden></div>
           <div class="post-owner-actions" id="postOwnerActions" hidden>
             <button id="postEditButton" type="button">수정</button>
             <button id="postDeleteButton" type="button">삭제</button>
@@ -74,7 +75,7 @@
               <div class="post-content" id="postBody"></div>
             </section>
 
-            <section class="post-section">
+            <section class="post-section post-tags-section">
               <h2>태그</h2>
               <div class="post-tags" id="postTags"></div>
             </section>
@@ -160,6 +161,10 @@
       };
       function normalizeBoard(value) {
         return boardAliases[value] || value;
+      }
+
+      function isNoticePost(post) {
+        return normalizeBoard(post?.category) === "공지사항";
       }
 
       function formatNumber(value) {
@@ -690,6 +695,16 @@
         });
       }
 
+      function getRelatedPostSet(guides, guide) {
+        const relatedPosts = isNoticePost(guide) ? guides.filter(isNoticePost) : guides;
+        const index = relatedPosts.findIndex((item) => item.id === guide.id);
+        return {
+          posts: relatedPosts,
+          prevPost: index >= 0 ? relatedPosts[index - 1] || null : null,
+          nextPost: index >= 0 ? relatedPosts[index + 1] || null : null,
+        };
+      }
+
       function renderComments(comments) {
         const list = document.querySelector("#commentList");
         list.innerHTML = "";
@@ -796,6 +811,8 @@
       }
 
       function hydratePost(guide) {
+        const isNotice = isNoticePost(guide);
+        document.querySelector("#postCard")?.classList.toggle("notice-detail", isNotice);
         document.title = `${guide.title} - 삐삐 길드`;
         setText("#postCategory", normalizeBoard(guide.category) || "게시글");
         setText("#postTitle", guide.title || "제목 없음");
@@ -808,6 +825,17 @@
         setText("#sideAuthor", `작성자 ${guide.author || guide.displayName || "익명"}`);
         setText("#sideCategory", normalizeBoard(guide.category) || "게시판");
         setText("#sideViews", `조회 ${formatNumber(guide.views)}`);
+        const noticeHeroMeta = document.querySelector("#noticeHeroMeta");
+        if (noticeHeroMeta) {
+          noticeHeroMeta.hidden = !isNotice;
+          noticeHeroMeta.textContent = isNotice ? `${guide.createdAt || "날짜 없음"} · VIEW ${formatNumber(guide.views)}` : "";
+        }
+        const listTitle = document.querySelector(".post-list-section .section-title h2");
+        const listDesc = document.querySelector(".post-list-section .section-title p");
+        if (listTitle) listTitle.textContent = isNotice ? "공지사항 목록" : "게시글 목록";
+        if (listDesc) listDesc.textContent = isNotice ? "다른 공지사항을 확인해보세요." : "다른 게시글도 이어서 확인해보세요.";
+        const backLink = document.querySelector(".post-actions a");
+        if (backLink && isNotice) backLink.href = "notices.html";
         renderPostBody(guide);
 
         const tagBox = document.querySelector("#postTags");
@@ -831,7 +859,7 @@
         syncPostOwnerActions();
       }
 
-      Promise.all([loadCurrentUser(), loadPostData()]).then(([, { post: guide, posts: guides, prevPost, nextPost }]) => {
+      Promise.all([loadCurrentUser(), loadPostData()]).then(([, { post: guide, posts: guides }]) => {
         if (!guide) {
           document.querySelector("#notFound").hidden = false;
           return;
@@ -840,10 +868,12 @@
         currentPost = guide;
         postVoted = Boolean(guide.voted);
         hydratePost(guide);
+        const isNotice = isNoticePost(guide);
+        const related = getRelatedPostSet(guides || [], guide);
 
-        bindSiblingPost("#prevPost", "이전 글", prevPost);
-        bindSiblingPost("#nextPost", "다음 글", nextPost);
-        renderCompactList(guides, guide.id);
+        bindSiblingPost("#prevPost", "이전 글", related.prevPost);
+        bindSiblingPost("#nextPost", "다음 글", related.nextPost);
+        renderCompactList(related.posts, guide.id);
         document.querySelector("#postCard").hidden = false;
         document.querySelector("#postVoteButton")?.addEventListener("click", togglePostVote);
         document.querySelector("#postEditButton")?.addEventListener("click", openPostEditor);
@@ -867,8 +897,10 @@
           editVideoFiles = selected.filter((file) => file.size <= maxVideoSize);
           renderEditMediaPreview();
         });
-        document.querySelector("#commentForm")?.addEventListener("submit", submitComment);
-        loadComments();
+        if (!isNotice) {
+          document.querySelector("#commentForm")?.addEventListener("submit", submitComment);
+          loadComments();
+        }
       });
     </script>
     <script src="notification-client.js"></script>
