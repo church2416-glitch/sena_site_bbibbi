@@ -2029,6 +2029,14 @@ p {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
+.pve-hero-grid.is-two-rounds {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.pve-hero-grid label[hidden] {
+  display: none;
+}
+
 .pve-spec-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }

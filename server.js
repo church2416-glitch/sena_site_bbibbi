@@ -815,7 +815,7 @@ function normalizePveGuide(value) {
     winPlan: String(raw.winPlan || "").trim().slice(0, 80),
     caution: String(raw.caution || "").trim().slice(0, 400),
     note: String(raw.note || "").trim().slice(0, 1000),
-    heroes: cleanList(raw.heroes, 8, (hero) => ({
+    heroes: cleanList(raw.heroes, 10, (hero) => ({
       name: String(hero?.name || "").trim().slice(0, 30),
       role: String(hero?.role || "").trim().slice(0, 40),
       accessory: String(hero?.accessory || "").trim().slice(0, 20),

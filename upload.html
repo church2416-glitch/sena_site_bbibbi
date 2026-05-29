@@ -364,12 +364,14 @@
           input.placeholder = config.heroRolePlaceholder;
         });
         resetEmptySpecLabels(mode);
+        updateStrategyHeroSlots();
       }
 
       function createPveRows() {
         if (pveHeroGrid && !pveHeroGrid.children.length) {
-          Array.from({ length: 5 }).forEach((_, index) => {
+          Array.from({ length: 10 }).forEach((_, index) => {
             const row = document.createElement("label");
+            row.dataset.pveHeroRow = String(index);
             row.innerHTML = `
               영웅 ${index + 1}
               <select data-pve-hero-name="${index}"></select>
@@ -399,6 +401,25 @@
         }
       }
 
+      function getStrategyHeroCount() {
+        const mode = getStrategyMode();
+        if (mode !== "pve") return 5;
+        const type = strategyTypeInput?.value || "";
+        return ["파괴신", "공성전"].includes(categoryInput.value) || ["파괴신", "공성전"].includes(type) ? 10 : 5;
+      }
+
+      function updateStrategyHeroSlots() {
+        if (!pveHeroGrid) return;
+        const count = getStrategyHeroCount();
+        pveHeroGrid.classList.toggle("is-two-rounds", count === 10);
+        pveHeroGrid.querySelectorAll("[data-pve-hero-row]").forEach((row, index) => {
+          row.hidden = index >= count;
+          const round = index < 5 ? "1라운드" : "2라운드";
+          const slot = (index % 5) + 1;
+          row.childNodes[0].textContent = count === 10 ? `${round} 영웅 ${slot}` : `영웅 ${slot}`;
+        });
+      }
+
       function isPveCategory() {
         return strategyCategories.has(categoryInput.value);
       }
@@ -414,6 +435,7 @@
         const mode = getStrategyMode();
         if (!mode) return null;
         const field = (name) => pveGuideEditor.querySelector(`[data-pve-field="${name}"]`)?.value.trim() || "";
+        const heroCount = getStrategyHeroCount();
         return {
           mode,
           type: field("type"),
@@ -425,7 +447,7 @@
           winPlan: field("winPlan"),
           caution: field("caution"),
           note: field("note"),
-          heroes: Array.from({ length: 5 }).map((_, index) => ({
+          heroes: Array.from({ length: heroCount }).map((_, index) => ({
             name: pveGuideEditor.querySelector(`[data-pve-hero-name="${index}"]`)?.value.trim() || "",
             role: pveGuideEditor.querySelector(`[data-pve-hero-role="${index}"]`)?.value.trim() || "",
             accessory: pveGuideEditor.querySelector(`[data-pve-hero-accessory="${index}"]`)?.value.trim() || "",
@@ -466,6 +488,7 @@
           if (value) value.value = spec.value || "";
           if (memo) memo.value = spec.memo || "";
         });
+        updateStrategyHeroSlots();
       }
 
       function normalizeTags(value) {
@@ -660,6 +683,10 @@
       youtubeInput.addEventListener("input", renderMediaPreview);
       categoryInput.addEventListener("change", () => {
         togglePveEditor();
+        scheduleDraftSave();
+      });
+      strategyTypeInput?.addEventListener("change", () => {
+        updateStrategyHeroSlots();
         scheduleDraftSave();
       });
 
