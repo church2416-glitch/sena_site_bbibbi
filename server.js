@@ -1251,6 +1251,30 @@ function sanitizeStoredMedia(media = {}) {
   };
 }
 
+function normalizePveAccessoryRefine(value) {
+  const refine = String(value || '').trim();
+  const aliases = {
+    권불: '불사세공',
+    불권: '불사세공',
+    불부: '불사세공',
+    불기: '불사세공',
+    부불: '부활세공',
+    부권: '부활세공',
+    불부활: '부활세공',
+    권기: '권능세공',
+    기권: '권능세공',
+    권부: '권능세공',
+    권능: '권능세공',
+    부활: '부활세공',
+    불사: '불사세공',
+    기합: '기합세공',
+    철벽: '철벽세공',
+    세공: '',
+    없음: '-',
+  };
+  return aliases[refine] || refine;
+}
+
 function normalizePveGuide(value) {
   const raw = typeof value === "string" ? safeJsonParse(value, {}) : value;
   if (!raw || typeof raw !== "object") return null;
@@ -1274,7 +1298,7 @@ function normalizePveGuide(value) {
       name: String(hero?.name || "").trim().slice(0, 30),
       role: String(hero?.role || "").trim().slice(0, 40),
       accessory: String(hero?.accessory || "").trim().slice(0, 20),
-      refine: String(hero?.refine || "").trim().slice(0, 20),
+      refine: normalizePveAccessoryRefine(hero?.refine).slice(0, 20),
       grade: String(hero?.grade || "").trim().slice(0, 10),
     })),
     specs: cleanList(raw.specs, 6, (spec) => ({
