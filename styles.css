@@ -4093,12 +4093,21 @@ p {
 }
 
 .mention-token {
-  display: inline-block;
-  padding: 1px 6px;
-  border-radius: 999px;
-  color: var(--theme-hot);
-  background: rgba(var(--theme-hot-rgb), 0.14);
-  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 2px 8px;
+  border: 1px solid rgba(90, 162, 255, 0.72);
+  border-radius: 6px;
+  color: #eaf4ff;
+  background:
+    linear-gradient(135deg, rgba(30, 106, 255, 0.9), rgba(66, 183, 255, 0.72)),
+    rgba(44, 126, 255, 0.9);
+  box-shadow: 0 0 14px rgba(70, 150, 255, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  font-size: 0.94em;
+  font-weight: 1000;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .mention-suggest-panel {
