@@ -408,7 +408,8 @@
           .replace(/\^(.+?)\^/g, "<sup>$1</sup>")
           .replace(/`(.+?)`/g, "<code>$1</code>")
           .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
-          .replace(/\{color:([#a-zA-Z0-9(),.%\s-]+)\}(.+?)\{\/color\}/g, '<span style="color:$1">$2</span>');
+          .replace(/\{color:([#a-zA-Z0-9(),.%\s-]+)\}(.+?)\{\/color\}/g, '<span style="color:$1">$2</span>')
+          .replace(/(^|[\s([{<])@([가-힣A-Za-z0-9_-]{1,30})/g, '$1<span class="mention-token">@$2</span>');
       }
 
       function renderRichText(source) {

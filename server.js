@@ -1456,11 +1456,13 @@ function selectMentionUsersByName(token, actorId) {
           AND (
             username = ? COLLATE NOCASE
             OR display_name = ?
+            OR username LIKE ? COLLATE NOCASE
+            OR display_name LIKE ?
           )
         LIMIT 10
       `,
     )
-    .all(actorId, name, name)
+    .all(actorId, name, name, `${name}%`, `${name}%`)
     .filter(isMentionVisibleUser);
 }
 
