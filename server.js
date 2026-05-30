@@ -389,6 +389,134 @@ function getPublicUser(req) {
   };
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function renderAccessDeniedPage(message, detail = "현재 계정으로는 이 화면을 열 수 없습니다.") {
+  const safeMessage = escapeHtml(message);
+  const safeDetail = escapeHtml(detail);
+  return `<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>접근 권한 안내 - bbitsena</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #05060b;
+        --panel: rgba(13, 14, 23, 0.88);
+        --line: rgba(148, 116, 255, 0.22);
+        --line-strong: rgba(108, 231, 210, 0.48);
+        --text: #f3f0ff;
+        --muted: #9a96b3;
+        --accent: #6ce7d2;
+        --purple: #8b5cf6;
+      }
+      * { box-sizing: border-box; }
+      body {
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 24px;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 50% 20%, rgba(108, 231, 210, 0.13), transparent 26rem),
+          radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.18), transparent 30rem),
+          var(--bg);
+        font-family: "Pretendard", "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+      .access-card {
+        width: min(440px, 100%);
+        padding: 34px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--panel);
+        box-shadow: 0 28px 90px rgba(0, 0, 0, 0.46);
+        text-align: center;
+        backdrop-filter: blur(18px);
+      }
+      .access-mark {
+        display: grid;
+        place-items: center;
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 18px;
+        border: 1px solid var(--line-strong);
+        border-radius: 50%;
+        color: #06100f;
+        background: var(--accent);
+        box-shadow: 0 0 26px rgba(108, 231, 210, 0.34);
+        font-size: 24px;
+        font-weight: 1000;
+      }
+      h1 {
+        margin: 0;
+        font-size: 26px;
+        letter-spacing: 0;
+      }
+      p {
+        margin: 12px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.7;
+      }
+      .access-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 26px;
+      }
+      a, button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--text);
+        background: rgba(18, 20, 33, 0.82);
+        font: inherit;
+        font-size: 13px;
+        font-weight: 900;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      a.primary {
+        border-color: rgba(108, 231, 210, 0.68);
+        color: #06100f;
+        background: var(--accent);
+      }
+      small {
+        display: block;
+        margin-top: 18px;
+        color: rgba(154, 150, 179, 0.72);
+        font-size: 11px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="access-card">
+      <div class="access-mark">!</div>
+      <h1>${safeMessage}</h1>
+      <p>${safeDetail}</p>
+      <div class="access-actions">
+        <button type="button" onclick="history.length > 1 ? history.back() : location.href='/'">뒤로가기</button>
+        <a class="primary" href="/">메인으로</a>
+      </div>
+      <small>bbitsena access control</small>
+    </main>
+  </body>
+</html>`;
+}
+
 function requireMemberForPrivatePages(req, res, next) {
   if (req.method !== "GET" && req.method !== "HEAD") return next();
 
@@ -405,19 +533,19 @@ function requireMemberForPrivatePages(req, res, next) {
   if (requestPath === "/notice-upload.html") {
     if (!session) return res.redirect("/?login=required");
     const user = findUserByUsername(session.username);
-    if (!user || !hasRole(user, "admin")) return res.status(403).send("관리자 권한이 필요합니다.");
+    if (!user || !hasRole(user, "admin")) return res.status(403).send(renderAccessDeniedPage("관리자 권한이 필요합니다.", "공지 작성은 관리자 이상만 사용할 수 있습니다."));
     return next();
   }
   if (requestPath === "/admin.html") {
     if (!session) return res.redirect("/?login=required");
     const user = findUserByUsername(session.username);
-    if (!user || !hasPermission(user, "canAccessAdminDb")) return res.status(403).send("최고관리자 권한이 필요합니다.");
+    if (!user || !hasPermission(user, "canAccessAdminDb")) return res.status(403).send(renderAccessDeniedPage("최고관리자 권한이 필요합니다.", "관리자 DB는 최고관리자 권한이 있는 계정만 접근할 수 있습니다."));
     return next();
   }
   if (requestPath === "/guild-war-admin.html") {
     if (!session) return res.redirect("/?login=required");
     const user = findUserByUsername(session.username);
-    if (!user || !hasPermission(user, "canManageGuild")) return res.status(403).send("족보 관리 권한이 필요합니다.");
+    if (!user || !hasPermission(user, "canManageGuild")) return res.status(403).send(renderAccessDeniedPage("족보 관리 권한이 필요합니다.", "길드전 족보 작성과 수정은 권한이 있는 계정만 사용할 수 있습니다."));
     return next();
   }
   if (session) return next();
