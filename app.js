@@ -644,7 +644,9 @@ function renderAuthState(user) {
   if (providerLoginOpenButton) providerLoginOpenButton.hidden = Boolean(user?.loggedIn);
   if (mobileLoginButton) mobileLoginButton.hidden = Boolean(user?.loggedIn);
   if (adminDashboardLink) adminDashboardLink.hidden = !isAdmin;
-  if (guildWarSideLink) guildWarSideLink.hidden = !Boolean(user?.isVerified || user?.canManageGuild || user?.isAdmin);
+  if (guildWarSideLink) guildWarSideLink.hidden = !Boolean(
+    user?.isVerified || user?.canManageGuild || user?.isAdmin || user?.isSuperAdmin || user?.canAccessAdminDb,
+  );
   if (kakaoLoginButton) kakaoLoginButton.hidden = Boolean(user?.loggedIn);
   if (profileButton) profileButton.hidden = !user?.loggedIn;
   if (!user?.loggedIn) setNotificationBadge(0);
