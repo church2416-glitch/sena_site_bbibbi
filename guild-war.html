@@ -17,7 +17,7 @@
         </a>
         <nav class="guild-links" aria-label="길드전 메뉴">
           <a href="index.html">게시판</a>
-          <a href="upload.html">업로드</a>
+          <a id="guildAdminUploadLink" href="guild-war-admin.html" hidden>족보 업로드</a>
         </nav>
       </header>
 
@@ -125,11 +125,23 @@
     </main>
 
     <script src="theme.js"></script>
-    <script src="guild-war.js?v=gear-pairs-20260530"></script>
+    <script src="guild-war.js?v=admin-upload-link-20260530"></script>
     <script>
       let guildState = GuildWar.loadState();
       let activeMode = "attack";
       let activePlanIndex = 0;
+      const guildAdminUploadLink = document.querySelector("#guildAdminUploadLink");
+
+      async function syncGuildAdminLink() {
+        try {
+          const response = await fetch("/api/me", { credentials: "same-origin" });
+          if (!response.ok) return;
+          const user = await response.json();
+          guildAdminUploadLink.hidden = !Boolean(user?.canManageGuild || user?.isAdmin || user?.isSuperAdmin || user?.canAccessAdminDb);
+        } catch (error) {
+          guildAdminUploadLink.hidden = true;
+        }
+      }
 
       function renderPublicPage() {
         GuildWar.renderModeTabs("#publicSheetTabs", activeMode, (mode) => {
@@ -190,6 +202,7 @@
       });
 
       renderPublicPage();
+      syncGuildAdminLink();
       loadGuildWarSheets().then(loadSeasonSettings);
     </script>
     <script src="notification-client.js"></script>
