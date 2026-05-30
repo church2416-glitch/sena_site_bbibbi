@@ -347,9 +347,9 @@ const boardTabSets = {
 const heroModes = {
   overview: {
     image: "assets/common/singularity-hero.webp",
-    kicker: "삐삐,",
-    title: "삐삐인데요...",
-    subtitle: "삐삐 커뮤니티",
+    kicker: "bbitsena",
+    title: "삣삐",
+    subtitle: "삣삐에요",
     action: "길드전 가이드 보기",
     href: "guild-war.html",
   },
