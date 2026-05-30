@@ -149,6 +149,7 @@
     </main>
 
     <script src="theme.js"></script>
+    <script src="mention-autocomplete.js"></script>
     <script>
       const storageKey = "bbibbi-board-items-v2";
       const params = new URLSearchParams(location.search);
@@ -1128,6 +1129,7 @@
           document.querySelectorAll("[data-comment-mention]").forEach((button) => {
             button.addEventListener("click", () => insertCommentMention(button.dataset.commentMention));
           });
+          window.BbibbiMentionAutocomplete?.attach(document.querySelector("#commentInput"));
           document.querySelector("#commentForm")?.addEventListener("submit", submitComment);
           loadComments();
         }

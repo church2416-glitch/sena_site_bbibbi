@@ -208,6 +208,7 @@
     </main>
 
     <script src="theme.js"></script>
+    <script src="mention-autocomplete.js"></script>
     <script>
       const storageKey = "bbibbi-board-items-v2";
       const draftKey = "bbibbi-upload-draft-v1";
@@ -899,6 +900,7 @@
         bodyInput.focus();
       });
       bodyInput.addEventListener("input", renderBodyPreview);
+      window.BbibbiMentionAutocomplete?.attach(bodyInput);
 
       youtubeButton.addEventListener("click", () => {
         youtubeField.hidden = !youtubeField.hidden;

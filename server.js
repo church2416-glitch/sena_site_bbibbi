@@ -1466,6 +1466,51 @@ function selectMentionUsersByName(token, actorId) {
     .filter(isMentionVisibleUser);
 }
 
+const hangulInitials = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
+
+function getHangulInitials(value) {
+  return String(value || "")
+    .split("")
+    .map((char) => {
+      const code = char.charCodeAt(0) - 0xac00;
+      if (code < 0 || code > 11171) return char;
+      return hangulInitials[Math.floor(code / 588)] || char;
+    })
+    .join("");
+}
+
+function matchesMentionQuery(value, query) {
+  const text = String(value || "").trim().toLowerCase();
+  const needle = String(query || "").trim().toLowerCase();
+  if (!needle) return true;
+  return text.includes(needle) || getHangulInitials(text).includes(needle);
+}
+
+function selectMentionSuggestions(query, actorId) {
+  const needle = String(query || "").trim();
+  return db
+    .prepare(
+      `
+        SELECT id, username, display_name, role, permissions_json
+        FROM users
+        WHERE id != ?
+        ORDER BY datetime(created_at) DESC
+        LIMIT 500
+      `,
+    )
+    .all(actorId)
+    .filter(isMentionVisibleUser)
+    .filter((user) => matchesMentionQuery(user.display_name, needle) || matchesMentionQuery(user.username, needle))
+    .slice(0, 8)
+    .map((user) => ({
+      id: user.id,
+      kind: "user",
+      label: user.display_name || user.username,
+      username: user.username,
+      role: user.role || "user",
+    }));
+}
+
 function createMentionNotifications({ actor, postId, commentId = null, targetType, sourceText }) {
   const tokens = extractMentionTokens(sourceText);
   if (!tokens.length) return;
@@ -2041,6 +2086,19 @@ app.patch("/api/me/display-name", requireMember, (req, res) => {
 
   const user = updateUserDisplayName(req.user.username, displayName);
   res.json(serializeUser(user));
+});
+
+app.get("/api/mentions", requireMember, (req, res) => {
+  const query = String(req.query.q || "").trim().replace(/^@/, "").slice(0, 30);
+  const groupOptions = [
+    { kind: "group", label: "전체", username: "모든 열람 가능 회원" },
+    { kind: "group", label: "관리자", username: "관리자 그룹" },
+    { kind: "group", label: "정예", username: "정예 그룹" },
+    { kind: "group", label: "권한", username: "관리자/정예 그룹" },
+  ].filter((item) => matchesMentionQuery(item.label, query));
+  const groups = canUseGroupMention(req.user) ? groupOptions : [];
+  const users = selectMentionSuggestions(query, req.user.id);
+  res.json({ items: [...groups, ...users].slice(0, 10) });
 });
 
 app.get("/api/me/activity", requireMember, (req, res) => {
