@@ -75,7 +75,37 @@ const GuildWar = (() => {
         6: "assets/ring/Might3.webp",
       },
     },
+    기합의반지: { label: "기합", tone: "power", image: "assets/ring/rousing.png" },
+    철벽의반지: { label: "철벽", tone: "power", image: "assets/ring/iron wall.png" },
+    건강의반지: { label: "건강", tone: "power", image: "assets/ring/health.png" },
+    근성의반지: { label: "근성", tone: "power", image: "assets/ring/grit.png" },
+    토벌의반지: { label: "토벌", tone: "power", image: "assets/ring/suppression.png" },
+    공성의반지: { label: "공성", tone: "power", image: "assets/ring/siege.png" },
+    섬멸의반지: { label: "섬멸", tone: "power", image: "assets/ring/annihilation.png" },
+    "마법의반지(버프제거)": { label: "마법", tone: "revive", image: "assets/ring/Remove buffs.png" },
+    "시간의반지(턴제버프감소)": { label: "시간", tone: "revive", image: "assets/ring/Turnzebuff reduction.png" },
+    "기회의반지(기절)": { label: "기회", tone: "revive", image: "assets/ring/faint.png" },
+    "저주의반지(침묵)": { label: "저주", tone: "revive", image: "assets/ring/Silence.png" },
+    "죽음의반지(즉사)": { label: "죽음", tone: "immortal", image: "assets/ring/death.png" },
+    "재앙의반지(마비)": { label: "재앙", tone: "immortal", image: "assets/ring/Paralysis.png" },
+    "번뜩이는반지(감전)": { label: "번뜩", tone: "revive", image: "assets/ring/electric shock.png" },
+    "공포의반지(실명)": { label: "공포", tone: "immortal", image: "assets/ring/blindness.png" },
+    "설원의반지(빙결)": { label: "설원", tone: "revive", image: "assets/ring/Freezing.png" },
+    "메두사의반지(석화)": { label: "메두사", tone: "immortal", image: "assets/ring/petrification.png" },
+    "꿈의반지(수면)": { label: "꿈", tone: "revive", image: "assets/ring/sleep.png" },
+    "가시반지(출혈)": { label: "가시", tone: "immortal", image: "assets/ring/bleeding.png" },
+    "샐러맨더의반지(화상)": { label: "샐러맨더", tone: "immortal", image: "assets/ring/Burn.png" },
+    "독사의반지(중독)": { label: "독사", tone: "immortal", image: "assets/ring/poisoning.png" },
+    "복수의반지(피해량증가)": { label: "복수", tone: "power", image: "assets/ring/damage.png" },
+    "보호의반지(방어력증가)": { label: "보호", tone: "power", image: "assets/ring/defensive.png" },
+    "행운의반지(치명타확률)": { label: "행운", tone: "power", image: "assets/ring/fatal blow.png" },
+    "수호의반지(막기확률)": { label: "수호", tone: "power", image: "assets/ring/blocking.png" },
+    "집중의반지(약점공격확률)": { label: "집중", tone: "power", image: "assets/ring/Weakness.png" },
+    "자연의반지(생명력)": { label: "자연", tone: "power", image: "assets/ring/vitality.png" },
+    "적중의반지(효과적중)": { label: "적중", tone: "power", image: "assets/ring/being effective.png" },
+    "저항의반지(효과저항)": { label: "저항", tone: "power", image: "assets/ring/Effectiveness Resistance.png" },
   };
+  const accessoryTypeNames = Object.keys(accessoryVisuals);
   const accessoryRefineAliases = {
     불권: "불사세공",
     권불: "불사세공",
@@ -410,9 +440,10 @@ const GuildWar = (() => {
   function parseAccessory(value) {
     const text = String(value || "").trim();
     if (!text || text === "-") return { type: "-", refine: "-", grade: "" };
-    const type = Object.keys(accessoryVisuals).find((name) => text.includes(name)) || text;
-    const gradeMatch = text.match(/([456](?:\/[456])?)\s*★?/);
-    const refineMatch = text.match(/\(([^)]+)\)$/);
+    const type = accessoryTypeNames.find((name) => text.includes(name)) || text;
+    const tail = type && type !== text ? text.slice(text.indexOf(type) + type.length).trim() : "";
+    const gradeMatch = tail.match(/([456](?:\/[456])?)\s*★?/);
+    const refineMatch = tail.match(/\(([^)]+)\)$/);
     return {
       type,
       refine: normalizeAccessoryRefine(refineMatch ? refineMatch[1].trim() : "-"),
@@ -839,6 +870,21 @@ const GuildWar = (() => {
     form.querySelectorAll("[data-gear-option]").forEach(enhanceTextOptionInput);
   }
 
+  function initAccessoryTypeSelects(form) {
+    form.querySelectorAll('select[name^="gearAccessoryType"]').forEach((select) => {
+      const currentValue = select.value;
+      const baseOptions = [...select.options].filter((option) => !option.value || option.value === "-");
+      select.replaceChildren(...baseOptions);
+      accessoryTypeNames.forEach((accessoryName) => {
+        const option = document.createElement("option");
+        option.value = accessoryName;
+        option.textContent = accessoryName;
+        select.append(option);
+      });
+      setSelectValue(select, currentValue);
+    });
+  }
+
   function syncAdminModeVisibility(mode) {
     const isDefense = mode === "defense";
     setText("#formationTypeLabelText", isDefense ? "진형" : "상대 진형");
@@ -904,7 +950,7 @@ const GuildWar = (() => {
       .filter(Boolean)
       .join(" / ");
 
-    const imageSrc = visual.images?.[getAccessoryImageGrade(accessory.grade)];
+    const imageSrc = visual.images?.[getAccessoryImageGrade(accessory.grade)] || visual.image;
     if (imageSrc) {
       const image = document.createElement("img");
       image.src = imageSrc;
@@ -1043,6 +1089,7 @@ const GuildWar = (() => {
     initPetDatalist();
     initCharacterSelects(form);
     initGearOptionInputs(form);
+    initAccessoryTypeSelects(form);
     syncAdminModeVisibility(mode);
     field(form, "formationType").value = baseTarget.formationType;
     field(form, "allyFormationType").value = activeTarget.allyFormationType;
