@@ -108,6 +108,9 @@ async function loadCouponHistory() {
   }
   const data = await response.json();
   savedCouponCodes = data.codes || [];
+  if (couponUidInput && data.couponUid && !couponUidInput.value.trim()) {
+    couponUidInput.value = data.couponUid;
+  }
   couponStatus.textContent = savedCouponCodes.length
     ? `${savedCouponCodes.length}개의 쿠폰이 저장되어 있습니다.`
     : "저장된 쿠폰이 없습니다. 발견한 쿠폰을 등록해주세요.";

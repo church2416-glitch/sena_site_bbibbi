@@ -405,6 +405,7 @@ function getPublicUser(req) {
     loggedIn: true,
     username: session.username,
     displayName: user?.display_name || session.username,
+    couponUid: user?.coupon_uid || "",
     ...roleFlags(user || session.role),
   };
 }
@@ -850,6 +851,11 @@ function deactivateExpiredCoupon(couponCode, actorId) {
   });
   notifySuperAdmins({ actorId, couponCode, message });
   return true;
+}
+
+function saveUserCouponUid(userId, uid) {
+  if (!userId || !uid) return;
+  db.prepare("UPDATE users SET coupon_uid = ?, updated_at = datetime('now') WHERE id = ?").run(uid, userId);
 }
 
 setInterval(() => {
@@ -2373,6 +2379,7 @@ app.get("/api/coupon/requests", requireMember, (req, res) => {
       LIMIT 10
     `,
   ).all(req.user.id);
+
   const codes = db.prepare(
     `
       SELECT id, code, label, active, sort_order, created_at
@@ -2384,6 +2391,7 @@ app.get("/api/coupon/requests", requireMember, (req, res) => {
   res.json({
     requests: rows.map(serializeCouponRequest),
     codes: codes.map(serializeCouponCode),
+    couponUid: req.user.coupon_uid || "",
     configured: Boolean(normalizeCouponRedeemUrl(couponRedeemUrl)),
   });
 });
@@ -2461,6 +2469,7 @@ app.post("/api/coupon/send-all", requireMember, async (req, res) => {
   if (!/^[A-Z0-9_-]{3,80}$/i.test(uid)) {
     return res.status(400).json({ error: "회원번호는 영문, 숫자, _, - 조합으로 3자 이상 입력해주세요." });
   }
+  saveUserCouponUid(req.user.id, uid);
 
   const codes = db.prepare(
     `
@@ -2521,6 +2530,8 @@ app.post("/api/coupon/send", requireMember, async (req, res) => {
   if (!/^[A-Z0-9_-]{3,80}$/.test(couponCode)) {
     return res.status(400).json({ error: "쿠폰 코드는 영문, 숫자, _, - 조합으로 3자 이상 입력해주세요." });
   }
+
+  saveUserCouponUid(req.user.id, uid);
 
   let result;
   try {

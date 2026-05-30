@@ -32,6 +32,7 @@ export function initDb({ adminUser, adminPassword }) {
       provider_id TEXT,
       email TEXT,
       avatar_url TEXT,
+      coupon_uid TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       UNIQUE (provider, provider_id)
@@ -230,6 +231,7 @@ function migrateUsersTable() {
   addColumn("provider_id", "TEXT");
   addColumn("email", "TEXT");
   addColumn("avatar_url", "TEXT");
+  addColumn("coupon_uid", "TEXT");
   addColumn("permissions_json", "TEXT NOT NULL DEFAULT '{}'");
 }
 
