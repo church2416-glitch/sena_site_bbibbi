@@ -1536,11 +1536,22 @@ function renderGuides() {
 
     title.append(comment);
     meta.append(author);
-    [guide.game, ...guide.tags].forEach((item) => {
+    if (guide.game) {
       const node = document.createElement("span");
-      node.textContent = item;
+      node.textContent = guide.game;
       meta.append(node);
-    });
+    }
+    if (Array.isArray(guide.tags) && guide.tags.length) {
+      const tags = document.createElement("span");
+      tags.className = "guide-tags";
+      guide.tags.slice(0, 4).forEach((tag) => {
+        const tagNode = document.createElement("b");
+        tagNode.className = "tag-chip";
+        tagNode.textContent = `#${tag}`;
+        tags.append(tagNode);
+      });
+      meta.append(tags);
+    }
 
     main.append(title, summary, meta);
     stats.append(voteButton, time, views);

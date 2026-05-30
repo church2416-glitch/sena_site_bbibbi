@@ -562,8 +562,8 @@
       }
 
       function normalizeTags(value) {
-        return value
-          .split(",")
+        return String(value || "")
+          .split(/[,\n#]+|\s{2,}/)
           .map((tag) => tag.trim())
           .filter(Boolean)
           .slice(0, 4);

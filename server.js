@@ -1583,16 +1583,21 @@ function postMediaHasPayload(media = {}) {
 }
 
 function normalizeTagsInput(value) {
-  if (Array.isArray(value)) return value.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 4);
+  const cleanTags = (items) => items
+    .flatMap((tag) => String(tag || "").split(/[,\n#]+|\s{2,}/))
+    .map((tag) => tag.trim().replace(/^#+/, ""))
+    .filter(Boolean)
+    .slice(0, 4);
+  if (Array.isArray(value)) return cleanTags(value);
   const text = String(value || "").trim();
   if (!text) return [];
   try {
     const parsed = JSON.parse(text);
-    if (Array.isArray(parsed)) return parsed.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 4);
+    if (Array.isArray(parsed)) return cleanTags(parsed);
   } catch {
     // Fall through to comma-separated tags.
   }
-  return text.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 4);
+  return cleanTags(text.split(/[,\n#]+|\s{2,}/));
 }
 
 function extensionFromMime(mimeType = "") {

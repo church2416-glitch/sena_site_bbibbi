@@ -2091,8 +2091,28 @@ p {
 .meta {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 5px;
   margin-top: 3px;
+}
+
+.guide-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  padding: 1px 6px;
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.28);
+  border-radius: 999px;
+  color: var(--theme-mid);
+  background: rgba(var(--theme-mid-rgb), 0.09);
+  font-size: 10px;
+  font-weight: 900;
 }
 
 .guide-stats {
