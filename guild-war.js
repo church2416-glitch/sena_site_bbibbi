@@ -119,6 +119,32 @@ const GuildWar = (() => {
   ];
   const characterImages = Object.fromEntries(characterCatalog.map((name) => [name, `assets/character/${name}.webp`]));
   let characterComboboxId = 0;
+  let textOptionComboboxId = 0;
+  const gearOptionCatalog = {
+    weapon: [
+      "약점 공격 확률",
+      "치명타 확률",
+      "치명타 피해",
+      "모든 공격력%",
+      "모든 공격력",
+      "방어력%",
+      "방어력",
+      "생명력%",
+      "생명력",
+      "효과 적중",
+    ],
+    armor: [
+      "받는 피해 감소",
+      "막기 확률",
+      "모든 공격력%",
+      "모든 공격력",
+      "방어력%",
+      "방어력",
+      "생명력%",
+      "생명력",
+      "효과 저항",
+    ],
+  };
 
   const sheetDefaults = {
     attack: {
@@ -732,6 +758,87 @@ const GuildWar = (() => {
     });
   }
 
+  function getTextOptionMatches(type, query) {
+    const options = gearOptionCatalog[type] || [];
+    const keyword = String(query || "").trim();
+    const source = keyword
+      ? options.filter((option) => option.includes(keyword))
+      : options;
+    return source.slice(0, 12);
+  }
+
+  function renderTextOptionMenu(input, menu) {
+    const matches = getTextOptionMatches(input.dataset.gearOption, input.value);
+    menu.replaceChildren();
+    if (!matches.length) {
+      const empty = document.createElement("div");
+      empty.className = "character-combobox-empty";
+      empty.textContent = "일치하는 옵션이 없습니다";
+      menu.append(empty);
+    } else {
+      matches.forEach((optionName) => {
+        const option = document.createElement("button");
+        option.type = "button";
+        option.textContent = optionName;
+        option.className = optionName === input.value ? "active" : "";
+        option.addEventListener("mousedown", (event) => event.preventDefault());
+        option.addEventListener("click", () => {
+          input.value = optionName;
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+          menu.hidden = true;
+        });
+        menu.append(option);
+      });
+    }
+    menu.hidden = false;
+  }
+
+  function enhanceTextOptionInput(input) {
+    if (!input || input.dataset.optionComboboxReady === "true") return;
+    const wrapper = document.createElement("div");
+    const menu = document.createElement("div");
+    const inputId = `textOptionCombobox${++textOptionComboboxId}`;
+
+    wrapper.className = "character-combobox";
+    input.id = input.id || inputId;
+    input.classList.add("character-combobox-input");
+    input.autocomplete = "off";
+    input.spellcheck = false;
+    menu.className = "character-combobox-menu";
+    menu.hidden = true;
+
+    input.dataset.optionComboboxReady = "true";
+    input.parentNode.insertBefore(wrapper, input);
+    wrapper.append(input, menu);
+
+    input.addEventListener("focus", () => renderTextOptionMenu(input, menu));
+    input.addEventListener("input", () => renderTextOptionMenu(input, menu));
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        menu.hidden = true;
+      }
+      if (event.key === "Enter") {
+        const firstMatch = getTextOptionMatches(input.dataset.gearOption, input.value)[0];
+        if (!firstMatch) return;
+        event.preventDefault();
+        input.value = firstMatch;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+        menu.hidden = true;
+      }
+    });
+    input.addEventListener("blur", () => {
+      window.setTimeout(() => {
+        menu.hidden = true;
+      }, 120);
+    });
+  }
+
+  function initGearOptionInputs(form) {
+    form.querySelectorAll("[data-gear-option]").forEach(enhanceTextOptionInput);
+  }
+
   function syncAdminModeVisibility(mode) {
     const isDefense = mode === "defense";
     setText("#formationTypeLabelText", isDefense ? "진형" : "상대 진형");
@@ -935,6 +1042,7 @@ const GuildWar = (() => {
     initPositionEditors(form);
     initPetDatalist();
     initCharacterSelects(form);
+    initGearOptionInputs(form);
     syncAdminModeVisibility(mode);
     field(form, "formationType").value = baseTarget.formationType;
     field(form, "allyFormationType").value = activeTarget.allyFormationType;
