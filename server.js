@@ -393,11 +393,17 @@ function requireMemberForPrivatePages(req, res, next) {
   if (req.method !== "GET" && req.method !== "HEAD") return next();
 
   const requestPath = req.path === "/" ? "/index.html" : req.path;
-  const publicPages = new Set(["/index.html", "/preview.html", "/notices.html", "/notice-upload.html", "/terms.html", "/privacy.html"]);
+  const publicPages = new Set(["/index.html", "/notices.html", "/terms.html", "/privacy.html"]);
   const isHtmlPage = requestPath.endsWith(".html");
 
   if (!isHtmlPage || publicPages.has(requestPath)) return next();
   const session = readSession(req);
+  if (requestPath === "/preview.html" || requestPath === "/notice-upload.html") {
+    if (!session) return res.redirect("/?login=required");
+    const user = findUserByUsername(session.username);
+    if (!user || !hasRole(user, "admin")) return res.status(403).send("관리자 권한이 필요합니다.");
+    return next();
+  }
   if (requestPath === "/admin.html") {
     if (!session) return res.redirect("/?login=required");
     const user = findUserByUsername(session.username);
