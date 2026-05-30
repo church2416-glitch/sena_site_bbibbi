@@ -172,6 +172,7 @@ const providerLoginOpenButton = document.querySelector("#providerLoginOpenButton
 const mobileLoginButton = document.querySelector("#mobileLoginButton");
 const guestLoginFallbackButton = document.querySelector("#guestLoginFallbackButton");
 const adminDashboardLink = document.querySelector("#adminDashboardLink");
+const guildWarSideLink = document.querySelector("#guildWarSideLink");
 const kakaoLoginButton = document.querySelector("#kakaoLoginButton");
 const loginCloseButton = document.querySelector("#loginCloseButton");
 const profileCloseButton = document.querySelector("#profileCloseButton");
@@ -643,6 +644,7 @@ function renderAuthState(user) {
   if (providerLoginOpenButton) providerLoginOpenButton.hidden = Boolean(user?.loggedIn);
   if (mobileLoginButton) mobileLoginButton.hidden = Boolean(user?.loggedIn);
   if (adminDashboardLink) adminDashboardLink.hidden = !isAdmin;
+  if (guildWarSideLink) guildWarSideLink.hidden = !Boolean(user?.isVerified || user?.canManageGuild || user?.isAdmin);
   if (kakaoLoginButton) kakaoLoginButton.hidden = Boolean(user?.loggedIn);
   if (profileButton) profileButton.hidden = !user?.loggedIn;
   if (!user?.loggedIn) setNotificationBadge(0);
