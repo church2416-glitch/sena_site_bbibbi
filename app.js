@@ -968,6 +968,24 @@ function testNotificationSound() {
   unlockNotificationSound().then(playNotificationSound);
 }
 
+function escapeInlineHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function renderNotificationMessage(message) {
+  const safeMessage = escapeInlineHtml(message || "새 알림이 있습니다.");
+  return safeMessage.replace(/@([가-힣A-Za-z0-9_-]{1,30})/g, '<span class="notification-mention-chip">@$1</span>');
+}
+
+function applyNotificationStyle(node, notification) {
+  node.classList.toggle("is-mention", notification?.type === "mention" || /@/.test(notification?.message || ""));
+}
+
 function renderNotificationList(notifications = []) {
   if (!notificationList) return;
   notificationList.innerHTML = "";
@@ -990,8 +1008,9 @@ function renderNotificationList(notifications = []) {
     item.className = "notification-row";
     link.className = "account-history-item notification-item";
     link.classList.toggle("unread", !notification.readAt);
+    applyNotificationStyle(link, notification);
     link.href = `post.html?id=${encodeURIComponent(notification.postId || notification.targetId)}`;
-    title.textContent = notification.message || "새 알림이 있습니다.";
+    title.innerHTML = renderNotificationMessage(notification.message);
     meta.textContent = [notification.postTitle, formatFeedDate(notification.createdAt)].filter(Boolean).join(" · ");
     deleteButton.className = "notification-delete-button";
     deleteButton.type = "button";
@@ -1022,8 +1041,9 @@ function renderNotificationPanelList(notifications = []) {
     const meta = document.createElement("small");
     link.className = "notification-panel-item";
     link.classList.toggle("unread", !notification.readAt);
+    applyNotificationStyle(link, notification);
     link.href = `post.html?id=${encodeURIComponent(notification.postId || notification.targetId)}`;
-    title.textContent = notification.message || "새 알림이 있습니다.";
+    title.innerHTML = renderNotificationMessage(notification.message);
     meta.textContent = [notification.postTitle, formatFeedDate(notification.createdAt)].filter(Boolean).join(" · ");
     link.append(title, meta);
     notificationPanelList.append(link);

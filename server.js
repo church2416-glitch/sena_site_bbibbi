@@ -1471,19 +1471,21 @@ function createMentionNotifications({ actor, postId, commentId = null, targetTyp
   if (!tokens.length) return;
 
   const recipients = new Map();
-  const groupLabels = [];
+  const mentionLabels = [];
   const allowGroupMention = canUseGroupMention(actor);
   for (const token of tokens) {
     const alias = mentionAliases.get(token.toLowerCase()) || mentionAliases.get(token);
     if (alias) {
       if (!allowGroupMention) continue;
-      groupLabels.push(token);
+      mentionLabels.push(token);
       for (const user of selectMentionUsersForGroup(alias, actor.id)) {
         recipients.set(user.id, user);
       }
       continue;
     }
-    for (const user of selectMentionUsersByName(token, actor.id)) {
+    const users = selectMentionUsersByName(token, actor.id);
+    if (users.length) mentionLabels.push(token);
+    for (const user of users) {
       recipients.set(user.id, user);
     }
   }
@@ -1491,8 +1493,8 @@ function createMentionNotifications({ actor, postId, commentId = null, targetTyp
   if (!recipients.size) return;
   const actorName = actor.display_name || actor.username || "누군가";
   const place = targetType === "comment" ? "댓글" : "게시글";
-  const groupText = groupLabels.length ? ` @${groupLabels[0]}` : "";
-  const message = `${actorName}님이 ${place}에서${groupText} 멘션했습니다.`;
+  const mentionText = mentionLabels.length ? ` @${mentionLabels[0]}` : "";
+  const message = `${actorName}님이 ${place}에서${mentionText} 멘션했습니다.`;
 
   for (const recipient of recipients.values()) {
     createNotification({

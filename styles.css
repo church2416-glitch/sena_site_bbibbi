@@ -684,6 +684,14 @@ textarea:focus {
   box-shadow: inset 3px 0 0 var(--theme-mid);
 }
 
+.notification-panel-item.is-mention {
+  border-color: rgba(var(--theme-mid-rgb), 0.46);
+  background:
+    linear-gradient(135deg, rgba(var(--theme-mid-rgb), 0.16), rgba(14, 16, 27, 0.76) 58%),
+    rgba(14, 16, 27, 0.82);
+  box-shadow: 0 0 18px rgba(var(--theme-mid-rgb), 0.12);
+}
+
 .notification-panel-item strong {
   font-size: 12px;
   line-height: 1.35;
@@ -1322,6 +1330,30 @@ textarea:focus {
 .notification-item.unread {
   border-color: rgba(var(--theme-mid-rgb), 0.46);
   background: rgba(var(--theme-mid-rgb), 0.08);
+}
+
+.notification-item.is-mention {
+  border-color: rgba(var(--theme-mid-rgb), 0.5);
+  background:
+    linear-gradient(135deg, rgba(var(--theme-mid-rgb), 0.14), rgba(10, 12, 20, 0.84) 62%),
+    rgba(var(--theme-mid-rgb), 0.05);
+  box-shadow: 0 0 22px rgba(var(--theme-mid-rgb), 0.1);
+}
+
+.notification-mention-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  margin: 0 2px;
+  padding: 1px 7px;
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.58);
+  border-radius: 999px;
+  color: #07110f;
+  background: var(--theme-mid);
+  box-shadow: 0 0 14px rgba(var(--theme-mid-rgb), 0.42);
+  font-size: 0.92em;
+  font-weight: 1000;
+  white-space: nowrap;
 }
 
 .notification-row {
