@@ -2295,6 +2295,26 @@ p {
   white-space: pre-wrap;
 }
 
+.body-preview hr,
+.post-content hr {
+  height: 1px;
+  margin: 20px 0;
+  border: 0;
+  background: linear-gradient(90deg, transparent, rgba(var(--theme-mid-rgb), 0.65), transparent);
+}
+
+.body-preview .check-preview,
+.post-content .check-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.body-preview .check-preview input,
+.post-content .check-preview input {
+  accent-color: var(--accent-strong);
+}
+
 .body-preview blockquote,
 .post-content blockquote {
   margin: 14px 0;
@@ -2357,6 +2377,14 @@ p {
 .youtube-field {
   padding: 9px;
   border-top: 1px solid rgba(var(--theme-mid-rgb), 0.12);
+}
+
+.editor-help {
+  margin: 0;
+  padding: 9px 12px 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .pve-guide-editor,
@@ -5200,6 +5228,170 @@ p {
 
 .admin-note-panel textarea:focus {
   outline: 0;
+}
+
+.admin-dashboard-page {
+  color: var(--text);
+  background:
+    radial-gradient(circle at 8% 12%, rgba(var(--theme-mid-rgb), 0.14), transparent 28%),
+    radial-gradient(circle at 92% 0%, rgba(var(--theme-soft-rgb), 0.1), transparent 30%),
+    var(--bg);
+}
+
+.admin-sidebar {
+  border-right: 1px solid var(--line);
+  background: rgba(8, 10, 20, 0.92);
+  box-shadow: 16px 0 40px rgba(0, 0, 0, 0.22);
+}
+
+.admin-brand,
+.admin-locale {
+  border-color: var(--line);
+}
+
+.admin-brand strong,
+.admin-nav a,
+.admin-nav button {
+  color: var(--text);
+}
+
+.admin-nav a.active,
+.admin-nav button.active,
+.admin-nav a:hover,
+.admin-nav button:hover {
+  color: #06100f;
+  background: linear-gradient(135deg, var(--theme-mid), var(--theme-soft));
+}
+
+.admin-topbar {
+  border-color: var(--line);
+  background: rgba(8, 10, 20, 0.9);
+  backdrop-filter: blur(18px);
+}
+
+.admin-topbar span,
+.admin-panel-head small,
+.admin-list small,
+.admin-audit-row span,
+.admin-audit-row small,
+.admin-metrics span,
+.admin-metrics small {
+  color: var(--muted);
+}
+
+.admin-topbar strong,
+.admin-panel-head h1,
+.admin-panel-head h2,
+.admin-list strong,
+.admin-audit-row strong,
+.admin-table td {
+  color: var(--text);
+}
+
+.admin-metrics article,
+.admin-panel,
+.admin-profile-panel,
+.admin-management-list article.admin-user-row,
+.admin-permission-grid,
+.admin-permission-grid label,
+.admin-row-actions select,
+.admin-row-actions button,
+.admin-settings-form input,
+.admin-settings-form select,
+.admin-notice-form input,
+.admin-notice-form textarea,
+.admin-coupon-form textarea,
+.admin-quick-links a,
+.admin-audit-row {
+  border-color: var(--line);
+  color: var(--text);
+  background: rgba(13, 15, 28, 0.82);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.16);
+}
+
+.admin-metrics strong,
+.admin-count,
+.admin-list em,
+.admin-panel-head a,
+.admin-panel-head button {
+  color: var(--theme-soft);
+}
+
+.admin-logout,
+.admin-note-panel button,
+.admin-settings-form button,
+.admin-notice-form button[type="submit"],
+.admin-coupon-form button {
+  border: 1px solid var(--line-strong);
+  color: #06100f;
+  background: linear-gradient(135deg, var(--theme-mid), var(--theme-soft));
+}
+
+.admin-chart {
+  border-color: var(--line);
+  background:
+    linear-gradient(to top, rgba(var(--theme-mid-rgb), 0.1) 1px, transparent 1px) 0 0 / 100% 25%,
+    rgba(6, 7, 14, 0.36);
+}
+
+.admin-chart-day i {
+  background: rgba(var(--theme-soft-rgb), 0.18);
+}
+
+.admin-chart-day b,
+.admin-legend span::before,
+.admin-legend span:last-child::before {
+  background: var(--theme-mid);
+}
+
+.admin-table th,
+.admin-table td {
+  border-color: var(--line);
+}
+
+.admin-row-avatar,
+.admin-avatar {
+  color: #07100f;
+  background: var(--theme-soft);
+}
+
+.admin-profile-panel {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(var(--theme-mid-rgb), 0.22), transparent 44%),
+    rgba(10, 12, 22, 0.9);
+}
+
+.admin-permission-grid label:has(input:checked) {
+  border-color: var(--line-strong);
+  color: var(--theme-soft);
+  background: rgba(var(--theme-mid-rgb), 0.18);
+}
+
+.admin-permission-grid input,
+.admin-check-field input,
+.admin-weekday-field input {
+  accent-color: var(--theme-mid);
+}
+
+.admin-settings-form label,
+.admin-notice-form label,
+.admin-coupon-form label,
+.admin-weekday-field > span label {
+  color: var(--muted);
+}
+
+.admin-note-panel {
+  background:
+    linear-gradient(135deg, rgba(var(--theme-mid-rgb), 0.14), rgba(var(--theme-soft-rgb), 0.04)),
+    rgba(13, 15, 28, 0.82);
+}
+
+.admin-note-panel textarea {
+  color: var(--text);
+}
+
+.admin-empty-row {
+  color: var(--muted);
 }
 
 .guild-page {

@@ -441,8 +441,26 @@
             closeFlow();
             return;
           }
+          if (/^---+$/.test(line.trim())) {
+            closeFlow();
+            html.push("<hr>");
+            return;
+          }
+          if (/^- \[[ xX]\]\s+/.test(line)) {
+            closeTable();
+            if (!inList) {
+              closeLists();
+              html.push("<ul>");
+              inList = true;
+            }
+            const checked = /^- \[[xX]\]/.test(line);
+            const label = line.replace(/^- \[[ xX]\]\s+/, "");
+            html.push(`<li class="check-preview"><input type="checkbox" disabled ${checked ? "checked" : ""}> ${renderInlineMarkup(label)}</li>`);
+            return;
+          }
           if (/^\|.+\|$/.test(line.trim())) {
             closeLists();
+            if (/^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(line.trim())) return;
             if (!inTable) {
               html.push("<table>");
               inTable = true;

@@ -241,7 +241,7 @@ const GuildWar = (() => {
       allyPositions: sheet?.allyPositions || fallback.allyPositions,
       enemyPets: sheet?.enemyPets || fallback.enemyPets,
       allyPets: sheet?.allyPets || fallback.allyPets,
-      gear: sheet?.gear || fallback.gear,
+      gear: normalizeGearLines(sheet?.gear, fallback.gear),
       skillOrder: sheet?.skillOrder || fallback.skillOrder,
       skillNote: typeof sheet?.skillNote === "string" ? sheet.skillNote : fallback.skillNote,
       memo: sheet?.memo || fallback.memo,
@@ -264,7 +264,7 @@ const GuildWar = (() => {
       allyTeam: Array.isArray(source?.allyTeam) ? source.allyTeam : fallback.allyTeam,
       allyPositions: Array.isArray(source?.allyPositions) ? source.allyPositions : fallback.allyPositions,
       allyPets: normalizePets(source?.allyPets, fallback.allyPets, source?.allyTeam || fallback.allyTeam),
-      gear: Array.isArray(source?.gear) ? source.gear : fallback.gear,
+      gear: normalizeGearLines(Array.isArray(source?.gear) ? source.gear : fallback.gear, fallback.gear),
       skillOrder: Array.isArray(source?.skillOrder) ? source.skillOrder : fallback.skillOrder,
       skillNote: typeof source?.skillNote === "string" ? source.skillNote : fallback.skillNote,
       memo: typeof source?.memo === "string" ? source.memo : fallback.memo,
@@ -294,7 +294,7 @@ const GuildWar = (() => {
       allyPositions: Array.isArray(target?.allyPositions) ? target.allyPositions : fallback.allyPositions,
       enemyPets: normalizePets(target?.enemyPets, fallback.enemyPets, target?.enemyTeam || fallback.enemyTeam),
       allyPets: normalizePets(target?.allyPets, fallback.allyPets, target?.allyTeam || fallback.allyTeam),
-      gear: Array.isArray(target?.gear) ? target.gear : fallback.gear,
+      gear: normalizeGearLines(Array.isArray(target?.gear) ? target.gear : fallback.gear, fallback.gear),
       skillOrder: Array.isArray(target?.skillOrder) ? target.skillOrder : fallback.skillOrder,
       skillNote: typeof target?.skillNote === "string" ? target.skillNote : fallback.skillNote,
       memo: typeof target?.memo === "string" ? target.memo : fallback.memo,
@@ -435,6 +435,26 @@ const GuildWar = (() => {
       .split(/\s+\/\s+/)
       .map((part) => part.trim());
     return [...parts, "", "", "", "", "", "", ""].slice(0, 8);
+  }
+
+  function normalizeGearEntry(line, fallbackLine = {}) {
+    const parts = parseGear(line);
+    const fallbackParts = parseGear(fallbackLine);
+    const valueAt = (index) => parts[index] || fallbackParts[index] || "";
+    return {
+      hero: valueAt(0),
+      set: valueAt(1),
+      weapon: valueAt(2),
+      armor: valueAt(3),
+      accessory: valueAt(4),
+      memo: valueAt(5),
+      weapon2: valueAt(6),
+      armor2: valueAt(7),
+    };
+  }
+
+  function normalizeGearLines(gearList, fallbackGear = []) {
+    return [0, 1, 2].map((index) => normalizeGearEntry(gearList?.[index], fallbackGear?.[index]));
   }
 
   function parseAccessory(value) {

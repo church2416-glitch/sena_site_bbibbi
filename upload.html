@@ -158,7 +158,10 @@
               <button type="button" data-editor-action="ol">1. 목록</button>
               <button type="button" data-editor-action="quote">인용</button>
               <button type="button" data-editor-action="code">코드</button>
+              <button type="button" data-editor-action="inline-code">`코드`</button>
+              <button type="button" data-editor-action="divider">구분선</button>
               <button type="button" data-editor-action="link">링크</button>
+              <button type="button" data-editor-action="mention">멘션</button>
               <label class="tool-file">
                 이미지
                 <input id="imageInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/avif,image/bmp,.jpg,.jpeg,.jfif,.png,.gif,.webp,.avif,.bmp" multiple />
@@ -170,6 +173,7 @@
               <button type="button" id="youtubeButton">유튜브</button>
               <button type="button" data-editor-action="table">표</button>
               <button type="button" data-editor-action="compare">비교</button>
+              <button type="button" data-editor-action="checklist">체크</button>
             </div>
             <textarea
               id="bodyInput"
@@ -181,6 +185,7 @@
             <div class="youtube-field" id="youtubeField" hidden>
               <input id="youtubeInput" name="youtube" type="url" placeholder="유튜브 링크를 붙여넣어 주세요." />
             </div>
+            <p class="editor-help">멘션은 @닉네임, @전체, @관리자, @정예, @권한 형태로 사용할 수 있습니다.</p>
             <div class="media-preview" id="mediaPreview" aria-live="polite"></div>
           </section>
           <div class="form-grid">
@@ -757,8 +762,27 @@
             closeTable();
             return;
           }
+          if (/^---+$/.test(line.trim())) {
+            closeLists();
+            closeTable();
+            html.push("<hr>");
+            return;
+          }
+          if (/^- \[[ xX]\]\s+/.test(line)) {
+            closeTable();
+            if (!inList) {
+              closeLists();
+              html.push("<ul>");
+              inList = true;
+            }
+            const checked = /^- \[[xX]\]/.test(line);
+            const label = line.replace(/^- \[[ xX]\]\s+/, "");
+            html.push(`<li class="check-preview"><input type="checkbox" disabled ${checked ? "checked" : ""}> ${renderInlineMarkup(label)}</li>`);
+            return;
+          }
           if (/^\|.+\|$/.test(line.trim())) {
             closeLists();
+            if (/^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(line.trim())) return;
             if (!inTable) {
               html.push("<table>");
               inTable = true;
@@ -845,9 +869,13 @@
         if (action === "ol") return insertBlock("1. 첫 번째 항목\n2. 두 번째 항목");
         if (action === "quote") return insertBlock(`> ${selected || "인용문"}`);
         if (action === "code") return insertBlock(`\`\`\`\n${selected || "코드 또는 표기할 내용"}\n\`\`\``);
+        if (action === "inline-code") return insertAtSelection("`", "`", "짧은 코드");
+        if (action === "divider") return insertBlock("---");
         if (action === "link") return insertAtSelection("[", "](https://)", selected || "링크");
-        if (action === "table") return insertBlock("| 항목 | 값 |\n| 이름 | 내용 |\n| 효과 | 내용 |");
+        if (action === "mention") return insertAtSelection("@", "", selected || "닉네임");
+        if (action === "table") return insertBlock("| 항목 | 값 |\n| --- | --- |\n| 이름 | 내용 |\n| 효과 | 내용 |");
         if (action === "compare") return insertBlock(":::compare\n| 기준 | A | B |\n| 장점 | 내용 | 내용 |\n| 단점 | 내용 | 내용 |\n:::end");
+        if (action === "checklist") return insertBlock("- [ ] 확인할 내용\n- [x] 완료한 내용");
       }
 
       form.addEventListener("input", scheduleDraftSave);
