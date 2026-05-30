@@ -87,13 +87,21 @@
 
             <section class="post-section comment-section">
               <div class="section-title">
-                <div>
+                <div class="comment-submit-row">
                   <h2>댓글</h2>
                   <p>공략에 대한 질문과 보충 내용을 남겨보세요.</p>
                 </div>
               </div>
               <form class="comment-form" id="commentForm">
+                <div class="comment-mention-tools" aria-label="댓글 멘션 도구">
+                  <button type="button" data-comment-mention="@">@닉네임</button>
+                  <button type="button" data-comment-mention="@전체">@전체</button>
+                  <button type="button" data-comment-mention="@관리자">@관리자</button>
+                  <button type="button" data-comment-mention="@정예">@정예</button>
+                  <button type="button" data-comment-mention="@권한">@권한</button>
+                </div>
                 <textarea id="commentInput" name="content" rows="3" maxlength="1000" placeholder="댓글을 입력하세요."></textarea>
+                <p class="comment-mention-help">댓글과 답글에서도 @닉네임, @전체, @관리자, @정예, @권한 멘션 알림을 보낼 수 있습니다.</p>
                 <div>
                   <p class="auth-error" id="commentError" hidden></p>
                   <button type="submit">등록</button>
@@ -927,7 +935,7 @@
           }
           appendNameWithRole(author, comment.author || "익명", comment.authorRole);
           date.textContent = formatKstDate(comment.createdAt);
-          content.textContent = comment.content || "";
+          content.innerHTML = renderCommentContent(comment.content || "");
           voteButton.className = "comment-vote-button";
           voteButton.classList.toggle("active", Boolean(comment.voted));
           voteButton.type = "button";
@@ -949,7 +957,26 @@
         replyTargetId = comment.id;
         const input = document.querySelector("#commentInput");
         input.placeholder = `${comment.author || "댓글"}님에게 답글`;
+        if (!input.value.trim()) insertCommentMention(`@${comment.author || ""}`);
         input.focus();
+      }
+
+      function renderCommentContent(value) {
+        return escapeHtml(value).replace(/(^|[\s([{<])@([가-힣A-Za-z0-9_-]{1,30})/g, '$1<span class="mention-token">@$2</span>');
+      }
+
+      function insertCommentMention(token) {
+        const input = document.querySelector("#commentInput");
+        if (!input || !token) return;
+        const mention = token === "@" ? "@닉네임" : token;
+        const start = input.selectionStart ?? input.value.length;
+        const end = input.selectionEnd ?? input.value.length;
+        const prefix = start > 0 && !/\s$/.test(input.value.slice(0, start)) ? " " : "";
+        const suffix = /\s/.test(input.value.slice(end, end + 1)) ? "" : " ";
+        input.value = `${input.value.slice(0, start)}${prefix}${mention}${suffix}${input.value.slice(end)}`;
+        const caret = start + prefix.length + mention.length;
+        input.focus();
+        input.setSelectionRange(caret, caret);
       }
 
       async function loadComments() {
@@ -1097,6 +1124,9 @@
           renderEditMediaPreview();
         });
         if (!isNotice) {
+          document.querySelectorAll("[data-comment-mention]").forEach((button) => {
+            button.addEventListener("click", () => insertCommentMention(button.dataset.commentMention));
+          });
           document.querySelector("#commentForm")?.addEventListener("submit", submitComment);
           loadComments();
         }
