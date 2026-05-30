@@ -1084,7 +1084,7 @@ textarea:focus {
 }
 
 .account-dialog {
-  width: min(860px, 100%);
+  width: min(1040px, 100%);
   max-height: calc(100vh - 36px);
   overflow-y: auto;
   align-content: start;
@@ -1235,7 +1235,7 @@ textarea:focus {
 
 .account-tabs {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 

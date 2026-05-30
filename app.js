@@ -208,6 +208,7 @@ const accountRole = document.querySelector("#accountRole");
 const accountCreatedAt = document.querySelector("#accountCreatedAt");
 const accountPostList = document.querySelector("#accountPostList");
 const accountLikedList = document.querySelector("#accountLikedList");
+const accountBookmarkList = document.querySelector("#accountBookmarkList");
 const accountCommentList = document.querySelector("#accountCommentList");
 const notificationList = document.querySelector("#notificationList");
 const notificationReadButton = document.querySelector("#notificationReadButton");
@@ -1210,6 +1211,7 @@ async function loadAccountDashboard() {
   if (accountAvatar) accountAvatar.textContent = (currentUser.displayName || currentUser.username || "?").slice(0, 1).toUpperCase();
   renderAccountPostList(accountPostList, [], "불러오는 중...", () => "");
   renderAccountPostList(accountLikedList, [], "불러오는 중...", () => "");
+  renderAccountPostList(accountBookmarkList, [], "불러오는 중...", () => "");
 
   try {
     const response = await fetch("/api/me/activity");
@@ -1219,6 +1221,7 @@ async function loadAccountDashboard() {
     const stats = activity.stats || {};
     const recentPosts = Array.isArray(activity.recentPosts) ? activity.recentPosts : [];
     const likedPosts = Array.isArray(activity.likedPosts) ? activity.likedPosts : guides.filter(isVotedGuide).slice(0, 8);
+    const bookmarkedPosts = Array.isArray(activity.bookmarkedPosts) ? activity.bookmarkedPosts : [];
     const comments = Array.isArray(activity.comments) ? activity.comments : [];
     const notifications = Array.isArray(activity.notifications) ? activity.notifications : [];
     const displayName = user.displayName || user.username || currentUser.displayName || currentUser.username || "-";
@@ -1252,6 +1255,12 @@ async function loadAccountDashboard() {
       "좋아요 누른 글이 없습니다.",
       (post) => `${formatFeedDate(post.votedAt || post.createdAt)} · 추천 ${formatNumber(Number(post.votes) || 0)}`,
     );
+    renderAccountPostList(
+      accountBookmarkList,
+      bookmarkedPosts,
+      "아직 북마크한 글이 없습니다.",
+      (post) => `${formatFeedDate(post.bookmarkedAt || post.createdAt)} · 조회 ${formatNumber(Number(post.views) || 0)} · 추천 ${formatNumber(Number(post.votes) || 0)}`,
+    );
 
     if (accountCommentList) {
       renderAccountPostList(
@@ -1265,6 +1274,7 @@ async function loadAccountDashboard() {
   } catch {
     renderAccountPostList(accountPostList, [], "내 정보를 불러오지 못했습니다.", () => "");
     renderAccountPostList(accountLikedList, [], "내 정보를 불러오지 못했습니다.", () => "");
+    renderAccountPostList(accountBookmarkList, [], "내 정보를 불러오지 못했습니다.", () => "");
   }
 }
 
