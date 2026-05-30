@@ -2993,6 +2993,16 @@ p {
   border-color: rgba(101, 241, 213, 0.35);
 }
 
+.coupon-history-row.is-claimed {
+  border-color: rgba(255, 224, 112, 0.42);
+  background: rgba(82, 68, 18, 0.18);
+}
+
+.coupon-history-row.is-expired {
+  border-color: rgba(255, 150, 76, 0.46);
+  background: rgba(84, 38, 14, 0.18);
+}
+
 .coupon-history-row.is-failed {
   border-color: rgba(255, 92, 124, 0.4);
 }

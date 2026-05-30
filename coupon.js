@@ -30,11 +30,12 @@ function formatCouponDate(value) {
 }
 
 function statusLabel(status) {
-  if (status === "sent") return "사용 완료";
-  if (status === "failed") return "실패";
-  return "대기";
+  if (status === "sent") return "\uC0AC\uC6A9 \uC644\uB8CC";
+  if (status === "claimed") return "\uC774\uBBF8 \uC218\uB839";
+  if (status === "expired") return "\uC720\uD6A8\uAE30\uAC04 \uB9CC\uB8CC";
+  if (status === "failed") return "\uC2E4\uD328";
+  return "\uB300\uAE30";
 }
-
 function canManageCoupons(user) {
   return Boolean(user?.canManageContent || user?.canAccessAdminDb || user?.isAdmin || user?.isSuperAdmin);
 }
@@ -128,7 +129,7 @@ async function submitBulkCoupons(event) {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "쿠폰 일괄 사용에 실패했습니다.");
-    couponStatus.textContent = `완료: 성공 ${data.sent}개, 실패 ${data.failed}개, 대기 ${data.pending}개`;
+    couponStatus.textContent = `\uC644\uB8CC: \uC131\uACF5 ${data.sent || 0}\uAC1C, \uC774\uBBF8 \uC218\uB839 ${data.claimed || 0}\uAC1C, \uB9CC\uB8CC ${data.expired || 0}\uAC1C, \uC2E4\uD328 ${data.failed || 0}\uAC1C, \uB300\uAE30 ${data.pending || 0}\uAC1C`;
     await loadCouponHistory();
   } catch (error) {
     couponStatus.textContent = error.message || "쿠폰 일괄 사용에 실패했습니다.";

@@ -711,6 +711,25 @@ function couponResultMessage(payload, statusCode) {
   return errorMap[code] || `쿠폰 처리 결과 코드 ${code || statusCode}`;
 }
 
+function couponResultStatus(payload, statusCode, message = "") {
+  const code = Number(payload?.errorCode || payload?.code || payload?.resultCode || statusCode || 0);
+  const text = String([
+    message,
+    payload?.message,
+    payload?.errorMessage,
+    payload?.error,
+    payload?.text,
+  ].filter(Boolean).join(" "));
+
+  if (code === 200 || payload?.success === true) return "sent";
+  if ([24004, 24006].includes(code)) return "expired";
+  if (/유효기간|만료|종료|expired|expiration/i.test(text)) return "expired";
+  if (/이미|수령|사용된|사용 완료|already|redeemed|claimed|used/i.test(text)) return "claimed";
+  if (code === 24003) return "claimed";
+  if (!normalizeCouponRedeemUrl(couponRedeemUrl)) return "pending";
+  return "failed";
+}
+
 async function sendCouponToGame({ uid, couponCode }) {
   const redeemUrl = normalizeCouponRedeemUrl(couponRedeemUrl);
   if (!redeemUrl) {
@@ -744,17 +763,18 @@ async function sendCouponToGame({ uid, couponCode }) {
     ? await response.json().catch(() => ({}))
     : { text: await response.text().catch(() => "") };
 
+  const message = payload.error || couponResultMessage(payload, response.status);
   if (!response.ok || payload.success === false || (payload.errorCode && Number(payload.errorCode) !== 200)) {
     return {
-      status: "failed",
-      message: payload.error || couponResultMessage(payload, response.status),
+      status: couponResultStatus(payload, response.status, message),
+      message,
       response: payload,
     };
   }
 
   return {
-    status: "sent",
-    message: couponResultMessage(payload, response.status),
+    status: couponResultStatus(payload, response.status, message),
+    message,
     response: payload,
   };
 }
@@ -792,6 +812,7 @@ function isExpiredCouponResult(result) {
   const response = result?.response || {};
   const code = Number(response.errorCode || response.code || response.resultCode || 0);
   const message = String(result?.message || response.message || response.errorMessage || "");
+  if (result?.status === "expired") return true;
   if ([24004, 24006].includes(code)) return true;
   if (code === 24003) return false;
   return /유효기간|만료|종료/.test(message);
@@ -2470,6 +2491,7 @@ app.post("/api/coupon/send-all", requireMember, async (req, res) => {
     if (isExpiredCouponResult(result) && deactivateExpiredCoupon(couponCode, req.user.id)) {
       result = {
         ...result,
+        status: "expired",
         message: "유효기간이 만료되었습니다. 만료된 쿠폰은 쿠폰북에서 삭제 처리되었습니다.",
       };
     }
@@ -2479,6 +2501,8 @@ app.post("/api/coupon/send-all", requireMember, async (req, res) => {
   res.json({
     ok: true,
     sent: requests.filter((item) => item.status === "sent").length,
+    claimed: requests.filter((item) => item.status === "claimed").length,
+    expired: requests.filter((item) => item.status === "expired").length,
     failed: requests.filter((item) => item.status === "failed").length,
     pending: requests.filter((item) => item.status === "pending").length,
     requests,
@@ -2512,6 +2536,7 @@ app.post("/api/coupon/send", requireMember, async (req, res) => {
   if (isExpiredCouponResult(result) && deactivateExpiredCoupon(couponCode, req.user.id)) {
     result = {
       ...result,
+      status: "expired",
       message: "유효기간이 만료되었습니다. 만료된 쿠폰은 쿠폰북에서 삭제 처리되었습니다.",
     };
   }
