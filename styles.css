@@ -20,6 +20,9 @@
   --accent-mid: rgba(110, 85, 153, 0.24);
   --accent-strong: rgba(86, 53, 130, 0.52);
   --accent-glow: rgba(110, 85, 153, 0.32);
+  --mention-color: #2c7eff;
+  --mention-color-rgb: 44, 126, 255;
+  --mention-text: #ffffff;
   --pink: #ff4d88;
   --orange: #ff7144;
   --green: #40d2a3;
@@ -4097,13 +4100,13 @@ p {
   align-items: center;
   min-height: 22px;
   padding: 2px 8px;
-  border: 1px solid rgba(90, 162, 255, 0.72);
+  border: 1px solid rgba(var(--mention-color-rgb), 0.72);
   border-radius: 6px;
-  color: #eaf4ff;
+  color: var(--mention-text);
   background:
-    linear-gradient(135deg, rgba(30, 106, 255, 0.9), rgba(66, 183, 255, 0.72)),
-    rgba(44, 126, 255, 0.9);
-  box-shadow: 0 0 14px rgba(70, 150, 255, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    linear-gradient(135deg, rgba(var(--mention-color-rgb), 0.96), rgba(var(--mention-color-rgb), 0.68)),
+    var(--mention-color);
+  box-shadow: 0 0 14px rgba(var(--mention-color-rgb), 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.18);
   font-size: 0.94em;
   font-weight: 1000;
   line-height: 1;
@@ -5204,6 +5207,29 @@ p {
 
 #importantNoticeImageUrl {
   min-height: 76px;
+}
+
+.admin-color-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.admin-color-picker {
+  display: grid;
+  grid-template-columns: 64px minmax(120px, 180px) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-color-picker input[type="color"] {
+  width: 64px;
+  height: 42px;
+  min-height: 42px;
+  padding: 3px;
+}
+
+.admin-color-picker .mention-token {
+  width: max-content;
 }
 
 .admin-notice-upload-field span {

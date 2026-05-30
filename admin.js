@@ -55,6 +55,11 @@ const mainHeroImageName = document.querySelector("#mainHeroImageName");
 const mainHeroImageUrl = document.querySelector("#mainHeroImageUrl");
 const mainHeroInterval = document.querySelector("#mainHeroInterval");
 const mainHeroSaveState = document.querySelector("#mainHeroSaveState");
+const siteAppearanceForm = document.querySelector("#siteAppearanceForm");
+const siteAppearanceSaveState = document.querySelector("#siteAppearanceSaveState");
+const mentionColorInput = document.querySelector("#mentionColorInput");
+const mentionColorText = document.querySelector("#mentionColorText");
+const mentionColorPreview = document.querySelector("#mentionColorPreview");
 const adminCouponForm = document.querySelector("#adminCouponForm");
 const adminCouponCodes = document.querySelector("#adminCouponCodes");
 const adminCouponSaveState = document.querySelector("#adminCouponSaveState");
@@ -490,6 +495,52 @@ async function saveMainHeroSettings(event) {
   setText(mainHeroSaveState, "저장됨");
 }
 
+function normalizeHexColor(value) {
+  const color = String(value || "").trim();
+  return /^#[0-9a-fA-F]{6}$/.test(color) ? color.toLowerCase() : "#2c7eff";
+}
+
+function syncMentionColorPreview(color) {
+  const nextColor = normalizeHexColor(color);
+  if (mentionColorInput) mentionColorInput.value = nextColor;
+  if (mentionColorText) mentionColorText.value = nextColor;
+  window.BbibbiApplySiteAppearance?.({ mentionColor: nextColor });
+  if (mentionColorPreview) mentionColorPreview.textContent = "@bbitsena";
+}
+
+function renderSiteAppearanceSettings(appearance) {
+  if (!siteAppearanceForm || !appearance) return;
+  syncMentionColorPreview(appearance.mentionColor);
+  setText(siteAppearanceSaveState, "불러옴");
+}
+
+async function loadSiteAppearanceSettings() {
+  if (!siteAppearanceForm) return;
+  const response = await fetch("/api/site-appearance");
+  if (!response.ok) return;
+  const data = await response.json();
+  renderSiteAppearanceSettings(data.appearance);
+}
+
+async function saveSiteAppearanceSettings(event) {
+  event.preventDefault();
+  const mentionColor = normalizeHexColor(mentionColorText?.value || mentionColorInput?.value);
+  syncMentionColorPreview(mentionColor);
+  setText(siteAppearanceSaveState, "저장 중");
+  const response = await fetch("/api/admin/site-appearance", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mentionColor }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    setText(siteAppearanceSaveState, data.error || "실패");
+    return;
+  }
+  renderSiteAppearanceSettings(data.appearance);
+  setText(siteAppearanceSaveState, "저장됨");
+}
+
 async function saveAdminCouponCodes(event) {
   event.preventDefault();
   if (!adminCouponCodes?.value.trim()) {
@@ -719,6 +770,7 @@ async function loadDashboard() {
   await loadGuildSeasonSettings();
   await loadImportantNoticeSettings();
   await loadMainHeroSettings();
+  await loadSiteAppearanceSettings();
   await loadManagementLists();
 }
 
@@ -752,6 +804,11 @@ importantNoticeImageFile?.addEventListener("change", () => {
   }
 });
 mainHeroForm?.addEventListener("submit", saveMainHeroSettings);
+siteAppearanceForm?.addEventListener("submit", saveSiteAppearanceSettings);
+mentionColorInput?.addEventListener("input", () => syncMentionColorPreview(mentionColorInput.value));
+mentionColorText?.addEventListener("input", () => {
+  if (/^#[0-9a-fA-F]{6}$/.test(mentionColorText.value.trim())) syncMentionColorPreview(mentionColorText.value);
+});
 adminCouponForm?.addEventListener("submit", saveAdminCouponCodes);
 mainHeroImageFile?.addEventListener("change", () => {
   const files = [...(mainHeroImageFile.files || [])];

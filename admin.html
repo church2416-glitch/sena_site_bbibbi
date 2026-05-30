@@ -181,6 +181,27 @@
         <section class="admin-panel admin-wide-panel">
           <div class="admin-panel-head">
             <div>
+              <h1>사이트 태그 색상</h1>
+              <small>멘션 태그(@닉네임)의 하이라이트 색상을 RGB 컬러 피커로 조정합니다.</small>
+            </div>
+            <span class="admin-count" id="siteAppearanceSaveState">대기</span>
+          </div>
+          <form class="admin-settings-form admin-color-form" id="siteAppearanceForm">
+            <label>
+              멘션 태그 색상
+              <span class="admin-color-picker">
+                <input id="mentionColorInput" name="mentionColor" type="color" value="#2c7eff" />
+                <input id="mentionColorText" type="text" maxlength="7" value="#2c7eff" placeholder="#2c7eff" />
+                <em class="mention-token" id="mentionColorPreview">@bbitsena</em>
+              </span>
+            </label>
+            <button type="submit">저장</button>
+          </form>
+        </section>
+
+        <section class="admin-panel admin-wide-panel">
+          <div class="admin-panel-head">
+            <div>
               <h1>중요 공지 팝업</h1>
               <small>메인 화면에 표시할 공지와 이미지를 설정합니다.</small>
             </div>

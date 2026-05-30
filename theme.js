@@ -18,11 +18,35 @@ const defaultSettings = {
   compactList: false,
   glow: true,
 };
+const defaultSiteAppearance = {
+  mentionColor: "#2c7eff",
+};
 
 function hexToRgb(hex) {
   const value = hex.replace("#", "");
   const number = Number.parseInt(value.length === 3 ? value.replace(/(.)/g, "$1$1") : value, 16);
   return `${(number >> 16) & 255}, ${(number >> 8) & 255}, ${number & 255}`;
+}
+
+function readableTextColor(hex) {
+  const [red, green, blue] = hexToRgb(hex).split(",").map((value) => Number(value.trim()));
+  const brightness = (red * 299 + green * 587 + blue * 114) / 1000;
+  return brightness > 150 ? "#07110f" : "#ffffff";
+}
+
+function applySiteAppearance(settings = defaultSiteAppearance) {
+  const color = /^#[0-9a-f]{6}$/i.test(settings.mentionColor || "") ? settings.mentionColor : defaultSiteAppearance.mentionColor;
+  const root = document.documentElement;
+  root.style.setProperty("--mention-color", color);
+  root.style.setProperty("--mention-color-rgb", hexToRgb(color));
+  root.style.setProperty("--mention-text", readableTextColor(color));
+}
+
+async function loadSiteAppearance() {
+  const response = await fetch("/api/site-appearance").catch(() => null);
+  if (!response?.ok) return defaultSiteAppearance;
+  const data = await response.json().catch(() => ({}));
+  return { ...defaultSiteAppearance, ...(data.appearance || {}) };
 }
 
 function loadThemeSettings() {
@@ -135,4 +159,7 @@ function initThemePanel() {
 }
 
 applyThemeSettings(loadThemeSettings());
+applySiteAppearance(defaultSiteAppearance);
+loadSiteAppearance().then(applySiteAppearance);
+window.BbibbiApplySiteAppearance = applySiteAppearance;
 document.addEventListener("DOMContentLoaded", initThemePanel);

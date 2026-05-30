@@ -83,6 +83,10 @@ const defaultMainHeroSettings = {
   intervalSeconds: 5,
   updatedAt: "",
 };
+const defaultSiteAppearanceSettings = {
+  mentionColor: "#2c7eff",
+  updatedAt: "",
+};
 const maxPostImageSize = 25 * 1024 * 1024;
 const maxPostVideoSize = 500 * 1024 * 1024;
 const uploadRoot = path.join(__dirname, "uploads");
@@ -1136,6 +1140,22 @@ function normalizeMainHeroSettings(value = {}) {
   return {
     imageUrls,
     intervalSeconds,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function normalizeHexColor(value, fallback) {
+  const color = String(value || "").trim();
+  return /^#[0-9a-fA-F]{6}$/.test(color) ? color.toLowerCase() : fallback;
+}
+
+function getSiteAppearanceSettings() {
+  return readSetting("siteAppearance", defaultSiteAppearanceSettings);
+}
+
+function normalizeSiteAppearanceSettings(value = {}) {
+  return {
+    mentionColor: normalizeHexColor(value.mentionColor, defaultSiteAppearanceSettings.mentionColor),
     updatedAt: new Date().toISOString(),
   };
 }
@@ -3112,6 +3132,10 @@ app.get("/api/main-hero", (req, res) => {
   res.json({ ok: true, hero: getMainHeroSettings() });
 });
 
+app.get("/api/site-appearance", (req, res) => {
+  res.json({ ok: true, appearance: getSiteAppearanceSettings() });
+});
+
 app.patch("/api/admin/guild-war/season", requireGuildManager, (req, res) => {
   const totalRound = Math.max(1, Math.min(365, Number(req.body.totalRound) || defaultGuildSeasonSettings.totalRound));
   const round = Math.max(0, Math.min(totalRound, Number(req.body.round) || 0));
@@ -3139,6 +3163,12 @@ app.patch("/api/admin/main-hero", requireContentManager, (req, res) => {
   const settings = normalizeMainHeroSettings(req.body || {});
   writeSetting("mainHero", settings);
   res.json({ ok: true, hero: settings });
+});
+
+app.patch("/api/admin/site-appearance", requireAdmin, (req, res) => {
+  const settings = normalizeSiteAppearanceSettings(req.body || {});
+  writeSetting("siteAppearance", settings);
+  res.json({ ok: true, appearance: settings });
 });
 
 app.post("/api/admin/important-notice/image", requireContentManager, (req, res) => {
