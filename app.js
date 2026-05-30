@@ -133,6 +133,7 @@ const feedLinks = {
   notices: "https://game.naver.com/lounge/sena_rebirth/board/11",
   devNotes: "https://game.naver.com/lounge/sena_rebirth/board/3",
 };
+let boardTagColors = new Map();
 const guideList = document.querySelector("#guideList");
 const rankingList = document.querySelector("#rankingList");
 const hotList = document.querySelector("#hotList");
@@ -495,6 +496,7 @@ function renderCategoryTabs() {
     button.dataset.filter = tab.filter;
     button.dataset.filterGroup = activeGroup;
     button.textContent = tab.label;
+    applyTagColor(button, tab.filter);
     button.classList.toggle("active", normalizeBoard(tab.filter) === activeCategory);
     button.addEventListener("click", () => setActiveCategory(tab.filter));
     categoryStrip.append(button);
@@ -607,6 +609,29 @@ async function loadGuidesFromServer() {
   } catch {
     guides = loadGuides();
   }
+}
+
+async function loadBoardTagColors() {
+  try {
+    const response = await fetch("/api/board-tags");
+    if (!response.ok) return;
+    const data = await response.json();
+    boardTagColors = new Map(
+      (data.settings?.tags || [])
+        .filter((tag) => tag?.name && /^#[0-9a-fA-F]{6}$/.test(tag?.color || ""))
+        .map((tag) => [normalizeBoard(tag.name), tag.color]),
+    );
+  } catch {
+    boardTagColors = new Map();
+  }
+}
+
+function applyTagColor(element, tagName) {
+  const color = boardTagColors.get(normalizeBoard(tagName));
+  if (!element || !color) return;
+  element.style.borderColor = color;
+  element.style.color = color;
+  element.style.backgroundColor = `${color}22`;
 }
 
 function saveGuides() {
@@ -1332,7 +1357,7 @@ function getFilteredGuides() {
   const query = searchInput.value.trim().toLowerCase();
 
   const filteredGuides = guides.filter((guide) => {
-    const haystack = [guide.title, guide.game, guide.summary, guide.category, guide.tags.join(" ")]
+    const haystack = [guide.title, guide.game, guide.summary, guide.body, guide.category, guide.author, guide.authorUsername, guide.tags.join(" ")]
       .join(" ")
       .toLowerCase();
     const matchesQuery = !query || haystack.includes(query);
@@ -1547,6 +1572,7 @@ function renderGuides() {
 
     const displayCategory = normalizeBoard(guide.category);
     status.textContent = displayCategory === "파괴신" ? "파괴신" : displayCategory;
+    applyTagColor(status, displayCategory);
     title.textContent = guide.title;
     comment.textContent = ` (${guide.comments || 0})`;
     summary.textContent = guide.summary;
@@ -1568,6 +1594,7 @@ function renderGuides() {
         const tagNode = document.createElement("b");
         tagNode.className = "tag-chip";
         tagNode.textContent = `#${tag}`;
+        applyTagColor(tagNode, tag);
         tags.append(tagNode);
       });
       meta.append(tags);
@@ -1974,10 +2001,10 @@ importantNoticeModal?.addEventListener("click", (event) => {
 });
 
 window.addEventListener("focus", () => {
-  loadGuidesFromServer().then(renderGuides);
+  Promise.all([loadBoardTagColors(), loadGuidesFromServer()]).then(renderGuides);
 });
 
 fetchCurrentUser().then(renderAuthState);
-loadGuidesFromServer().then(renderGuides);
+Promise.all([loadBoardTagColors(), loadGuidesFromServer()]).then(renderGuides);
 loadMainHeroSettings();
 loadImportantNotice();

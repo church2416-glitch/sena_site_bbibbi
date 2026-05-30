@@ -80,6 +80,29 @@ export function initDb({ adminUser, adminPassword }) {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS post_bookmarks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      post_id TEXT NOT NULL,
+      user_id INTEGER NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (post_id, user_id),
+      FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS post_reports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      post_id TEXT NOT NULL,
+      reporter_id INTEGER NOT NULL,
+      reason TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'open',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      resolved_at TEXT,
+      UNIQUE (post_id, reporter_id),
+      FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+      FOREIGN KEY (reporter_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
     CREATE TABLE IF NOT EXISTS post_comments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       post_id TEXT NOT NULL,
@@ -179,6 +202,8 @@ export function initDb({ adminUser, adminPassword }) {
     CREATE INDEX IF NOT EXISTS idx_posts_category_created ON posts(category, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_media_post ON post_media(post_id, sort_order);
     CREATE INDEX IF NOT EXISTS idx_post_votes_user ON post_votes(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_post_bookmarks_user ON post_bookmarks(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_post_reports_status ON post_reports(status, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_post_comments_post ON post_comments(post_id, created_at ASC);
     CREATE INDEX IF NOT EXISTS idx_post_comments_user ON post_comments(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_comment_votes_user ON comment_votes(user_id, created_at DESC);

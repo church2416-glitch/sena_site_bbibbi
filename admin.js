@@ -60,6 +60,10 @@ const siteAppearanceSaveState = document.querySelector("#siteAppearanceSaveState
 const mentionColorInput = document.querySelector("#mentionColorInput");
 const mentionColorText = document.querySelector("#mentionColorText");
 const mentionColorPreview = document.querySelector("#mentionColorPreview");
+const boardTagForm = document.querySelector("#boardTagForm");
+const boardTagList = document.querySelector("#boardTagList");
+const boardTagSaveState = document.querySelector("#boardTagSaveState");
+const addBoardTagButton = document.querySelector("#addBoardTagButton");
 const adminCouponForm = document.querySelector("#adminCouponForm");
 const adminCouponCodes = document.querySelector("#adminCouponCodes");
 const adminCouponSaveState = document.querySelector("#adminCouponSaveState");
@@ -225,6 +229,8 @@ function renderDatabaseTable(counts) {
     posts: counts.posts,
     post_media: counts.post_media,
     post_votes: counts.post_votes,
+    post_bookmarks: counts.post_bookmarks,
+    post_reports: counts.post_reports,
     post_comments: counts.post_comments,
     comment_votes: counts.comment_votes,
     notifications: counts.notifications,
@@ -541,6 +547,79 @@ async function saveSiteAppearanceSettings(event) {
   setText(siteAppearanceSaveState, "저장됨");
 }
 
+function createBoardTagRow(tag = {}) {
+  const row = document.createElement("div");
+  const name = document.createElement("input");
+  const color = document.createElement("input");
+  const preview = document.createElement("b");
+  const remove = document.createElement("button");
+
+  row.className = "admin-board-tag-row";
+  name.type = "text";
+  name.maxLength = 30;
+  name.placeholder = "태그 이름";
+  name.value = tag.name || "";
+  color.type = "color";
+  color.value = normalizeHexColor(tag.color || "#6ce7d2");
+  preview.className = "status";
+  preview.textContent = name.value || "태그";
+  remove.type = "button";
+  remove.textContent = "삭제";
+
+  const sync = () => {
+    const value = normalizeHexColor(color.value);
+    preview.textContent = name.value.trim() || "태그";
+    preview.style.setProperty("--tag-color", value);
+    preview.style.borderColor = value;
+    preview.style.color = value;
+    preview.style.backgroundColor = `${value}22`;
+  };
+  name.addEventListener("input", sync);
+  color.addEventListener("input", sync);
+  remove.addEventListener("click", () => row.remove());
+  row.append(name, color, preview, remove);
+  sync();
+  return row;
+}
+
+function renderBoardTagSettings(settings = {}) {
+  if (!boardTagList) return;
+  boardTagList.innerHTML = "";
+  (settings.tags || []).forEach((tag) => boardTagList.append(createBoardTagRow(tag)));
+  setText(boardTagSaveState, "불러옴");
+}
+
+async function loadBoardTagSettings() {
+  if (!boardTagForm) return;
+  const response = await fetch("/api/board-tags");
+  if (!response.ok) return;
+  const data = await response.json();
+  renderBoardTagSettings(data.settings || {});
+}
+
+async function saveBoardTagSettings(event) {
+  event.preventDefault();
+  const tags = [...boardTagList.querySelectorAll(".admin-board-tag-row")]
+    .map((row) => {
+      const [name, color] = row.querySelectorAll("input");
+      return { name: name.value.trim(), color: normalizeHexColor(color.value) };
+    })
+    .filter((tag) => tag.name);
+  setText(boardTagSaveState, "저장 중");
+  const response = await fetch("/api/admin/board-tags", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tags }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    setText(boardTagSaveState, data.error || "실패");
+    return;
+  }
+  renderBoardTagSettings(data.settings || {});
+  setText(boardTagSaveState, "저장됨");
+}
+
 async function saveAdminCouponCodes(event) {
   event.preventDefault();
   if (!adminCouponCodes?.value.trim()) {
@@ -771,6 +850,7 @@ async function loadDashboard() {
   await loadImportantNoticeSettings();
   await loadMainHeroSettings();
   await loadSiteAppearanceSettings();
+  await loadBoardTagSettings();
   await loadManagementLists();
 }
 
@@ -805,6 +885,8 @@ importantNoticeImageFile?.addEventListener("change", () => {
 });
 mainHeroForm?.addEventListener("submit", saveMainHeroSettings);
 siteAppearanceForm?.addEventListener("submit", saveSiteAppearanceSettings);
+boardTagForm?.addEventListener("submit", saveBoardTagSettings);
+addBoardTagButton?.addEventListener("click", () => boardTagList?.append(createBoardTagRow({ name: "", color: "#6ce7d2" })));
 mentionColorInput?.addEventListener("input", () => syncMentionColorPreview(mentionColorInput.value));
 mentionColorText?.addEventListener("input", () => {
   if (/^#[0-9a-fA-F]{6}$/.test(mentionColorText.value.trim())) syncMentionColorPreview(mentionColorText.value);

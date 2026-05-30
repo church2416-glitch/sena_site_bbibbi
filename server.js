@@ -87,6 +87,22 @@ const defaultSiteAppearanceSettings = {
   mentionColor: "#2c7eff",
   updatedAt: "",
 };
+const defaultBoardTagSettings = {
+  tags: [
+    { name: "전체 게시판", color: "#6ce7d2" },
+    { name: "인기글", color: "#ffdf63" },
+    { name: "PVP 게시판", color: "#ff7144" },
+    { name: "PVE 공략", color: "#6ce7d2" },
+    { name: "파괴신", color: "#ff7144" },
+    { name: "공성전", color: "#ffdf63" },
+    { name: "돌발레이드", color: "#ff7144" },
+    { name: "기술", color: "#8b5cf6" },
+    { name: "잡담", color: "#a779ff" },
+    { name: "유머", color: "#ff4d88" },
+    { name: "쿠폰", color: "#40d2a3" },
+  ],
+  updatedAt: "",
+};
 const maxPostImageSize = 25 * 1024 * 1024;
 const maxPostVideoSize = 500 * 1024 * 1024;
 const uploadRoot = path.join(__dirname, "uploads");
@@ -1160,6 +1176,38 @@ function normalizeSiteAppearanceSettings(value = {}) {
   };
 }
 
+function normalizeBoardTagSettings(value = {}) {
+  const source = Array.isArray(value.tags) ? value.tags : defaultBoardTagSettings.tags;
+  const seen = new Set();
+  const tags = source
+    .map((tag) => ({
+      name: String(tag?.name || "").trim().slice(0, 30),
+      color: normalizeHexColor(tag?.color, "#6ce7d2"),
+    }))
+    .filter((tag) => {
+      if (!tag.name || seen.has(tag.name)) return false;
+      seen.add(tag.name);
+      return true;
+    })
+    .slice(0, 40);
+  return {
+    tags: tags.length ? tags : defaultBoardTagSettings.tags,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function getBoardTagSettings() {
+  return normalizeBoardTagSettings(readSetting("boardTags", defaultBoardTagSettings));
+}
+
+function getPostStatsForUser(postId, userId) {
+  if (!userId) return { bookmarked: false, reported: false };
+  return {
+    bookmarked: Boolean(db.prepare("SELECT 1 FROM post_bookmarks WHERE post_id = ? AND user_id = ?").get(postId, userId)),
+    reported: Boolean(db.prepare("SELECT 1 FROM post_reports WHERE post_id = ? AND reporter_id = ?").get(postId, userId)),
+  };
+}
+
 function normalizeSafeUrl(value, { allowRelative = false, allowImagesOnly = false } = {}) {
   const raw = String(value || "").trim();
   if (!raw) return "";
@@ -1209,6 +1257,10 @@ function normalizeYoutubeEmbedUrl(value) {
 
 function isSafeDisplayText(value) {
   return !/[<>\u0000-\u001f\u007f]/.test(String(value || ""));
+}
+
+function normalizeBoardName(value) {
+  return String(value || "").trim();
 }
 
 function serializePost(row) {
@@ -1380,9 +1432,11 @@ function serializeNotification(row) {
 
 function withUserVoteState(post, userId) {
   if (!userId) return post;
+  const extra = getPostStatsForUser(post.id, userId);
   return {
     ...post,
     voted: Boolean(db.prepare("SELECT 1 FROM post_votes WHERE post_id = ? AND user_id = ?").get(post.id, userId)),
+    ...extra,
   };
 }
 
@@ -2162,6 +2216,28 @@ app.get("/api/me/activity", requireMember, (req, res) => {
       ...serializePost(row),
       votedAt: row.voted_at,
     }));
+  const bookmarkedPosts = db
+    .prepare(
+      `
+        SELECT
+          posts.*,
+          users.display_name AS author_name,
+          users.username AS author_username,
+          post_bookmarks.created_at AS bookmarked_at
+        FROM post_bookmarks
+        JOIN posts ON posts.id = post_bookmarks.post_id
+        LEFT JOIN users ON users.id = posts.author_id
+        WHERE post_bookmarks.user_id = ?
+          AND posts.status = 'published'
+        ORDER BY datetime(post_bookmarks.created_at) DESC
+        LIMIT 12
+      `,
+    )
+    .all(user.id)
+    .map((row) => ({
+      ...serializePost(row),
+      bookmarkedAt: row.bookmarked_at,
+    }));
   const comments = selectCommentRows("post_comments.user_id = ? AND post_comments.status = 'published'", [user.id])
     .reverse()
     .slice(0, 12)
@@ -2187,6 +2263,7 @@ app.get("/api/me/activity", requireMember, (req, res) => {
     },
     recentPosts,
     likedPosts,
+    bookmarkedPosts,
     comments,
     notifications,
     unreadNotificationCount,
@@ -2448,7 +2525,29 @@ app.post("/api/coupon/send", requireMember, async (req, res) => {
 });
 
 app.get("/api/posts", requireContentAccess, (req, res) => {
-  res.json(selectPostRows().map((row) => withUserVoteState(serializePost(row), req.user.id)));
+  const query = String(req.query.q || "").trim().toLowerCase().slice(0, 80);
+  const category = String(req.query.category || "").trim().slice(0, 30);
+  let posts = selectPostRows().map((row) => withUserVoteState(serializePost(row), req.user.id));
+  if (category) {
+    posts = posts.filter((post) => normalizeBoardName(post.category) === normalizeBoardName(category));
+  }
+  if (query) {
+    const tokens = query.split(/\s+/).filter(Boolean).slice(0, 6);
+    posts = posts.filter((post) => {
+      const haystack = [
+        post.title,
+        post.game,
+        post.summary,
+        post.body,
+        post.category,
+        post.author,
+        post.authorUsername,
+        ...(Array.isArray(post.tags) ? post.tags : []),
+      ].join(" ").toLowerCase();
+      return tokens.every((token) => haystack.includes(token));
+    });
+  }
+  res.json(posts);
 });
 
 app.post("/api/posts", requireContentAccess, requirePermission("canWritePosts", "게시글 작성 권한이 없습니다."), requireMediaUploadPermission, maybeUploadPostMedia, (req, res) => {
@@ -2701,7 +2800,75 @@ app.post("/api/posts/:id/vote", requireContentAccess, (req, res) => {
     });
   }
   const updatedPost = selectPostRows("posts.id = ?", [id])[0];
-  res.json({ voted, post: serializePost(updatedPost) });
+  res.json({ voted, post: withUserVoteState(serializePost(updatedPost), req.user.id) });
+});
+
+app.post("/api/posts/:id/bookmark", requireContentAccess, (req, res) => {
+  const id = String(req.params.id || "");
+  const post = db.prepare("SELECT id, title FROM posts WHERE id = ? AND status = 'published'").get(id);
+  if (!post) {
+    return res.status(404).json({ error: "게시글을 찾을 수 없습니다." });
+  }
+
+  const toggleBookmark = db.transaction(() => {
+    const existing = db.prepare("SELECT id FROM post_bookmarks WHERE post_id = ? AND user_id = ?").get(id, req.user.id);
+    if (existing) {
+      db.prepare("DELETE FROM post_bookmarks WHERE id = ?").run(existing.id);
+      return false;
+    }
+    db.prepare("INSERT INTO post_bookmarks (post_id, user_id) VALUES (?, ?)").run(id, req.user.id);
+    return true;
+  });
+
+  const bookmarked = toggleBookmark();
+  res.json({ ok: true, bookmarked });
+});
+
+app.post("/api/posts/:id/report", requireContentAccess, (req, res) => {
+  const id = String(req.params.id || "");
+  const reason = String(req.body?.reason || "").trim().slice(0, 300);
+  const post = db.prepare("SELECT id, title, author_id FROM posts WHERE id = ? AND status = 'published'").get(id);
+  if (!post) {
+    return res.status(404).json({ error: "게시글을 찾을 수 없습니다." });
+  }
+  if (!reason) {
+    return res.status(400).json({ error: "신고 사유를 입력해주세요." });
+  }
+
+  try {
+    db.prepare(
+      `
+        INSERT INTO post_reports (post_id, reporter_id, reason)
+        VALUES (?, ?, ?)
+      `,
+    ).run(id, req.user.id, reason);
+    createAuditLog({
+      actorId: req.user.id,
+      action: "post.report",
+      targetType: "post",
+      targetId: id,
+      details: { title: post.title, reason },
+    });
+  } catch (error) {
+    if (String(error?.message || "").includes("UNIQUE")) {
+      return res.status(409).json({ error: "이미 신고한 게시글입니다." });
+    }
+    throw error;
+  }
+
+  const reportCount = db.prepare("SELECT COUNT(*) AS count FROM post_reports WHERE post_id = ? AND status = 'open'").get(id)?.count || 0;
+  if (reportCount >= 3) {
+    db.prepare("UPDATE posts SET status = 'hidden', updated_at = datetime('now') WHERE id = ?").run(id);
+    createAuditLog({
+      actorId: null,
+      action: "post.auto_hide",
+      targetType: "post",
+      targetId: id,
+      details: { title: post.title, reportCount },
+    });
+  }
+
+  res.json({ ok: true, reported: true, reportCount });
 });
 
 app.get("/api/posts/:id/comments", requireContentAccess, (req, res) => {
@@ -3074,6 +3241,8 @@ app.get("/api/admin/db-status", requireAdmin, (req, res) => {
     "posts",
     "post_media",
     "post_votes",
+    "post_bookmarks",
+    "post_reports",
     "post_comments",
     "comment_votes",
     "notifications",
@@ -3136,6 +3305,10 @@ app.get("/api/site-appearance", (req, res) => {
   res.json({ ok: true, appearance: getSiteAppearanceSettings() });
 });
 
+app.get("/api/board-tags", (req, res) => {
+  res.json({ ok: true, settings: getBoardTagSettings() });
+});
+
 app.patch("/api/admin/guild-war/season", requireGuildManager, (req, res) => {
   const totalRound = Math.max(1, Math.min(365, Number(req.body.totalRound) || defaultGuildSeasonSettings.totalRound));
   const round = Math.max(0, Math.min(totalRound, Number(req.body.round) || 0));
@@ -3169,6 +3342,19 @@ app.patch("/api/admin/site-appearance", requireAdmin, (req, res) => {
   const settings = normalizeSiteAppearanceSettings(req.body || {});
   writeSetting("siteAppearance", settings);
   res.json({ ok: true, appearance: settings });
+});
+
+app.patch("/api/admin/board-tags", requireAdmin, (req, res) => {
+  const settings = normalizeBoardTagSettings(req.body || {});
+  writeSetting("boardTags", settings);
+  createAuditLog({
+    actorId: req.user?.id,
+    action: "board_tags.update",
+    targetType: "app_settings",
+    targetId: "boardTags",
+    details: { count: settings.tags.length },
+  });
+  res.json({ ok: true, settings });
 });
 
 app.post("/api/admin/important-notice/image", requireContentManager, (req, res) => {
@@ -3431,6 +3617,13 @@ app.patch("/api/admin/posts/:id/quick", requireContentManager, (req, res) => {
   const result = db.prepare(`UPDATE posts SET ${updates.join(", ")} WHERE id = ?`).run(...params);
   if (!result.changes) return res.status(404).json({ error: "게시글을 찾을 수 없습니다." });
   const post = selectPostRows("posts.id = ?", [id])[0];
+  createAuditLog({
+    actorId: req.user?.id,
+    action: "post.quick_manage",
+    targetType: "post",
+    targetId: id,
+    details: { status: hasStatus ? status : undefined, category, orderAction },
+  });
   res.json(serializePost(post));
 });
 
@@ -3445,6 +3638,13 @@ app.patch("/api/admin/posts/:id", requireContentManager, (req, res) => {
   const result = db.prepare("UPDATE posts SET status = ?, updated_at = datetime('now') WHERE id = ?").run(status, id);
   if (!result.changes) return res.status(404).json({ error: "게시글을 찾을 수 없습니다." });
   const post = selectPostRows("posts.id = ?", [id])[0];
+  createAuditLog({
+    actorId: req.user?.id,
+    action: "post.status",
+    targetType: "post",
+    targetId: id,
+    details: { status },
+  });
   res.json(serializePost(post));
 });
 

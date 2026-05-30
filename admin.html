@@ -153,6 +153,23 @@
         <section class="admin-panel admin-wide-panel">
           <div class="admin-panel-head">
             <div>
+              <h1>게시판 태그 색상</h1>
+              <small>게시판 말머리/태그 색상을 DB에서 관리합니다.</small>
+            </div>
+            <span class="admin-count" id="boardTagSaveState">대기</span>
+          </div>
+          <form class="admin-settings-form admin-board-tag-form" id="boardTagForm">
+            <div class="admin-board-tag-list" id="boardTagList"></div>
+            <div class="admin-board-tag-actions">
+              <button type="button" id="addBoardTagButton">태그 추가</button>
+              <button type="submit">저장</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="admin-panel admin-wide-panel">
+          <div class="admin-panel-head">
+            <div>
               <h1>메인 배너 슬라이드</h1>
               <small>메인 화면 상단 배너 이미지를 여러 장 등록하고 자동 전환 시간을 설정합니다.</small>
             </div>

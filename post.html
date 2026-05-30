@@ -25,6 +25,10 @@
             <button id="postEditButton" type="button">수정</button>
             <button id="postDeleteButton" type="button">삭제</button>
           </div>
+          <div class="post-reader-actions">
+            <button id="postBookmarkButton" type="button">북마크</button>
+            <button id="postReportButton" type="button">신고</button>
+          </div>
         </div>
 
         <form class="post-edit-panel" id="postEditForm" hidden>
@@ -997,6 +1001,44 @@
         renderVoteState(currentPost);
       }
 
+      function renderBookmarkState() {
+        const button = document.querySelector("#postBookmarkButton");
+        if (!button || !currentPost) return;
+        button.textContent = currentPost.bookmarked ? "북마크됨" : "북마크";
+        button.classList.toggle("active", Boolean(currentPost.bookmarked));
+      }
+
+      async function toggleBookmark() {
+        if (!currentPost) return;
+        const response = await fetch(`/api/posts/${encodeURIComponent(currentPost.id)}/bookmark`, { method: "POST" });
+        if (!response.ok) return;
+        const data = await response.json().catch(() => ({}));
+        currentPost.bookmarked = Boolean(data.bookmarked);
+        renderBookmarkState();
+      }
+
+      async function reportPost() {
+        if (!currentPost || currentPost.reported) return;
+        const reason = prompt("신고 사유를 입력해주세요.");
+        if (!reason?.trim()) return;
+        const response = await fetch(`/api/posts/${encodeURIComponent(currentPost.id)}/report`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          alert(data.error || "신고 처리에 실패했습니다.");
+          return;
+        }
+        currentPost.reported = true;
+        const button = document.querySelector("#postReportButton");
+        if (button) {
+          button.textContent = "신고됨";
+          button.disabled = true;
+        }
+      }
+
       async function toggleCommentVote(commentId, button) {
         const response = await fetch(`/api/comments/${encodeURIComponent(commentId)}/vote`, { method: "POST" });
         if (!response.ok) return;
@@ -1065,6 +1107,12 @@
         const sideWriteLink = document.querySelector("#sideWriteLink");
         if (sideWriteLink) sideWriteLink.href = isNotice ? "notice-upload.html" : "upload.html";
         renderPostBody(guide);
+        renderBookmarkState();
+        const reportButton = document.querySelector("#postReportButton");
+        if (reportButton) {
+          reportButton.textContent = guide.reported ? "신고됨" : "신고";
+          reportButton.disabled = Boolean(guide.reported);
+        }
 
         const tagBox = document.querySelector("#postTags");
         tagBox.innerHTML = "";
@@ -1104,6 +1152,8 @@
         renderCompactList(related.posts, guide.id);
         document.querySelector("#postCard").hidden = false;
         document.querySelector("#postVoteButton")?.addEventListener("click", togglePostVote);
+        document.querySelector("#postBookmarkButton")?.addEventListener("click", toggleBookmark);
+        document.querySelector("#postReportButton")?.addEventListener("click", reportPost);
         document.querySelector("#postEditButton")?.addEventListener("click", openPostEditor);
         document.querySelector("#postDeleteButton")?.addEventListener("click", deletePost);
         document.querySelector("#postEditForm")?.addEventListener("submit", submitPostEdit);

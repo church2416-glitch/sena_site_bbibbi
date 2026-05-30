@@ -3789,6 +3789,7 @@ p {
 }
 
 .post-owner-actions,
+.post-reader-actions,
 .post-edit-actions {
   display: flex;
   gap: 8px;
@@ -3797,6 +3798,7 @@ p {
 }
 
 .post-owner-actions button,
+.post-reader-actions button,
 .post-edit-actions button,
 .comment-reply-button {
   min-height: 30px;
@@ -3812,6 +3814,16 @@ p {
 .post-owner-actions button:last-child {
   color: #ffd0d0;
   border-color: rgba(255, 113, 68, 0.34);
+}
+
+.post-reader-actions {
+  justify-content: center;
+}
+
+.post-reader-actions button.active {
+  border-color: rgba(var(--theme-mid-rgb), 0.72);
+  color: var(--text);
+  background: rgba(var(--theme-mid-rgb), 0.28);
 }
 
 .post-edit-panel {
@@ -5230,6 +5242,39 @@ p {
 
 .admin-color-picker .mention-token {
   width: max-content;
+}
+
+.admin-board-tag-form {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-board-tag-list {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-board-tag-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) 64px auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-board-tag-row input[type="color"] {
+  width: 64px;
+  min-height: 38px;
+  padding: 3px;
+}
+
+.admin-board-tag-row .status {
+  width: max-content;
+}
+
+.admin-board-tag-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .admin-notice-upload-field span {
