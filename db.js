@@ -210,12 +210,13 @@ export function initDb({ adminUser, adminPassword }) {
     CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_id, read_at, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_guild_sheets_type ON guild_war_sheets(sheet_type, updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_coupon_requests_user_created ON coupon_requests(user_id, created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_coupon_codes_active_order ON coupon_codes(active, sort_order, id);
   `);
 
   migrateUsersTable();
   migratePostsTable();
   migrateCommentsTable();
+  migrateCouponTables();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_coupon_codes_active_order ON coupon_codes(active, sort_order, id)").run();
   ensureAdminUser(adminUser, adminPassword);
 }
 
@@ -253,6 +254,27 @@ function migrateCommentsTable() {
 
   addColumn("votes", "INTEGER NOT NULL DEFAULT 0");
   addColumn("parent_comment_id", "INTEGER");
+}
+
+function migrateCouponTables() {
+  const codeColumns = db.prepare("PRAGMA table_info(coupon_codes)").all().map((column) => column.name);
+  const requestColumns = db.prepare("PRAGMA table_info(coupon_requests)").all().map((column) => column.name);
+  const addCodeColumn = (name, definition) => {
+    if (!codeColumns.includes(name)) db.prepare(`ALTER TABLE coupon_codes ADD COLUMN ${name} ${definition}`).run();
+  };
+  const addRequestColumn = (name, definition) => {
+    if (!requestColumns.includes(name)) db.prepare(`ALTER TABLE coupon_requests ADD COLUMN ${name} ${definition}`).run();
+  };
+
+  addCodeColumn("label", "TEXT");
+  addCodeColumn("active", "INTEGER NOT NULL DEFAULT 1");
+  addCodeColumn("sort_order", "INTEGER NOT NULL DEFAULT 0");
+  addCodeColumn("created_by", "INTEGER");
+  addCodeColumn("created_at", "TEXT");
+  addCodeColumn("updated_at", "TEXT");
+
+  addRequestColumn("message", "TEXT");
+  addRequestColumn("response_json", "TEXT NOT NULL DEFAULT '{}'");
 }
 
 export function hashPassword(password) {
