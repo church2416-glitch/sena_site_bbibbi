@@ -1250,8 +1250,9 @@ async function submitProfile(event) {
 }
 
 async function logout() {
-  await fetch("/api/logout", { method: "POST" });
+  await fetch("/api/logout", { method: "POST", credentials: "same-origin" });
   renderAuthState({ loggedIn: false, role: "guest" });
+  location.href = "/?loggedout=1";
 }
 
 function loadStoredFeed(key, fallback) {

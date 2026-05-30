@@ -589,12 +589,28 @@ function verifyOAuthState(state, provider) {
 function setAuthCookie(res, username, remember = false) {
   const options = {
     httpOnly: true,
+    path: "/",
     sameSite: "lax",
     secure: cookieSecure,
     maxAge: remember ? 1000 * 60 * 60 * 24 * 30 : 1000 * 60 * 60 * 24,
   };
   if (cookieDomain) options.domain = cookieDomain;
   res.cookie(authCookieName, signSession(username), options);
+}
+
+function clearAuthCookies(res) {
+  const baseOptions = { httpOnly: true, path: "/", sameSite: "lax", secure: cookieSecure };
+  const domains = [
+    undefined,
+    cookieDomain,
+    siteHostname,
+    siteHostname.startsWith("www.") ? siteHostname.slice(4) : `www.${siteHostname}`,
+  ].filter((domain, index, list) => domain === undefined || list.indexOf(domain) === index);
+
+  domains.forEach((domain) => {
+    const options = domain ? { ...baseOptions, domain } : baseOptions;
+    res.clearCookie(authCookieName, options);
+  });
 }
 
 function getRateKey(req, scope) {
@@ -1975,9 +1991,7 @@ app.post("/api/register", (req, res) => {
 });
 
 app.post("/api/logout", (req, res) => {
-  const options = { httpOnly: true, sameSite: "lax", secure: cookieSecure };
-  if (cookieDomain) options.domain = cookieDomain;
-  res.clearCookie(authCookieName, options);
+  clearAuthCookies(res);
   res.json({ loggedIn: false, role: "guest" });
 });
 
