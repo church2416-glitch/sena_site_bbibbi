@@ -757,6 +757,11 @@ function serializeCouponCode(row) {
     code: row.code,
     label: row.label || "",
     active: Boolean(row.active),
+    status: row.status || (row.active ? "active" : "inactive"),
+    disabledReason: row.disabled_reason || "",
+    lastResultStatus: row.last_result_status || "",
+    lastResultMessage: row.last_result_message || "",
+    statusUpdatedAt: row.status_updated_at || "",
     sortOrder: Number(row.sort_order) || 0,
     createdAt: row.created_at,
   };
@@ -779,9 +784,9 @@ function couponResultMessage(payload, statusCode) {
     22004: "쿠폰번호를 확인해주세요.",
     24002: "유효하지 않은 쿠폰 코드입니다.",
     24003: "만료되었거나 이미 사용된 쿠폰입니다.",
-    24004: "교환 가능 횟수가 종료된 쿠폰입니다.",
+    24004: "\uD574\uB2F9 \uCFE0\uD3F0\uC758 \uAD50\uD658 \uD69F\uC218\uB97C \uCD08\uACFC\uD558\uC600\uC2B5\uB2C8\uB2E4.",
     24005: "사용 대상이 아닌 쿠폰입니다.",
-    24006: "모든 쿠폰이 사용되었습니다.",
+    24006: "\uC720\uD6A8\uAE30\uAC04\uC774 \uB9CC\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
     24012: "아이템 지급 중 오류가 발생했습니다.",
     99999: "쿠폰 서버에서 알 수 없는 오류가 발생했습니다.",
   };
@@ -800,9 +805,11 @@ function couponResultStatus(payload, statusCode, message = "") {
   ].filter(Boolean).join(" "));
 
   if (code === 200 || payload?.success === true) return "sent";
-  if ([24004, 24006].includes(code)) return "expired";
-  if (/유효기간|만료|종료|expired|expiration/i.test(text)) return "expired";
-  if (/이미|수령|사용된|사용 완료|already|redeemed|claimed|used/i.test(text)) return "claimed";
+  if (/\uAD50\uD658\s*\uD69F\uC218|\uD69F\uC218\s*\uCD08\uACFC|\uC0AC\uC6A9\s*\uD69F\uC218|\uC218\uB839\s*\uD69F\uC218|exchange\s*limit|limit\s*exceed|redeem\s*limit/i.test(text)) return "limit_exceeded";
+  if (code === 24004) return "limit_exceeded";
+  if (code === 24006) return "expired";
+  if (/\uC720\uD6A8\uAE30\uAC04|\uB9CC\uB8CC|\uC885\uB8CC|expired|expiration/i.test(text)) return "expired";
+  if (/\uC774\uBBF8|\uC218\uB839|\uC0AC\uC6A9\uB41C|\uC0AC\uC6A9\s*\uC644\uB8CC|already|redeemed|claimed|used/i.test(text)) return "claimed";
   if (code === 24003) return "claimed";
   if (!normalizeCouponRedeemUrl(couponRedeemUrl)) return "pending";
   return "failed";
@@ -891,9 +898,25 @@ function isExpiredCouponResult(result) {
   const code = Number(response.errorCode || response.code || response.resultCode || 0);
   const message = String(result?.message || response.message || response.errorMessage || "");
   if (result?.status === "expired") return true;
-  if ([24004, 24006].includes(code)) return true;
+  if (result?.status === "limit_exceeded") return false;
+  if (code === 24006) return true;
+  if (code === 24004) return false;
   if (code === 24003) return false;
-  return /유효기간|만료|종료/.test(message);
+  return /\uC720\uD6A8\uAE30\uAC04|\uB9CC\uB8CC|\uC885\uB8CC/.test(message);
+}
+
+function recordCouponCodeResult(couponCode, result) {
+  if (!couponCode || !result) return;
+  db.prepare(
+    `
+      UPDATE coupon_codes
+      SET last_result_status = ?,
+          last_result_message = ?,
+          status_updated_at = datetime('now'),
+          updated_at = datetime('now')
+      WHERE code = ?
+    `,
+  ).run(result.status || "failed", result.message || "", couponCode);
 }
 
 function notifySuperAdmins({ actorId, couponCode, message }) {
@@ -912,24 +935,36 @@ function notifySuperAdmins({ actorId, couponCode, message }) {
   });
 }
 
-function deactivateExpiredCoupon(couponCode, actorId) {
-  const result = db
-    .prepare("UPDATE coupon_codes SET active = 0, updated_at = datetime('now') WHERE code = ? AND active = 1")
-    .run(couponCode);
-  if (!result.changes) return false;
+function deactivateExpiredCoupon(couponCode, actorId, couponResult = {}) {
+  const reason = couponResult.message || "\uC720\uD6A8\uAE30\uAC04\uC774 \uB9CC\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.";
+  const update = db
+    .prepare(
+      `
+        UPDATE coupon_codes
+        SET active = 0,
+            status = 'expired',
+            disabled_reason = ?,
+            last_result_status = 'expired',
+            last_result_message = ?,
+            status_updated_at = datetime('now'),
+            updated_at = datetime('now')
+        WHERE code = ? AND active = 1
+      `,
+    )
+    .run(reason, reason, couponCode);
+  if (!update.changes) return false;
 
-  const message = `${couponCode} 쿠폰이 만료되어 쿠폰북에서 삭제 처리됨`;
+  const message = `${couponCode} \uCFE0\uD3F0\uC774 \uC720\uD6A8\uAE30\uAC04 \uB9CC\uB8CC\uB85C \uCFE0\uD3F0\uBD81\uC5D0\uC11C \uC228\uAE40 \uCC98\uB9AC\uB418\uC5C8\uC2B5\uB2C8\uB2E4. DB \uAE30\uB85D\uC740 \uBCF4\uAD00\uB429\uB2C8\uB2E4.`;
   createAuditLog({
     actorId,
-    action: "coupon.expired.auto_remove",
+    action: "coupon.expired.deactivate",
     targetType: "coupon",
     targetId: couponCode,
-    details: { couponCode, message },
+    details: { couponCode, reason, message },
   });
   notifySuperAdmins({ actorId, couponCode, message });
   return true;
 }
-
 function saveUserCouponUid(userId, uid) {
   if (!userId || !uid) return;
   db.prepare("UPDATE users SET coupon_uid = ?, updated_at = datetime('now') WHERE id = ?").run(uid, userId);
@@ -2487,7 +2522,7 @@ app.get("/api/coupon/requests", requireMember, (req, res) => {
 
   const codes = db.prepare(
     `
-      SELECT id, code, label, active, sort_order, created_at
+      SELECT id, code, label, active, status, disabled_reason, last_result_status, last_result_message, status_updated_at, sort_order, created_at
       FROM coupon_codes
       WHERE active = 1
       ORDER BY sort_order ASC, id ASC
@@ -2504,7 +2539,7 @@ app.get("/api/coupon/requests", requireMember, (req, res) => {
 app.get("/api/coupon/codes", requireMember, (req, res) => {
   const rows = db.prepare(
     `
-      SELECT id, code, label, active, sort_order, created_at
+      SELECT id, code, label, active, status, disabled_reason, last_result_status, last_result_message, status_updated_at, sort_order, created_at
       FROM coupon_codes
       WHERE active = 1
       ORDER BY sort_order ASC, id ASC
@@ -2531,14 +2566,19 @@ app.post("/api/coupon/codes", requireMember, (req, res) => {
     const findExisting = db.prepare("SELECT id, active FROM coupon_codes WHERE code = ?");
     const insertCode = db.prepare(
       `
-        INSERT INTO coupon_codes (code, label, active, sort_order, created_by)
-        VALUES (?, '', 1, ?, ?)
+        INSERT INTO coupon_codes (code, label, active, status, sort_order, created_by)
+        VALUES (?, '', 1, 'active', ?, ?)
       `,
     );
     const reactivateCode = db.prepare(
       `
         UPDATE coupon_codes
         SET active = 1,
+            status = 'active',
+            disabled_reason = NULL,
+            last_result_status = NULL,
+            last_result_message = NULL,
+            status_updated_at = datetime('now'),
             sort_order = ?,
             created_by = ?,
             updated_at = datetime('now')
@@ -2576,7 +2616,17 @@ app.delete("/api/coupon/codes/:id", requireContentManager, (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: "쿠폰 ID가 올바르지 않습니다." });
   const row = db.prepare("SELECT code FROM coupon_codes WHERE id = ?").get(id);
-  db.prepare("UPDATE coupon_codes SET active = 0, updated_at = datetime('now') WHERE id = ?").run(id);
+  db.prepare(
+    `
+      UPDATE coupon_codes
+      SET active = 0,
+          status = 'inactive',
+          disabled_reason = '관리자 삭제',
+          status_updated_at = datetime('now'),
+          updated_at = datetime('now')
+      WHERE id = ?
+    `,
+  ).run(id);
   createAuditLog({
     actorId: req.user.id,
     action: "coupon.codes.delete",
@@ -2622,12 +2672,14 @@ app.post("/api/coupon/send-all", requireMember, async (req, res) => {
         response: { error: error.message },
       };
     }
-    if (isExpiredCouponResult(result) && deactivateExpiredCoupon(couponCode, req.user.id)) {
+    recordCouponCodeResult(couponCode, result);
+    if (isExpiredCouponResult(result) && deactivateExpiredCoupon(couponCode, req.user.id, result)) {
       result = {
         ...result,
         status: "expired",
-        message: "유효기간이 만료되었습니다. 만료된 쿠폰은 쿠폰북에서 삭제 처리되었습니다.",
+        message: "\uC720\uD6A8\uAE30\uAC04\uC774 \uB9CC\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uCFE0\uD3F0\uBD81\uC5D0\uC11C\uB294 \uC228\uAE30\uACE0 DB \uAE30\uB85D\uC740 \uBCF4\uAD00\uD569\uB2C8\uB2E4.",
       };
+      recordCouponCodeResult(couponCode, result);
     }
     requests.push(insertCouponRequest({ userId: req.user.id, uid, couponCode, result }));
   }
@@ -2637,6 +2689,7 @@ app.post("/api/coupon/send-all", requireMember, async (req, res) => {
     sent: requests.filter((item) => item.status === "sent").length,
     claimed: requests.filter((item) => item.status === "claimed").length,
     expired: requests.filter((item) => item.status === "expired").length,
+    limitExceeded: requests.filter((item) => item.status === "limit_exceeded").length,
     failed: requests.filter((item) => item.status === "failed").length,
     pending: requests.filter((item) => item.status === "pending").length,
     requests,
@@ -2669,12 +2722,14 @@ app.post("/api/coupon/send", requireMember, async (req, res) => {
     };
   }
 
-  if (isExpiredCouponResult(result) && deactivateExpiredCoupon(couponCode, req.user.id)) {
+  recordCouponCodeResult(couponCode, result);
+  if (isExpiredCouponResult(result) && deactivateExpiredCoupon(couponCode, req.user.id, result)) {
     result = {
       ...result,
       status: "expired",
-      message: "유효기간이 만료되었습니다. 만료된 쿠폰은 쿠폰북에서 삭제 처리되었습니다.",
+      message: "\uC720\uD6A8\uAE30\uAC04\uC774 \uB9CC\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uCFE0\uD3F0\uBD81\uC5D0\uC11C\uB294 \uC228\uAE30\uACE0 DB \uAE30\uB85D\uC740 \uBCF4\uAD00\uD569\uB2C8\uB2E4.",
     };
+    recordCouponCodeResult(couponCode, result);
   }
 
   const request = insertCouponRequest({ userId: req.user.id, uid, couponCode, result });

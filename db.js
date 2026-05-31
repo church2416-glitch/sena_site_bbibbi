@@ -193,6 +193,11 @@ export function initDb({ adminUser, adminPassword }) {
       code TEXT NOT NULL UNIQUE,
       label TEXT,
       active INTEGER NOT NULL DEFAULT 1,
+      status TEXT NOT NULL DEFAULT 'active',
+      disabled_reason TEXT,
+      last_result_status TEXT,
+      last_result_message TEXT,
+      status_updated_at TEXT,
       sort_order INTEGER NOT NULL DEFAULT 0,
       created_by INTEGER,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -270,6 +275,11 @@ function migrateCouponTables() {
 
   addCodeColumn("label", "TEXT");
   addCodeColumn("active", "INTEGER NOT NULL DEFAULT 1");
+  addCodeColumn("status", "TEXT NOT NULL DEFAULT 'active'");
+  addCodeColumn("disabled_reason", "TEXT");
+  addCodeColumn("last_result_status", "TEXT");
+  addCodeColumn("last_result_message", "TEXT");
+  addCodeColumn("status_updated_at", "TEXT");
   addCodeColumn("sort_order", "INTEGER NOT NULL DEFAULT 0");
   addCodeColumn("created_by", "INTEGER");
   addCodeColumn("created_at", "TEXT");

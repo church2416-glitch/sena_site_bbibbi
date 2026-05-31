@@ -3114,6 +3114,11 @@ p {
   background: rgba(82, 68, 18, 0.18);
 }
 
+.coupon-history-row.is-limit_exceeded {
+  border-color: rgba(255, 224, 112, 0.5);
+  background: linear-gradient(135deg, rgba(82, 68, 18, 0.22), rgba(24, 18, 42, 0.46));
+}
+
 .coupon-history-row.is-expired {
   border-color: rgba(255, 150, 76, 0.46);
   background: rgba(84, 38, 14, 0.18);

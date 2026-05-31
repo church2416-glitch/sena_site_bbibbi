@@ -32,6 +32,7 @@ function formatCouponDate(value) {
 function statusLabel(status) {
   if (status === "sent") return "\uC0AC\uC6A9 \uC644\uB8CC";
   if (status === "claimed") return "\uC774\uBBF8 \uC218\uB839";
+  if (status === "limit_exceeded") return "\uAD50\uD658 \uD69F\uC218 \uCD08\uACFC";
   if (status === "expired") return "\uC720\uD6A8\uAE30\uAC04 \uB9CC\uB8CC";
   if (status === "failed") return "\uC2E4\uD328";
   return "\uB300\uAE30";
@@ -132,7 +133,7 @@ async function submitBulkCoupons(event) {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "쿠폰 일괄 사용에 실패했습니다.");
-    couponStatus.textContent = `\uC644\uB8CC: \uC131\uACF5 ${data.sent || 0}\uAC1C, \uC774\uBBF8 \uC218\uB839 ${data.claimed || 0}\uAC1C, \uB9CC\uB8CC ${data.expired || 0}\uAC1C, \uC2E4\uD328 ${data.failed || 0}\uAC1C, \uB300\uAE30 ${data.pending || 0}\uAC1C`;
+    couponStatus.textContent = `\uC644\uB8CC: \uC131\uACF5 ${data.sent || 0}\uAC1C, \uC774\uBBF8 \uC218\uB839 ${data.claimed || 0}\uAC1C, \uAD50\uD658 \uD69F\uC218 \uCD08\uACFC ${data.limitExceeded || 0}\uAC1C, \uB9CC\uB8CC ${data.expired || 0}\uAC1C, \uC2E4\uD328 ${data.failed || 0}\uAC1C, \uB300\uAE30 ${data.pending || 0}\uAC1C`;
     await loadCouponHistory();
   } catch (error) {
     couponStatus.textContent = error.message || "쿠폰 일괄 사용에 실패했습니다.";
