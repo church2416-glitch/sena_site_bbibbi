@@ -303,6 +303,7 @@ app.use("/uploads", express.static(uploadRoot, {
     }
   },
 }));
+app.use(redirectLegacyHtmlRoutes);
 app.use(requireMemberForPrivatePages);
 
 app.get(["/", "/board", "/board/pvp", "/board/pve", "/board/tech"], sendHtmlPage("index.html"));
@@ -319,6 +320,32 @@ app.get("/terms", sendHtmlPage("terms.html"));
 app.get("/privacy", sendHtmlPage("privacy.html"));
 
 app.use(express.static(__dirname));
+
+function redirectLegacyHtmlRoutes(req, res, next) {
+  if (req.method !== "GET" && req.method !== "HEAD") return next();
+  const legacyPath = String(req.path || "").replace(/\/+$/, "");
+  const redirects = new Map([
+    ["/board/post.html", "/board/post"],
+    ["/post.html", "/board/post"],
+    ["/board/notice-upload.html", "/board/notice/write"],
+    ["/notice-upload.html", "/board/notice/write"],
+    ["/board/notices.html", "/board/notice"],
+    ["/notices.html", "/board/notice"],
+    ["/board/upload.html", "/board/write"],
+    ["/upload.html", "/board/write"],
+    ["/guild-war.html", "/guild/war"],
+    ["/guild-war-admin.html", "/guild/war_admin"],
+    ["/admin.html", "/admin"],
+    ["/coupon.html", "/coupon"],
+    ["/preview.html", "/preview"],
+    ["/terms.html", "/terms"],
+    ["/privacy.html", "/privacy"],
+  ]);
+  const target = redirects.get(legacyPath);
+  if (!target) return next();
+  const query = req.originalUrl.includes("?") ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
+  return res.redirect(301, `${target}${query}`);
+}
 
 function sendHtmlPage(filename) {
   return (req, res) => {
