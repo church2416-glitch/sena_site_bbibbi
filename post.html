@@ -762,12 +762,42 @@
           skillGrid.className = "pve-guide-skill-grid";
           skillSteps.forEach((step, index) => {
             const card = document.createElement("span");
-            const img = getSkillImage(step.hero, step.skill);
-            card.innerHTML = `
-              <b>${index + 1}</b>
-              ${img ? `<img src="${img}" alt="" onerror="this.remove()" />` : ""}
-              <small>${step.hero} ${step.skill || "1"}번</small>
-            `;
+            const order = document.createElement("b");
+            const face = document.createElement("i");
+            const label = document.createElement("small");
+            const heroImg = getCharacterImage(step.hero);
+            const skillImg = getSkillImage(step.hero, step.skill);
+            order.textContent = String(index + 1);
+            face.className = "pve-guide-skill-face";
+            if (heroImg) {
+              const image = document.createElement("img");
+              image.src = heroImg;
+              image.alt = step.hero;
+              image.onerror = () => image.remove();
+              face.append(image);
+            } else if (skillImg) {
+              const image = document.createElement("img");
+              image.src = skillImg;
+              image.alt = "";
+              image.onerror = () => image.remove();
+              face.append(image);
+            } else {
+              face.textContent = String(step.hero || "?").slice(0, 1);
+            }
+            if (skillImg) {
+              const skill = document.createElement("em");
+              const skillImage = document.createElement("img");
+              const skillBadge = document.createElement("strong");
+              skill.className = "pve-guide-skill-icon";
+              skillImage.src = skillImg;
+              skillImage.alt = "";
+              skillImage.onerror = () => skill.remove();
+              skillBadge.textContent = `S${step.skill || "1"}`;
+              skill.append(skillImage, skillBadge);
+              face.append(skill);
+            }
+            label.textContent = `${step.hero} ${step.skill || "1"}번`;
+            card.append(order, face, label);
             skillGrid.append(card);
           });
           skillBox.append(skillTitle, skillGrid);

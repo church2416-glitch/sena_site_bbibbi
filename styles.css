@@ -3438,41 +3438,119 @@ p {
 }
 
 .pve-guide-skill-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 28px;
+  align-items: flex-start;
 }
 
 .pve-guide-skill-grid span {
+  position: relative;
   display: grid;
   justify-items: center;
-  gap: 4px;
-  padding: 8px;
+  gap: 6px;
+  width: 96px;
+  min-height: 112px;
+  padding: 8px 7px 10px;
   border: 1px solid rgba(255, 218, 94, 0.16);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.035);
 }
 
+.pve-guide-skill-grid span:not(:last-child)::after {
+  content: "›";
+  position: absolute;
+  top: 42px;
+  right: -20px;
+  color: rgba(232, 226, 250, 0.66);
+  font-size: 32px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 0 10px rgba(var(--theme-mid-rgb), 0.36);
+}
+
 .pve-guide-skill-grid b {
+  position: absolute;
+  top: 5px;
+  left: 6px;
+  z-index: 3;
   display: grid;
   place-items: center;
   width: 22px;
   height: 22px;
+  border: 1px solid rgba(255, 233, 120, 0.78);
   border-radius: 999px;
-  color: #161211;
-  background: #ffe978;
+  color: #ffe978;
+  background: #2a1d00;
+  box-shadow: 0 0 12px rgba(255, 233, 120, 0.34);
+  font-size: 11px;
+  font-weight: 1000;
 }
 
-.pve-guide-skill-grid img {
-  width: 44px;
-  height: 44px;
+.pve-guide-skill-face {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  overflow: visible;
+  border: 2px solid #ffe978;
   border-radius: 8px;
+  color: #fff;
+  background: linear-gradient(135deg, #6126d9, #d948b5);
+  box-shadow: 0 0 16px rgba(255, 233, 120, 0.28);
+  font-size: 22px;
+  font-style: normal;
+  font-weight: 1000;
+}
+
+.pve-guide-skill-face > img {
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
   object-fit: cover;
 }
 
+.pve-guide-skill-icon {
+  position: absolute;
+  right: -10px;
+  bottom: -10px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(255, 233, 120, 0.78);
+  border-radius: 8px;
+  background: rgba(6, 7, 12, 0.92);
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.44);
+}
+
+.pve-guide-skill-icon img {
+  width: 100%;
+  height: 100%;
+  border-radius: 7px;
+  object-fit: cover;
+}
+
+.pve-guide-skill-icon strong {
+  position: absolute;
+  right: -4px;
+  top: -5px;
+  padding: 2px 4px;
+  border: 1px solid rgba(255, 233, 120, 0.84);
+  border-radius: 999px;
+  color: #201400;
+  background: #ffe978;
+  font-size: 9px;
+  line-height: 1;
+}
+
 .pve-guide-skill-grid small {
+  max-width: 100%;
   color: #d8d2ee;
   font-weight: 900;
+  text-align: center;
+  word-break: keep-all;
 }
 
 .pve-guide-heroes .strategy-hero-card {
