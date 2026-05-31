@@ -2473,15 +2473,35 @@ app.post("/api/coupon/codes", requireMember, (req, res) => {
   const insert = db.transaction((codes) => {
     let added = 0;
     const maxOrder = Number(db.prepare("SELECT COALESCE(MAX(sort_order), 0) AS value FROM coupon_codes").get()?.value) || 0;
-    const statement = db.prepare(
+    const findExisting = db.prepare("SELECT id, active FROM coupon_codes WHERE code = ?");
+    const insertCode = db.prepare(
       `
-        INSERT OR IGNORE INTO coupon_codes (code, label, active, sort_order, created_by)
+        INSERT INTO coupon_codes (code, label, active, sort_order, created_by)
         VALUES (?, '', 1, ?, ?)
       `,
     );
+    const reactivateCode = db.prepare(
+      `
+        UPDATE coupon_codes
+        SET active = 1,
+            sort_order = ?,
+            created_by = ?,
+            updated_at = datetime('now')
+        WHERE code = ? AND active = 0
+      `,
+    );
     codes.forEach((code, index) => {
-      const result = statement.run(code, maxOrder + index + 1, req.user.id);
-      added += result.changes;
+      const nextOrder = maxOrder + index + 1;
+      const existing = findExisting.get(code);
+      if (!existing) {
+        const result = insertCode.run(code, nextOrder, req.user.id);
+        added += result.changes;
+        return;
+      }
+      if (!existing.active) {
+        const result = reactivateCode.run(nextOrder, req.user.id, code);
+        added += result.changes;
+      }
     });
     return added;
   });
