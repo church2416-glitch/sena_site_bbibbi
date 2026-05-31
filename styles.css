@@ -3352,8 +3352,8 @@ p {
 .strategy-formation-preview.is-board {
   align-items: center;
   justify-items: center;
-  max-width: 360px;
-  min-height: 260px;
+  max-width: 430px;
+  min-height: 320px;
 }
 
 .strategy-formation-preview.is-board > strong {
@@ -3363,9 +3363,9 @@ p {
 
 .strategy-formation-mini-board {
   position: relative;
-  width: 260px;
-  height: 190px;
-  border-radius: 22px;
+  width: min(100%, 350px);
+  height: 250px;
+  border-radius: 26px;
   background:
     linear-gradient(90deg, rgba(255, 255, 255, 0.05) 50%, transparent 50%),
     #202737;
@@ -3378,15 +3378,15 @@ p {
   position: absolute;
   display: grid;
   justify-items: center;
-  gap: 2px;
-  width: 58px;
-  min-height: 58px;
+  gap: 4px;
+  width: 78px;
+  min-height: 72px;
   transform: translate(-50%, -50%);
 }
 
 .strategy-formation-mini-board img {
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
   border: 2px solid #ffe15d;
   border-radius: 9px;
   background:
@@ -3399,10 +3399,10 @@ p {
 }
 
 .strategy-formation-mini-board em {
-  max-width: 64px;
+  max-width: 76px;
   overflow: hidden;
   color: #fff;
-  font-size: 10px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 1000;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.65);
