@@ -79,9 +79,9 @@
               <span id="strategyFormationLabel">배치 / 진형</span>
               <input data-pve-field="formation" id="strategyFormationInput" type="text" maxlength="60" placeholder="앞열 탱커 / 뒷열 딜러 4" />
             </label>
-            <label>
-              진형 이미지
-              <select data-pve-field="formationType">
+            <label data-pve-round-field="1">
+              <span data-pve-round-formation-label="1">진형 이미지</span>
+              <select data-pve-field="round1FormationType">
                 <option value="">진형 선택</option>
                 <option value="att">공격진형</option>
                 <option value="bal">밸런스진형</option>
@@ -89,6 +89,17 @@
                 <option value="def">보호진형</option>
               </select>
             </label>
+            <label data-pve-round-field="2" hidden>
+              <span data-pve-round-formation-label="2">2라운드 진형 이미지</span>
+              <select data-pve-field="round2FormationType">
+                <option value="">진형 선택</option>
+                <option value="att">공격진형</option>
+                <option value="bal">밸런스진형</option>
+                <option value="base">기본진형</option>
+                <option value="def">보호진형</option>
+              </select>
+            </label>
+            <input data-pve-field="formationType" type="hidden" />
           </div>
             <div class="pve-mini-section pvp-only" id="pvpExtraFields" hidden>
               <h3>PVP 전용 체크</h3>
@@ -111,10 +122,14 @@
               <h3>펫 구성</h3>
               <div class="pve-editor-grid">
                 <label>
-                  메인펫
+                  <span data-pve-pet-label="1">메인펫</span>
                   <input data-pve-field="mainPet" id="strategyMainPetInput" type="text" maxlength="30" list="strategyPetOptions" placeholder="메인펫 이름" />
                 </label>
-                <label>
+                <label data-pve-round-field="2" hidden>
+                  <span data-pve-pet-label="2">2라운드 펫</span>
+                  <input data-pve-field="round2Pet" id="strategyRound2PetInput" type="text" maxlength="30" list="strategyPetOptions" placeholder="2라운드 펫 이름" />
+                </label>
+                <label data-pvp-subpet-field hidden>
                   대체펫
                   <input data-pve-field="subPet" id="strategySubPetInput" type="text" maxlength="30" list="strategyPetOptions" placeholder="대체펫 이름" />
                 </label>
@@ -787,7 +802,13 @@
               <h3>진형 선택</h3>
               <p>영웅 카드를 드래그해서 진형 슬롯에 배치하세요.</p>
             </div>
-            <select id="formationBuilderType"></select>
+            <div class="strategy-builder-controls">
+              <select id="formationBuilderRound">
+                <option value="1">1라운드</option>
+                <option value="2">2라운드</option>
+              </select>
+              <select id="formationBuilderType"></select>
+            </div>
           </div>
           <div class="strategy-formation-builder">
             <div class="strategy-formation-board" id="formationBoard" aria-label="진형 슬롯"></div>
@@ -813,8 +834,15 @@
         const builderType = formationSection.querySelector("#formationBuilderType");
         fillSelect(builderType, formationOptions, "진형 선택");
         builderType.addEventListener("change", () => {
+          const activeRound = getBuilderRound();
+          const roundFormationType = pveGuideEditor.querySelector(`[data-pve-field="round${activeRound}FormationType"]`);
           const mainFormationType = pveGuideEditor.querySelector('[data-pve-field="formationType"]');
-          if (mainFormationType) mainFormationType.value = builderType.value;
+          if (roundFormationType) roundFormationType.value = builderType.value;
+          if (activeRound === 1 && mainFormationType) mainFormationType.value = builderType.value;
+          renderFormationBuilder();
+          scheduleDraftSave();
+        });
+        formationSection.querySelector("#formationBuilderRound")?.addEventListener("change", () => {
           renderFormationBuilder();
           scheduleDraftSave();
         });
@@ -825,20 +853,34 @@
       }
 
       function syncBuilderFormationType() {
-        const mainFormationType = pveGuideEditor?.querySelector('[data-pve-field="formationType"]');
+        const activeRound = getBuilderRound();
+        const mainFormationType = pveGuideEditor?.querySelector(`[data-pve-field="round${activeRound}FormationType"]`);
         const builderType = document.querySelector("#formationBuilderType");
         if (builderType && mainFormationType && builderType.value !== mainFormationType.value) {
           builderType.value = mainFormationType.value;
         }
+        const builderRound = document.querySelector("#formationBuilderRound");
+        if (builderRound) {
+          builderRound.hidden = getStrategyHeroCount() !== 10;
+          if (builderRound.hidden) builderRound.value = "1";
+        }
+      }
+
+      function getBuilderRound() {
+        const round = document.querySelector("#formationBuilderRound")?.value || "1";
+        return getStrategyHeroCount() === 10 && round === "2" ? 2 : 1;
       }
 
       function getBuilderHeroes() {
         const count = getStrategyHeroCount();
+        const activeRound = getBuilderRound();
+        const start = count === 10 ? (activeRound - 1) * 5 : 0;
+        const end = count === 10 ? start + 5 : count;
         return Array.from({ length: count }).map((_, index) => ({
           index,
           name: pveGuideEditor.querySelector(`[data-pve-hero-name="${index}"]`)?.value.trim() || "",
           position: pveGuideEditor.querySelector(`[data-pve-hero-position="${index}"]`)?.value.trim() || "",
-        })).filter((hero) => hero.name);
+        })).slice(start, end).filter((hero) => hero.name);
       }
 
       function setHeroPosition(index, position) {
@@ -890,7 +932,10 @@
         const board = document.querySelector("#formationBoard");
         const pool = document.querySelector("#formationPool");
         if (!board || !pool) return;
-        const type = pveGuideEditor.querySelector('[data-pve-field="formationType"]')?.value || "base";
+        const activeRound = getBuilderRound();
+        const type = pveGuideEditor.querySelector(`[data-pve-field="round${activeRound}FormationType"]`)?.value
+          || pveGuideEditor.querySelector('[data-pve-field="formationType"]')?.value
+          || "base";
         const layout = formationSlotLayouts[type] || formationSlotLayouts.base;
         const heroes = getBuilderHeroes();
         const byPosition = new Map(heroes.filter((hero) => hero.position).map((hero) => [String(hero.position), hero]));
@@ -1019,6 +1064,26 @@
         return categoryInput.value === "파괴신" || type === "파괴신" ? 10 : 5;
       }
 
+      function syncRoundStrategyFields() {
+        const mode = getStrategyMode();
+        const isTwoRound = mode === "pve" && getStrategyHeroCount() === 10;
+        const round1Formation = pveGuideEditor.querySelector('[data-pve-field="round1FormationType"]');
+        const legacyFormation = pveGuideEditor.querySelector('[data-pve-field="formationType"]');
+        if (round1Formation && legacyFormation) legacyFormation.value = round1Formation.value;
+        pveGuideEditor.querySelectorAll('[data-pve-round-field="2"]').forEach((field) => {
+          field.hidden = !isTwoRound;
+        });
+        pveGuideEditor.querySelectorAll('[data-pvp-subpet-field]').forEach((field) => {
+          field.hidden = mode !== "pvp";
+        });
+        pveGuideEditor.querySelector('[data-pve-round-formation-label="1"]')?.replaceChildren(
+          document.createTextNode(isTwoRound ? "1라운드 진형 이미지" : "진형 이미지")
+        );
+        pveGuideEditor.querySelector('[data-pve-pet-label="1"]')?.replaceChildren(
+          document.createTextNode(isTwoRound ? "1라운드 펫" : mode === "pve" ? "펫" : "메인펫")
+        );
+      }
+
       function updateStrategyHeroSlots() {
         if (!pveHeroGrid) return;
         const count = getStrategyHeroCount();
@@ -1029,6 +1094,7 @@
           const slot = (index % 5) + 1;
           row.childNodes[0].textContent = count === 10 ? `${round} 영웅 ${slot}` : `영웅 ${slot}`;
         });
+        syncRoundStrategyFields();
         renderFormationBuilder();
       }
 
@@ -1054,12 +1120,15 @@
           boss: field("boss"),
           power: field("power"),
           formation: field("formation"),
-          formationType: field("formationType"),
+          formationType: field("round1FormationType") || field("formationType"),
+          round1FormationType: field("round1FormationType") || field("formationType"),
+          round2FormationType: field("round2FormationType"),
           allyTeam: field("allyTeam"),
           winPlan: field("winPlan"),
           caution: field("caution"),
           mainPet: field("mainPet"),
-          subPet: field("subPet"),
+          subPet: mode === "pvp" ? field("subPet") : "",
+          round2Pet: field("round2Pet"),
           note: field("note"),
           heroes: Array.from({ length: heroCount }).map((_, index) => ({
             ...(() => {
@@ -1109,6 +1178,10 @@
           const input = pveGuideEditor.querySelector(`[data-pve-field="${key}"]`);
           if (input && typeof value === "string") input.value = value;
         });
+        const round1Formation = pveGuideEditor.querySelector('[data-pve-field="round1FormationType"]');
+        if (round1Formation && !round1Formation.value) round1Formation.value = pveGuide.formationType || "";
+        const round2Pet = pveGuideEditor.querySelector('[data-pve-field="round2Pet"]');
+        if (round2Pet && !round2Pet.value) round2Pet.value = pveGuide.subPet || "";
         (pveGuide.heroes || []).forEach((hero, index) => {
           const name = pveGuideEditor.querySelector(`[data-pve-hero-name="${index}"]`);
           const role = pveGuideEditor.querySelector(`[data-pve-hero-role="${index}"]`);
@@ -1148,6 +1221,8 @@
           pveGuide.specs.forEach((spec) => addSpecRow(spec.label || "", spec.value || "", spec.memo || ""));
         }
         updateStrategyHeroSlots();
+        syncRoundStrategyFields();
+        renderFormationBuilder();
       }
 
       function normalizeTags(value) {
@@ -1555,10 +1630,15 @@
         updateStrategyHeroSlots();
         scheduleDraftSave();
       });
-      pveGuideEditor?.querySelector('[data-pve-field="formationType"]')?.addEventListener("change", () => {
-        syncBuilderFormationType();
-        renderFormationBuilder();
-        scheduleDraftSave();
+      pveGuideEditor?.querySelectorAll('[data-pve-field="round1FormationType"], [data-pve-field="round2FormationType"]').forEach((select) => {
+        select.addEventListener("change", () => {
+          const legacyFormation = pveGuideEditor.querySelector('[data-pve-field="formationType"]');
+          const round1Formation = pveGuideEditor.querySelector('[data-pve-field="round1FormationType"]');
+          if (legacyFormation && round1Formation) legacyFormation.value = round1Formation.value;
+          syncBuilderFormationType();
+          renderFormationBuilder();
+          scheduleDraftSave();
+        });
       });
       addPveSpecButton?.addEventListener("click", () => {
         addSpecRow();

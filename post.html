@@ -551,7 +551,7 @@
       function renderPveGuide(body, guide) {
         if (!guide || typeof guide !== "object") return;
         const mode = guide.mode === "pvp" ? "pvp" : "pve";
-        const hasPayload = [guide.type, guide.boss, guide.power, guide.formation, guide.allyTeam, guide.winPlan, guide.caution, guide.mainPet, guide.subPet, guide.note].some(Boolean)
+        const hasPayload = [guide.type, guide.boss, guide.power, guide.formation, guide.allyTeam, guide.winPlan, guide.caution, guide.mainPet, guide.subPet, guide.round2Pet, guide.note].some(Boolean)
           || (Array.isArray(guide.heroes) && guide.heroes.length)
           || (Array.isArray(guide.specs) && guide.specs.length);
         if (!hasPayload) return;
@@ -608,15 +608,31 @@
         }
         if (summary.children.length) shell.append(summary);
 
-        if (guide.formationType) {
-          const formation = createFormationPreview(guide.formationType, guide.heroes || []);
-          if (formation) shell.append(formation);
-        }
+        const visibleHeroes = (guide.heroes || []).filter((hero) => hero.name || hero.role || hero.exclusive);
+        const shouldSplitRounds = mode === "pve" && visibleHeroes.length > 5;
+        const formationItems = shouldSplitRounds
+          ? [
+              ["1라운드", guide.round1FormationType || guide.formationType, visibleHeroes.slice(0, 5)],
+              ["2라운드", guide.round2FormationType, visibleHeroes.slice(5, 10)],
+            ]
+          : [["", guide.round1FormationType || guide.formationType, visibleHeroes]];
+        formationItems.forEach(([roundLabel, type, heroes]) => {
+          if (!type) return;
+          const formation = createFormationPreview(type, heroes || []);
+          if (!formation) return;
+          if (roundLabel) formation.querySelector("strong")?.prepend(`${roundLabel} · `);
+          shell.append(formation);
+        });
 
-        [
-          ["메인펫", guide.mainPet],
-          ["대체펫", guide.subPet],
-        ].forEach(([label, name]) => {
+        (mode === "pve"
+          ? [
+              [shouldSplitRounds ? "1라운드 펫" : "펫", guide.mainPet],
+              ["2라운드 펫", shouldSplitRounds ? guide.round2Pet || guide.subPet : ""],
+            ]
+          : [
+              ["메인펫", guide.mainPet],
+              ["대체펫", guide.subPet],
+            ]).forEach(([label, name]) => {
           if (!name) return;
           const card = document.createElement("span");
           const icon = document.createElement("i");
@@ -639,8 +655,6 @@
         });
         if (petList.children.length) shell.append(petList);
 
-        const visibleHeroes = (guide.heroes || []).filter((hero) => hero.name || hero.role || hero.exclusive);
-        const shouldSplitRounds = mode === "pve" && visibleHeroes.length > 5;
         const appendHeroCard = (target, hero) => {
           const card = document.createElement("span");
           const icon = document.createElement("i");

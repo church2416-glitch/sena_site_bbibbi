@@ -2941,6 +2941,17 @@ p {
   font-weight: 800;
 }
 
+.strategy-builder-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.strategy-builder-controls select {
+  min-width: 132px;
+}
+
 .strategy-formation-builder {
   display: grid;
   grid-template-columns: minmax(260px, 420px) minmax(220px, 1fr);
