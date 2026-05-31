@@ -205,6 +205,20 @@ export function initDb({ adminUser, adminPassword }) {
       FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
     );
 
+    CREATE TABLE IF NOT EXISTS email_verifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL,
+      username TEXT,
+      purpose TEXT NOT NULL,
+      code_hash TEXT NOT NULL,
+      reset_token_hash TEXT,
+      reset_token_expires_at TEXT,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      consumed_at TEXT,
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_posts_category_created ON posts(category, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_media_post ON post_media(post_id, sort_order);
     CREATE INDEX IF NOT EXISTS idx_post_votes_user ON post_votes(user_id, created_at DESC);
@@ -216,6 +230,7 @@ export function initDb({ adminUser, adminPassword }) {
     CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_id, read_at, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_guild_sheets_type ON guild_war_sheets(sheet_type, updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_coupon_requests_user_created ON coupon_requests(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_email_verifications_lookup ON email_verifications(email, purpose, created_at DESC);
   `);
 
   migrateUsersTable();

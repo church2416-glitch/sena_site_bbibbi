@@ -4,7 +4,9 @@ import crypto from "node:crypto";
 import dotenv from "dotenv";
 import fs from "node:fs";
 import multer from "multer";
+import net from "node:net";
 import path from "node:path";
+import tls from "node:tls";
 import { fileURLToPath } from "node:url";
 import {
   createLocalUser,
@@ -13,6 +15,7 @@ import {
   initDb,
   updateUserDisplayName,
   upsertOAuthUser,
+  hashPassword,
   verifyPassword,
 } from "./db.js";
 
@@ -54,6 +57,12 @@ const naverRedirectUri = process.env.NAVER_REDIRECT_URI || `${siteUrl}/auth/nave
 const googleClientId = process.env.GOOGLE_CLIENT_ID || "";
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
 const googleRedirectUri = process.env.GOOGLE_REDIRECT_URI || `${siteUrl}/auth/google/callback`;
+const smtpHost = process.env.SMTP_HOST || "";
+const smtpPort = Number(process.env.SMTP_PORT || 587);
+const smtpSecure = process.env.SMTP_SECURE === "true" || smtpPort === 465;
+const smtpUser = process.env.SMTP_USER || "";
+const smtpPass = process.env.SMTP_PASS || "";
+const smtpFrom = process.env.SMTP_FROM || smtpUser || `no-reply@${siteHostname.replace(/^www\./, "")}`;
 const couponRedeemUrl = process.env.COUPON_REDEEM_URL || "https://coupon.netmarble.com/api/coupon";
 const couponApiToken = process.env.COUPON_API_TOKEN || "";
 const couponGameCode = process.env.COUPON_GAME_CODE || "tskgb";
@@ -127,6 +136,8 @@ const allowedVideoMimeTypes = new Set([
 ]);
 const authRateWindowMs = 10 * 60 * 1000;
 const authRateLimits = new Map();
+const emailCodeTtlMs = 10 * 60 * 1000;
+const passwordResetTtlMs = 15 * 60 * 1000;
 const couponRateWindowMs = 60 * 1000;
 const cookieSecure = siteUrl.startsWith("https://") && process.env.COOKIE_SECURE !== "false";
 const roleLevels = {
@@ -384,7 +395,7 @@ function requireCleanPermissionPage(permission, message, detail) {
 }
 
 function signSession(username) {
-  const user = findUserByUsername(username);
+  const user = findLoginUser(username);
   const payload = Buffer.from(
     JSON.stringify({ userId: user?.id, username, role: user?.role || "user", iat: Date.now() }),
   ).toString("base64url");
@@ -731,6 +742,309 @@ function checkRateLimit(req, res, scope, limit, windowMs = authRateWindowMs) {
   res.setHeader("Retry-After", String(retryAfter));
   res.status(429).json({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." });
   return true;
+}
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || ""));
+}
+
+function hashRecoverySecret(value) {
+  return crypto.createHmac("sha256", sessionSecret).update(String(value || "")).digest("hex");
+}
+
+function makeRecoveryCode() {
+  return String(crypto.randomInt(100000, 1000000));
+}
+
+function findLoginUser(identifier) {
+  const value = String(identifier || "").trim();
+  if (!value) return null;
+  const byUsername = findUserByUsername(value);
+  if (byUsername) return byUsername;
+  if (!isValidEmail(value)) return null;
+  return db
+    .prepare(
+      `
+        SELECT *
+        FROM users
+        WHERE lower(email) = lower(?)
+          AND provider = 'local'
+        ORDER BY id ASC
+        LIMIT 1
+      `,
+    )
+    .get(value);
+}
+
+function selectLocalUsersByEmail(email) {
+  return db
+    .prepare(
+      `
+        SELECT id, username, display_name, email
+        FROM users
+        WHERE lower(email) = lower(?)
+          AND provider = 'local'
+        ORDER BY id ASC
+      `,
+    )
+    .all(email);
+}
+
+function selectPasswordResetUser({ email, username }) {
+  const normalizedEmail = normalizeEmail(email);
+  const normalizedUsername = String(username || "").trim();
+  if (!normalizedEmail) return null;
+
+  if (normalizedUsername) {
+    return db
+      .prepare(
+        `
+          SELECT *
+          FROM users
+          WHERE lower(email) = lower(?)
+            AND username = ?
+            AND provider = 'local'
+            AND password_hash IS NOT NULL
+          LIMIT 1
+        `,
+      )
+      .get(normalizedEmail, normalizedUsername);
+  }
+
+  return db
+    .prepare(
+      `
+        SELECT *
+        FROM users
+        WHERE lower(email) = lower(?)
+          AND provider = 'local'
+          AND password_hash IS NOT NULL
+        ORDER BY id ASC
+        LIMIT 1
+      `,
+    )
+    .get(normalizedEmail);
+}
+
+function createEmailVerification({ email, username, purpose }) {
+  const code = makeRecoveryCode();
+  db.prepare(
+    `
+      INSERT INTO email_verifications (email, username, purpose, code_hash, expires_at)
+      VALUES (?, ?, ?, ?, ?)
+    `,
+  ).run(
+    normalizeEmail(email),
+    username || null,
+    purpose,
+    hashRecoverySecret(code),
+    new Date(Date.now() + emailCodeTtlMs).toISOString(),
+  );
+  return code;
+}
+
+function findActiveEmailVerification({ email, username, purpose }) {
+  const params = [normalizeEmail(email), purpose];
+  let usernameClause = "";
+  if (username) {
+    usernameClause = "AND username = ?";
+    params.push(username);
+  }
+  return db
+    .prepare(
+      `
+        SELECT *
+        FROM email_verifications
+        WHERE email = ?
+          AND purpose = ?
+          ${usernameClause}
+          AND consumed_at IS NULL
+        ORDER BY datetime(created_at) DESC, id DESC
+        LIMIT 1
+      `,
+    )
+    .get(...params);
+}
+
+function verifyEmailCode({ email, username, purpose, code }) {
+  const row = findActiveEmailVerification({ email, username, purpose });
+  if (!row) return { ok: false, error: "인증 요청을 먼저 진행해주세요." };
+  if (Date.parse(row.expires_at) <= Date.now()) {
+    return { ok: false, error: "인증 코드가 만료되었습니다. 다시 요청해주세요." };
+  }
+  if (row.attempts >= 5) {
+    return { ok: false, error: "인증 시도 횟수가 초과되었습니다. 다시 요청해주세요." };
+  }
+
+  const expected = Buffer.from(row.code_hash, "hex");
+  const actual = Buffer.from(hashRecoverySecret(String(code || "").trim()), "hex");
+  const matched = expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
+  if (!matched) {
+    db.prepare("UPDATE email_verifications SET attempts = attempts + 1 WHERE id = ?").run(row.id);
+    return { ok: false, error: "인증 코드가 올바르지 않습니다." };
+  }
+
+  return { ok: true, row };
+}
+
+function consumeEmailVerification(id) {
+  db.prepare("UPDATE email_verifications SET consumed_at = datetime('now') WHERE id = ?").run(id);
+}
+
+function issuePasswordResetToken(verificationId) {
+  const token = crypto.randomBytes(32).toString("base64url");
+  db.prepare(
+    `
+      UPDATE email_verifications
+      SET reset_token_hash = ?,
+          reset_token_expires_at = ?
+      WHERE id = ?
+    `,
+  ).run(hashRecoverySecret(token), new Date(Date.now() + passwordResetTtlMs).toISOString(), verificationId);
+  return token;
+}
+
+function findPasswordResetByToken(token) {
+  if (!token) return null;
+  return db
+    .prepare(
+      `
+        SELECT *
+        FROM email_verifications
+        WHERE purpose = 'reset_password'
+          AND reset_token_hash = ?
+          AND reset_token_expires_at IS NOT NULL
+        ORDER BY id DESC
+        LIMIT 1
+      `,
+    )
+    .get(hashRecoverySecret(token));
+}
+
+function smtpConfigured() {
+  return Boolean(smtpHost && smtpPort && smtpFrom);
+}
+
+function readSmtpResponse(socket) {
+  return new Promise((resolve, reject) => {
+    let buffer = "";
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error("SMTP response timeout"));
+    }, 15000);
+    const cleanup = () => {
+      clearTimeout(timeout);
+      socket.off("data", onData);
+      socket.off("error", onError);
+    };
+    const onError = (error) => {
+      cleanup();
+      reject(error);
+    };
+    const onData = (chunk) => {
+      buffer += chunk.toString("utf8");
+      const lines = buffer.split(/\r?\n/).filter(Boolean);
+      if (!lines.length) return;
+      const last = lines.at(-1);
+      if (/^\d{3} /.test(last)) {
+        cleanup();
+        resolve(buffer);
+      }
+    };
+    socket.on("data", onData);
+    socket.on("error", onError);
+  });
+}
+
+async function smtpCommand(socket, command, expectedCodes) {
+  if (command) socket.write(`${command}\r\n`);
+  const response = await readSmtpResponse(socket);
+  const code = Number(response.slice(0, 3));
+  if (!expectedCodes.includes(code)) {
+    throw new Error(`SMTP command failed: ${command || "connect"} / ${response.trim()}`);
+  }
+  return response;
+}
+
+function createSmtpSocket() {
+  return new Promise((resolve, reject) => {
+    const options = { host: smtpHost, port: smtpPort, servername: smtpHost };
+    const socket = smtpSecure ? tls.connect(options) : net.connect(options);
+    socket.setTimeout(20000);
+    socket.once(smtpSecure ? "secureConnect" : "connect", () => resolve(socket));
+    socket.once("timeout", () => reject(new Error("SMTP connection timeout")));
+    socket.once("error", reject);
+  });
+}
+
+function encodeMailHeader(value) {
+  return `=?UTF-8?B?${Buffer.from(String(value || ""), "utf8").toString("base64")}?=`;
+}
+
+function dotStuff(value) {
+  return String(value || "").replace(/^\./gm, "..");
+}
+
+async function sendRecoveryEmail({ to, subject, text }) {
+  if (!smtpConfigured()) {
+    throw new Error("이메일 발송 설정이 필요합니다.");
+  }
+
+  let socket = await createSmtpSocket();
+  try {
+    await smtpCommand(socket, null, [220]);
+    const ehlo = await smtpCommand(socket, `EHLO ${siteHostname}`, [250]);
+    if (!smtpSecure && /STARTTLS/im.test(ehlo)) {
+      await smtpCommand(socket, "STARTTLS", [220]);
+      socket = tls.connect({ socket, servername: smtpHost });
+      await new Promise((resolve, reject) => {
+        socket.once("secureConnect", resolve);
+        socket.once("error", reject);
+      });
+      await smtpCommand(socket, `EHLO ${siteHostname}`, [250]);
+    }
+    if (smtpUser && smtpPass) {
+      const auth = Buffer.from(`\u0000${smtpUser}\u0000${smtpPass}`, "utf8").toString("base64");
+      await smtpCommand(socket, `AUTH PLAIN ${auth}`, [235]);
+    }
+    const fromAddress = smtpFrom.replace(/^.*<|>.*$/g, "");
+    await smtpCommand(socket, `MAIL FROM:<${fromAddress}>`, [250]);
+    await smtpCommand(socket, `RCPT TO:<${to}>`, [250, 251]);
+    await smtpCommand(socket, "DATA", [354]);
+    const message = [
+      `From: ${encodeMailHeader("bbitsena")} <${fromAddress}>`,
+      `To: <${to}>`,
+      `Subject: ${encodeMailHeader(subject)}`,
+      "MIME-Version: 1.0",
+      "Content-Type: text/plain; charset=UTF-8",
+      "Content-Transfer-Encoding: 8bit",
+      "",
+      dotStuff(text),
+      ".",
+      "",
+    ].join("\r\n");
+    socket.write(message);
+    await readSmtpResponse(socket);
+    await smtpCommand(socket, "QUIT", [221]);
+  } finally {
+    socket.destroy();
+  }
+}
+
+function recoveryMailText({ code, purpose }) {
+  const label = purpose === "find_id" ? "아이디 찾기" : "비밀번호 재설정";
+  return [
+    `bbitsena ${label} 인증 코드입니다.`,
+    "",
+    `인증 코드: ${code}`,
+    "",
+    "이 코드는 10분 동안만 사용할 수 있습니다.",
+    "본인이 요청하지 않았다면 이 메일을 무시해주세요.",
+  ].join("\n");
 }
 
 function sanitizeCouponInput(value, maxLength) {
@@ -2233,6 +2547,130 @@ app.post("/api/login", (req, res) => {
 
   setAuthCookie(res, user.username, Boolean(remember));
   res.json(serializeUser(user));
+});
+
+app.post("/api/recovery/find-id/request", async (req, res) => {
+  if (checkRateLimit(req, res, "recovery:find-id", 5, 30 * 60 * 1000)) return;
+  const email = normalizeEmail(req.body?.email);
+  if (!isValidEmail(email)) return res.status(400).json({ error: "이메일 형식이 올바르지 않습니다." });
+
+  const users = selectLocalUsersByEmail(email);
+  if (!users.length) {
+    return res.json({ ok: true, message: "가입된 이메일이라면 인증 코드가 발송됩니다." });
+  }
+
+  try {
+    const code = createEmailVerification({ email, purpose: "find_id" });
+    await sendRecoveryEmail({
+      to: email,
+      subject: "[bbitsena] 아이디 찾기 인증 코드",
+      text: recoveryMailText({ code, purpose: "find_id" }),
+    });
+    res.json({ ok: true, message: "인증 코드를 이메일로 발송했습니다." });
+  } catch (error) {
+    console.error(error);
+    res.status(503).json({ error: "이메일 발송 설정이 필요하거나 발송에 실패했습니다." });
+  }
+});
+
+app.post("/api/recovery/find-id/verify", (req, res) => {
+  if (checkRateLimit(req, res, "recovery:find-id:verify", 10)) return;
+  const email = normalizeEmail(req.body?.email);
+  const code = String(req.body?.code || "").trim();
+  if (!isValidEmail(email) || !/^\d{6}$/.test(code)) {
+    return res.status(400).json({ error: "이메일과 6자리 인증 코드를 확인해주세요." });
+  }
+
+  const verified = verifyEmailCode({ email, purpose: "find_id", code });
+  if (!verified.ok) return res.status(400).json({ error: verified.error });
+  const users = selectLocalUsersByEmail(email);
+  consumeEmailVerification(verified.row.id);
+  res.json({
+    ok: true,
+    users: users.map((user) => ({
+      username: user.username,
+      displayName: user.display_name || user.username,
+    })),
+  });
+});
+
+app.post("/api/recovery/password/request", async (req, res) => {
+  if (checkRateLimit(req, res, "recovery:password", 5, 30 * 60 * 1000)) return;
+  const email = normalizeEmail(req.body?.email);
+  const username = String(req.body?.username || "").trim();
+  if (!isValidEmail(email)) return res.status(400).json({ error: "이메일 형식이 올바르지 않습니다." });
+
+  const user = selectPasswordResetUser({ email, username });
+  if (!user) {
+    return res.json({ ok: true, message: "계정 정보가 일치하면 인증 코드가 발송됩니다." });
+  }
+
+  try {
+    const code = createEmailVerification({ email, username: user.username, purpose: "reset_password" });
+    await sendRecoveryEmail({
+      to: email,
+      subject: "[bbitsena] 비밀번호 재설정 인증 코드",
+      text: recoveryMailText({ code, purpose: "reset_password" }),
+    });
+    res.json({ ok: true, message: "인증 코드를 이메일로 발송했습니다." });
+  } catch (error) {
+    console.error(error);
+    res.status(503).json({ error: "이메일 발송 설정이 필요하거나 발송에 실패했습니다." });
+  }
+});
+
+app.post("/api/recovery/password/verify", (req, res) => {
+  if (checkRateLimit(req, res, "recovery:password:verify", 10)) return;
+  const email = normalizeEmail(req.body?.email);
+  const username = String(req.body?.username || "").trim();
+  const code = String(req.body?.code || "").trim();
+  if (!isValidEmail(email) || !username || !/^\d{6}$/.test(code)) {
+    return res.status(400).json({ error: "아이디, 이메일, 6자리 인증 코드를 확인해주세요." });
+  }
+
+  const user = selectPasswordResetUser({ email, username });
+  if (!user) return res.status(400).json({ error: "계정 정보를 확인해주세요." });
+  const verified = verifyEmailCode({ email, username: user.username, purpose: "reset_password", code });
+  if (!verified.ok) return res.status(400).json({ error: verified.error });
+
+  consumeEmailVerification(verified.row.id);
+  res.json({ ok: true, resetToken: issuePasswordResetToken(verified.row.id) });
+});
+
+app.post("/api/recovery/password/reset", (req, res) => {
+  if (checkRateLimit(req, res, "recovery:password:reset", 10)) return;
+  const resetToken = String(req.body?.resetToken || "");
+  const password = String(req.body?.password || "");
+  const passwordConfirm = String(req.body?.passwordConfirm || "");
+  if (password.length < 8) return res.status(400).json({ error: "비밀번호는 8자 이상으로 입력해주세요." });
+  if (password !== passwordConfirm) return res.status(400).json({ error: "비밀번호 확인이 일치하지 않습니다." });
+
+  const recovery = findPasswordResetByToken(resetToken);
+  if (!recovery || Date.parse(recovery.reset_token_expires_at) <= Date.now()) {
+    return res.status(400).json({ error: "비밀번호 재설정 시간이 만료되었습니다. 다시 인증해주세요." });
+  }
+
+  const user = selectPasswordResetUser({ email: recovery.email, username: recovery.username });
+  if (!user) return res.status(400).json({ error: "계정 정보를 확인해주세요." });
+
+  db.prepare(
+    `
+      UPDATE users
+      SET password_hash = ?,
+          updated_at = datetime('now')
+      WHERE id = ?
+    `,
+  ).run(hashPassword(password), user.id);
+  db.prepare(
+    `
+      UPDATE email_verifications
+      SET reset_token_hash = NULL,
+          reset_token_expires_at = NULL
+      WHERE id = ?
+    `,
+  ).run(recovery.id);
+
+  res.json({ ok: true, message: "비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요." });
 });
 
 app.post("/api/register", (req, res) => {

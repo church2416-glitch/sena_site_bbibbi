@@ -164,9 +164,11 @@ const heroPrevButton = document.querySelector("#heroPrevButton");
 const heroNextButton = document.querySelector("#heroNextButton");
 const heroSlideDots = document.querySelector("#heroSlideDots");
 const loginModal = document.querySelector("#loginModal");
+const recoveryModal = document.querySelector("#recoveryModal");
 const signupModal = document.querySelector("#signupModal");
 const profileModal = document.querySelector("#profileModal");
 const loginForm = document.querySelector("#loginForm");
+const recoveryForm = document.querySelector("#recoveryForm");
 const signupForm = document.querySelector("#signupForm");
 const profileForm = document.querySelector("#profileForm");
 const providerLoginOpenButton = document.querySelector("#providerLoginOpenButton");
@@ -176,6 +178,11 @@ const adminDashboardLink = document.querySelector("#adminDashboardLink");
 const guildWarSideLink = document.querySelector("#guildWarSideLink");
 const kakaoLoginButton = document.querySelector("#kakaoLoginButton");
 const loginCloseButton = document.querySelector("#loginCloseButton");
+const recoveryOpenButton = document.querySelector("#recoveryOpenButton");
+const recoveryCloseButton = document.querySelector("#recoveryCloseButton");
+const recoverySendButton = document.querySelector("#recoverySendButton");
+const recoveryToLoginButton = document.querySelector("#recoveryToLoginButton");
+const recoveryVerifyButton = document.querySelector("#recoveryVerifyButton");
 const profileCloseButton = document.querySelector("#profileCloseButton");
 const signupButton = document.querySelector("#signupButton");
 const signupCloseButton = document.querySelector("#signupCloseButton");
@@ -191,6 +198,8 @@ const logoutButton = document.querySelector("#logoutButton");
 const loginStateText = document.querySelector("#loginStateText");
 const roleText = document.querySelector("#roleText");
 const loginError = document.querySelector("#loginError");
+const recoveryMessage = document.querySelector("#recoveryMessage");
+const recoveryResult = document.querySelector("#recoveryResult");
 const signupError = document.querySelector("#signupError");
 const profileError = document.querySelector("#profileError");
 const providerMessage = document.querySelector("#providerMessage");
@@ -576,6 +585,8 @@ let voted = new Set(JSON.parse(localStorage.getItem(votedKey) || "[]"));
 let boardPage = 1;
 const boardPageSize = 10;
 let currentUser = { loggedIn: false, role: "guest" };
+let recoveryMode = "find-id";
+let recoveryResetToken = "";
 let notificationStream = null;
 let notificationSoundEnabled = localStorage.getItem("bbibbi-notification-sound") !== "off";
 let notificationVolume = Number(localStorage.getItem("bbibbi-notification-volume"));
@@ -762,6 +773,157 @@ function closeLoginModal() {
   loginModal.hidden = true;
   document.body.classList.remove("auth-modal-open");
   loginForm?.reset();
+}
+
+function setRecoveryMessage(message, isError = false) {
+  if (!recoveryMessage) return;
+  recoveryMessage.textContent = message || "";
+  recoveryMessage.hidden = !message;
+  recoveryMessage.classList.toggle("is-success", Boolean(message && !isError));
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function setRecoveryMode(mode) {
+  recoveryMode = mode === "password" ? "password" : "find-id";
+  recoveryResetToken = "";
+  recoveryForm?.reset();
+  setRecoveryMessage("");
+  if (recoveryResult) {
+    recoveryResult.hidden = true;
+    recoveryResult.innerHTML = "";
+  }
+  document.querySelectorAll("[data-recovery-mode]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.recoveryMode === recoveryMode);
+  });
+  document.querySelectorAll(".recovery-password-only").forEach((node) => {
+    node.hidden = recoveryMode !== "password";
+  });
+  document.querySelectorAll(".recovery-reset-fields").forEach((node) => {
+    node.hidden = true;
+  });
+  if (recoveryVerifyButton) recoveryVerifyButton.textContent = recoveryMode === "password" ? "인증 확인" : "아이디 확인";
+}
+
+function openRecoveryModal() {
+  if (!recoveryModal) return;
+  closeLoginModal();
+  setRecoveryMode("find-id");
+  recoveryModal.hidden = false;
+  recoveryModal.removeAttribute("hidden");
+  document.body.classList.add("auth-modal-open");
+  window.setTimeout(() => recoveryForm?.email?.focus(), 30);
+}
+
+function closeRecoveryModal() {
+  if (!recoveryModal) return;
+  recoveryModal.hidden = true;
+  document.body.classList.remove("auth-modal-open");
+  recoveryForm?.reset();
+  setRecoveryMessage("");
+  if (recoveryResult) recoveryResult.hidden = true;
+}
+
+async function sendRecoveryCode() {
+  if (!recoveryForm) return;
+  const formData = new FormData(recoveryForm);
+  const email = String(formData.get("email") || "").trim();
+  const username = String(formData.get("username") || "").trim();
+  const endpoint = recoveryMode === "password" ? "/api/recovery/password/request" : "/api/recovery/find-id/request";
+  recoverySendButton.disabled = true;
+  setRecoveryMessage("인증 코드를 발송하는 중입니다.");
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, username }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || "인증 코드 발송에 실패했습니다.");
+    setRecoveryMessage(payload.message || "인증 코드를 이메일로 발송했습니다.");
+    recoveryForm.code?.focus();
+  } catch (error) {
+    setRecoveryMessage(error.message || "인증 코드 발송에 실패했습니다.", true);
+  } finally {
+    recoverySendButton.disabled = false;
+  }
+}
+
+function renderRecoveredIds(users) {
+  if (!recoveryResult) return;
+  const items = Array.isArray(users) ? users : [];
+  recoveryResult.hidden = false;
+  recoveryResult.innerHTML = items.length
+    ? `<strong>확인된 아이디</strong>${items.map((user) => `<span>${escapeHtml(user.username)} <small>${escapeHtml(user.displayName || "")}</small></span>`).join("")}`
+    : "<strong>확인된 아이디가 없습니다.</strong>";
+}
+
+async function submitRecovery(event) {
+  event.preventDefault();
+  if (!recoveryForm) return;
+  const formData = new FormData(recoveryForm);
+  const email = String(formData.get("email") || "").trim();
+  const username = String(formData.get("username") || "").trim();
+  const code = String(formData.get("code") || "").trim();
+
+  if (recoveryMode === "find-id") {
+    const response = await fetch("/api/recovery/find-id/verify", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) return setRecoveryMessage(payload.error || "아이디 확인에 실패했습니다.", true);
+    setRecoveryMessage("인증이 완료되었습니다.");
+    renderRecoveredIds(payload.users);
+    return;
+  }
+
+  if (!recoveryResetToken) {
+    const response = await fetch("/api/recovery/password/verify", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, username, code }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) return setRecoveryMessage(payload.error || "인증에 실패했습니다.", true);
+    recoveryResetToken = payload.resetToken || "";
+    document.querySelectorAll(".recovery-reset-fields").forEach((node) => {
+      node.hidden = false;
+    });
+    if (recoveryVerifyButton) recoveryVerifyButton.textContent = "비밀번호 변경";
+    setRecoveryMessage("인증되었습니다. 새 비밀번호를 입력해주세요.");
+    recoveryForm.password?.focus();
+    return;
+  }
+
+  const response = await fetch("/api/recovery/password/reset", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      resetToken: recoveryResetToken,
+      password: formData.get("password"),
+      passwordConfirm: formData.get("passwordConfirm"),
+    }),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) return setRecoveryMessage(payload.error || "비밀번호 변경에 실패했습니다.", true);
+  setRecoveryMessage(payload.message || "비밀번호가 변경되었습니다.");
+  window.setTimeout(() => {
+    closeRecoveryModal();
+    openLoginModal();
+  }, 900);
 }
 
 function openSignupModal() {
@@ -2141,6 +2303,20 @@ mobileLoginButton?.addEventListener("click", openLoginModal);
 guestLoginFallbackButton?.addEventListener("click", openLoginModal);
 loginCloseButton?.addEventListener("click", closeLoginModal);
 loginForm?.addEventListener("submit", submitLogin);
+recoveryOpenButton?.addEventListener("click", (event) => {
+  event.preventDefault();
+  openRecoveryModal();
+});
+recoveryCloseButton?.addEventListener("click", closeRecoveryModal);
+recoverySendButton?.addEventListener("click", sendRecoveryCode);
+recoveryForm?.addEventListener("submit", submitRecovery);
+recoveryToLoginButton?.addEventListener("click", () => {
+  closeRecoveryModal();
+  openLoginModal();
+});
+document.querySelectorAll("[data-recovery-mode]").forEach((button) => {
+  button.addEventListener("click", () => setRecoveryMode(button.dataset.recoveryMode));
+});
 profileButton?.addEventListener("click", openProfileModal);
 profileCloseButton?.addEventListener("click", closeProfileModal);
 profileForm?.addEventListener("submit", submitProfile);
@@ -2199,6 +2375,9 @@ document.querySelectorAll("[data-provider-soon]").forEach((button) => {
 });
 loginModal?.addEventListener("click", (event) => {
   if (event.target === loginModal) closeLoginModal();
+});
+recoveryModal?.addEventListener("click", (event) => {
+  if (event.target === recoveryModal) closeRecoveryModal();
 });
 signupModal?.addEventListener("click", (event) => {
   if (event.target === signupModal) closeSignupModal();
