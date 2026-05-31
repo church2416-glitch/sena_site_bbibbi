@@ -2122,6 +2122,8 @@ searchInput.addEventListener("input", () => {
 
 sideBoardLinks.forEach((link) => {
   link.addEventListener("click", (event) => {
+    const href = link.getAttribute("href") || "";
+    if (href && href !== "#") return;
     event.preventDefault();
     setActiveCategory(link.dataset.boardLink, { scroll: true });
   });
