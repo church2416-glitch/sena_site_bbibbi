@@ -1861,6 +1861,9 @@ function normalizePveGuide(value) {
       name: String(hero?.name || "").trim().slice(0, 30),
       role: String(hero?.role || "").trim().slice(0, 40),
       exclusive: String(hero?.exclusive || "").trim().slice(0, 40),
+      exclusiveOptions: Array.isArray(hero?.exclusiveOptions)
+        ? hero.exclusiveOptions.map((option) => String(option || "").trim().slice(0, 40)).filter(Boolean).slice(0, 4)
+        : [],
       accessory: String(hero?.accessory || "").trim().slice(0, 20),
       refine: normalizePveAccessoryRefine(hero?.refine).slice(0, 20),
       grade: String(hero?.grade || "").trim().slice(0, 10),

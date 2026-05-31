@@ -699,6 +699,16 @@
             exclusive.append(document.createTextNode(hero.exclusive || "전용장비"));
             card.append(exclusive);
           }
+          if (Array.isArray(hero.exclusiveOptions) && hero.exclusiveOptions.length) {
+            const optionList = document.createElement("div");
+            optionList.className = "strategy-exclusive-options";
+            hero.exclusiveOptions.slice(0, 4).forEach((option) => {
+              const item = document.createElement("span");
+              item.textContent = option;
+              optionList.append(item);
+            });
+            card.append(optionList);
+          }
           if (accessory) {
             const badge = document.createElement("em");
             const img = document.createElement("img");

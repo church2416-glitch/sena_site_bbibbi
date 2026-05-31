@@ -2818,6 +2818,17 @@ p {
   text-align: center;
 }
 
+.pve-exclusive-options {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pve-exclusive-options select {
+  min-height: 38px;
+}
+
 .strategy-builder-section {
   padding: 14px;
   border: 1px solid rgba(var(--theme-mid-rgb), 0.18);
@@ -3364,6 +3375,24 @@ p {
   height: 18px;
   object-fit: contain;
   border-radius: 4px;
+}
+
+.strategy-exclusive-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.strategy-exclusive-options span {
+  padding: 3px 7px;
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.28);
+  border-radius: 999px;
+  background: rgba(var(--theme-mid-rgb), 0.08);
+  color: #efeaff;
+  font-size: 0.72rem;
+  line-height: 1.2;
 }
 
 .strategy-pet-card {
@@ -8566,6 +8595,10 @@ p {
 
   .pve-hero-stat-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pve-exclusive-options {
+    grid-template-columns: 1fr;
   }
 
   .strategy-skill-card {
