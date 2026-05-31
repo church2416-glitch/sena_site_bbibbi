@@ -1047,6 +1047,18 @@ function recoveryMailText({ code, purpose }) {
   ].join("\n");
 }
 
+function signupMailText({ code, username }) {
+  return [
+    "bbitsena 회원가입 이메일 인증 코드입니다.",
+    "",
+    `아이디: ${username}`,
+    `인증 코드: ${code}`,
+    "",
+    "이 코드는 10분 동안만 사용할 수 있습니다.",
+    "본인이 요청하지 않았다면 이 메일을 무시해주세요.",
+  ].join("\n");
+}
+
 function sanitizeCouponInput(value, maxLength) {
   return String(value || "")
     .trim()
@@ -2673,12 +2685,45 @@ app.post("/api/recovery/password/reset", (req, res) => {
   res.json({ ok: true, message: "비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요." });
 });
 
+app.post("/api/register/email/request", async (req, res) => {
+  if (checkRateLimit(req, res, "register:email", 5, 30 * 60 * 1000)) return;
+  const username = String(req.body?.username || "").trim();
+  const email = normalizeEmail(req.body?.email);
+
+  if (!/^[a-zA-Z0-9_]{4,20}$/.test(username)) {
+    return res.status(400).json({ error: "아이디는 영문, 숫자, _ 조합 4~20자로 입력해주세요." });
+  }
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ error: "이메일 형식이 올바르지 않습니다." });
+  }
+  if (findUserByUsername(username)) {
+    return res.status(409).json({ error: "이미 사용 중인 아이디입니다." });
+  }
+  if (selectLocalUsersByEmail(email).length) {
+    return res.status(409).json({ error: "이미 가입된 이메일입니다." });
+  }
+
+  try {
+    const code = createEmailVerification({ email, username, purpose: "register" });
+    await sendRecoveryEmail({
+      to: email,
+      subject: "[bbitsena] 회원가입 이메일 인증 코드",
+      text: signupMailText({ code, username }),
+    });
+    res.json({ ok: true, message: "인증코드를 이메일로 보냈습니다." });
+  } catch (error) {
+    console.error(error);
+    res.status(503).json({ error: "이메일 발송 설정이 필요하거나 발송에 실패했습니다." });
+  }
+});
+
 app.post("/api/register", (req, res) => {
   if (checkRateLimit(req, res, "register", 5, 30 * 60 * 1000)) return;
-  const { username, password, passwordConfirm, displayName, email } = req.body || {};
+  const { username, password, passwordConfirm, displayName, email, emailCode } = req.body || {};
   const normalizedUsername = String(username || "").trim();
   const normalizedDisplayName = String(displayName || "").trim();
-  const normalizedEmail = String(email || "").trim();
+  const normalizedEmail = normalizeEmail(email);
+  const verificationCode = String(emailCode || "").trim();
 
   if (!/^[a-zA-Z0-9_]{4,20}$/.test(normalizedUsername)) {
     return res.status(400).json({ error: "아이디는 영문, 숫자, _ 조합 4~20자로 입력해주세요." });
@@ -2692,8 +2737,11 @@ app.post("/api/register", (req, res) => {
     return res.status(400).json({ error: "비밀번호 확인이 일치하지 않습니다." });
   }
 
-  if (normalizedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+  if (!isValidEmail(normalizedEmail)) {
     return res.status(400).json({ error: "이메일 형식이 올바르지 않습니다." });
+  }
+  if (!/^\d{6}$/.test(verificationCode)) {
+    return res.status(400).json({ error: "이메일 인증코드 6자리를 입력해주세요." });
   }
   if (normalizedDisplayName && (!isSafeDisplayText(normalizedDisplayName) || [...normalizedDisplayName].length > 16)) {
     return res.status(400).json({ error: "닉네임은 특수 HTML 문자 없이 16자 이하로 입력해주세요." });
@@ -2702,6 +2750,17 @@ app.post("/api/register", (req, res) => {
   if (findUserByUsername(normalizedUsername)) {
     return res.status(409).json({ error: "이미 사용 중인 아이디입니다." });
   }
+  if (selectLocalUsersByEmail(normalizedEmail).length) {
+    return res.status(409).json({ error: "이미 가입된 이메일입니다." });
+  }
+
+  const verified = verifyEmailCode({
+    email: normalizedEmail,
+    username: normalizedUsername,
+    purpose: "register",
+    code: verificationCode,
+  });
+  if (!verified.ok) return res.status(400).json({ error: verified.error });
 
   try {
     const user = createLocalUser({
@@ -2711,6 +2770,7 @@ app.post("/api/register", (req, res) => {
       email: normalizedEmail,
     });
 
+    consumeEmailVerification(verified.row.id);
     setAuthCookie(res, user.username);
     res.json(serializeUser(user));
   } catch (error) {

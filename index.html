@@ -298,8 +298,15 @@
         </label>
         <label class="auth-input-row" aria-label="이메일">
           <span class="auth-field-icon">@</span>
-          <input name="email" type="email" placeholder="이메일 선택" />
+          <input name="email" type="email" placeholder="이메일" required />
         </label>
+        <div class="auth-inline-action">
+          <label class="auth-input-row" aria-label="이메일 인증코드">
+            <span class="auth-field-icon">NO</span>
+            <input name="emailCode" type="text" inputmode="numeric" maxlength="6" placeholder="이메일 인증코드 6자리" required />
+          </label>
+          <button class="auth-mini-button" id="signupEmailCodeButton" type="button">인증코드 받기</button>
+        </div>
         <label class="auth-input-row" aria-label="비밀번호">
           <span class="auth-field-icon">PW</span>
           <input name="password" type="password" placeholder="비밀번호 8자 이상" required />

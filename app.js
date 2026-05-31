@@ -185,6 +185,7 @@ const recoveryToLoginButton = document.querySelector("#recoveryToLoginButton");
 const recoveryVerifyButton = document.querySelector("#recoveryVerifyButton");
 const profileCloseButton = document.querySelector("#profileCloseButton");
 const signupButton = document.querySelector("#signupButton");
+const signupEmailCodeButton = document.querySelector("#signupEmailCodeButton");
 const signupCloseButton = document.querySelector("#signupCloseButton");
 const signupToLoginButton = document.querySelector("#signupToLoginButton");
 const profileButton = document.querySelector("#profileButton");
@@ -996,6 +997,7 @@ async function submitSignup(event) {
       username: formData.get("username"),
       displayName: formData.get("displayName"),
       email: formData.get("email"),
+      emailCode: formData.get("emailCode"),
       password: formData.get("password"),
       passwordConfirm: formData.get("passwordConfirm"),
     }),
@@ -1010,6 +1012,41 @@ async function submitSignup(event) {
 
   renderAuthState(await response.json());
   closeSignupModal();
+}
+
+async function requestSignupEmailCode() {
+  if (!signupForm || !signupEmailCodeButton) return;
+  const formData = new FormData(signupForm);
+  const username = String(formData.get("username") || "").trim();
+  const email = String(formData.get("email") || "").trim();
+  if (signupError) {
+    signupError.hidden = true;
+    signupError.textContent = "";
+  }
+  signupEmailCodeButton.disabled = true;
+  signupEmailCodeButton.textContent = "발송 중";
+  try {
+    const response = await fetch("/api/register/email/request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, email }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || "인증코드 발송 실패");
+    if (signupError) {
+      signupError.textContent = result.message || "인증코드를 이메일로 보냈습니다.";
+      signupError.hidden = false;
+    }
+    signupForm.emailCode?.focus();
+  } catch (error) {
+    if (signupError) {
+      signupError.textContent = error.message || "인증코드 발송 실패";
+      signupError.hidden = false;
+    }
+  } finally {
+    signupEmailCodeButton.disabled = false;
+    signupEmailCodeButton.textContent = "인증코드 받기";
+  }
 }
 
 function setAccountText(node, value) {
@@ -2356,6 +2393,7 @@ signupToLoginButton?.addEventListener("click", () => {
   closeSignupModal();
   openLoginModal();
 });
+signupEmailCodeButton?.addEventListener("click", requestSignupEmailCode);
 signupForm?.addEventListener("submit", submitSignup);
 syncNotificationSoundButton();
 syncNotificationVolumeControl();
