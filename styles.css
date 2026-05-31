@@ -2779,15 +2779,59 @@ p {
 
 .pve-hero-grid,
 .pve-spec-grid {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(320px, 1fr));
 }
 
 .pve-hero-grid.is-two-rounds {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(320px, 1fr));
+}
+
+.pve-spec-grid {
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
 }
 
 .pve-hero-grid label[hidden] {
   display: none;
+}
+
+.pve-hero-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.18);
+  border-radius: 12px;
+  background: rgba(8, 10, 20, 0.62);
+  color: #f8ec93;
+}
+
+.pve-hero-card[hidden] {
+  display: none;
+}
+
+.pve-hero-card-title {
+  color: #fff2a9;
+  font-size: 12px;
+}
+
+.pve-hero-core,
+.pve-exclusive-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.pve-exclusive-editor {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(255, 218, 94, 0.16);
+  border-radius: 10px;
+  background: rgba(255, 218, 94, 0.035);
+}
+
+.pve-exclusive-head {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
 }
 
 .pve-main-dealer-toggle {
@@ -2821,11 +2865,37 @@ p {
 .pve-exclusive-options {
   display: grid;
   grid-column: 1 / -1;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
-.pve-exclusive-options select {
+.pve-exclusive-option-row {
+  display: grid;
+  grid-template-columns: 24px minmax(150px, 1.4fr) minmax(90px, 0.8fr) minmax(80px, 0.8fr) 34px;
+  gap: 8px;
+  align-items: center;
+}
+
+.pve-exclusive-option-row b {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  color: #09080d;
+  background: #ffe86f;
+  font-size: 11px;
+}
+
+.pve-exclusive-option-row button {
+  min-height: 34px;
+  border: 1px solid rgba(255, 88, 88, 0.48);
+  border-radius: 8px;
+  color: #ff7777;
+  background: rgba(255, 88, 88, 0.08);
+}
+
+.pve-exclusive-options select,
+.pve-exclusive-options input {
   min-height: 38px;
 }
 
@@ -8597,8 +8667,16 @@ p {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .pve-exclusive-options {
+  .pve-hero-grid,
+  .pve-hero-grid.is-two-rounds,
+  .pve-spec-grid,
+  .pve-hero-core,
+  .pve-exclusive-head {
     grid-template-columns: 1fr;
+  }
+
+  .pve-exclusive-option-row {
+    grid-template-columns: 24px minmax(0, 1fr) minmax(76px, 0.7fr) 70px 34px;
   }
 
   .strategy-skill-card {

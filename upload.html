@@ -132,7 +132,7 @@
             <div class="pve-mini-section">
               <div class="pve-section-title-row">
                 <h3 id="strategySpecTitle">스펙 체크</h3>
-                <button class="mini-add-button" id="addPveSpecButton" type="button">+ 항목</button>
+                <button class="mini-add-button" id="addPveSpecButton" type="button">+ 체크포인트</button>
               </div>
               <div class="pve-spec-grid" id="pveSpecGrid"></div>
             </div>
@@ -580,17 +580,21 @@
         fillDatalist(strategyHeroOptions, characterCatalog);
         if (pveHeroGrid && !pveHeroGrid.children.length) {
           Array.from({ length: 10 }).forEach((_, index) => {
-            const row = document.createElement("label");
+            const row = document.createElement("div");
+            row.className = "pve-hero-card";
             row.dataset.pveHeroRow = String(index);
             row.innerHTML = `
-              영웅 ${index + 1}
-              <input data-pve-hero-name="${index}" type="text" maxlength="30" list="strategyHeroOptions" placeholder="영웅 이름" />
-              <input data-pve-hero-role="${index}" type="text" maxlength="40" placeholder="역할 / 대체" />
-              <input data-pve-hero-exclusive="${index}" type="text" maxlength="40" list="strategyExclusiveOptions" placeholder="전용장비" />
-              <div class="pve-exclusive-options" data-pve-exclusive-options="${index}">
-                ${Array.from({ length: 4 }).map((_, optionIndex) => `
-                  <select data-pve-hero-exclusive-option="${index}:${optionIndex}"></select>
-                `).join("")}
+              <strong class="pve-hero-card-title">영웅 ${index + 1}</strong>
+              <div class="pve-hero-core">
+                <input data-pve-hero-name="${index}" type="text" maxlength="30" list="strategyHeroOptions" placeholder="영웅 이름" />
+                <input data-pve-hero-role="${index}" type="text" maxlength="40" placeholder="역할 / 대체" />
+              </div>
+              <div class="pve-exclusive-editor">
+                <div class="pve-exclusive-head">
+                  <input data-pve-hero-exclusive="${index}" type="text" maxlength="40" list="strategyExclusiveOptions" placeholder="전용장비 선택" />
+                  <button class="mini-add-button" data-add-exclusive-option="${index}" type="button">+ 옵션</button>
+                </div>
+                <div class="pve-exclusive-options" data-pve-exclusive-options="${index}"></div>
               </div>
               <select data-pve-hero-accessory="${index}"></select>
               <select data-pve-hero-refine="${index}"></select>
@@ -612,9 +616,7 @@
             fillSelect(row.querySelector(`[data-pve-hero-accessory="${index}"]`), accessoryTypes, "반지");
             fillSelect(row.querySelector(`[data-pve-hero-refine="${index}"]`), accessoryRefines, "세공");
             fillSelect(row.querySelector(`[data-pve-hero-grade="${index}"]`), accessoryGrades, "성급");
-            row.querySelectorAll(`[data-pve-hero-exclusive-option^="${index}:"]`).forEach((select, optionIndex) => {
-              fillSelect(select, exclusiveOptionValues, `전용 옵션 ${optionIndex + 1}`);
-            });
+            row.querySelector(`[data-add-exclusive-option="${index}"]`)?.addEventListener("click", () => addExclusiveOptionRow(index));
             row.querySelector(`[data-pve-hero-name="${index}"]`)?.addEventListener("input", () => {
               renderFormationBuilder();
               scheduleDraftSave();
@@ -627,6 +629,75 @@
         if (pveSpecGrid && !pveSpecGrid.children.length) {
           ["공격력", "방어", "속공", "치명", "막기", "기타"].forEach((label) => addSpecRow(label));
         }
+      }
+
+      function getExclusiveOptionDefaultValue(name, grade) {
+        const item = exclusiveOptionCatalog.find((option) => option.name === name);
+        return item?.values?.[grade] || "";
+      }
+
+      function parseExclusiveOptionValue(value) {
+        const text = String(value || "").trim();
+        const match = text.match(/^(.*?)\s*\/\s*(고급|희귀|전설)\s*(.*?)$/);
+        if (match) return { name: match[1].trim(), grade: match[2], value: match[3].trim() };
+        const item = exclusiveOptionCatalog.find((option) => text.startsWith(option.name));
+        return { name: item?.name || "", grade: "", value: item ? text.replace(item.name, "").trim() : text };
+      }
+
+      function refreshExclusiveOptionRows(heroIndex) {
+        const box = pveGuideEditor.querySelector(`[data-pve-exclusive-options="${heroIndex}"]`);
+        const addButton = pveGuideEditor.querySelector(`[data-add-exclusive-option="${heroIndex}"]`);
+        if (!box) return;
+        box.querySelectorAll("[data-exclusive-option-row]").forEach((row, optionIndex) => {
+          row.dataset.exclusiveOptionRow = String(optionIndex);
+          row.querySelector("[data-exclusive-option-index]").textContent = String(optionIndex + 1);
+        });
+        if (addButton) addButton.disabled = box.querySelectorAll("[data-exclusive-option-row]").length >= 4;
+      }
+
+      function addExclusiveOptionRow(heroIndex, rawValue = "") {
+        const box = pveGuideEditor.querySelector(`[data-pve-exclusive-options="${heroIndex}"]`);
+        if (!box || box.querySelectorAll("[data-exclusive-option-row]").length >= 4) return;
+        const parsed = parseExclusiveOptionValue(rawValue);
+        const row = document.createElement("div");
+        row.className = "pve-exclusive-option-row";
+        row.dataset.exclusiveOptionRow = String(box.querySelectorAll("[data-exclusive-option-row]").length);
+        row.innerHTML = `
+          <b data-exclusive-option-index></b>
+          <select data-pve-hero-exclusive-option-name="${heroIndex}">
+            <option value="">옵션 선택</option>
+            ${exclusiveOptionCatalog.map((option) => `<option value="${option.name}">${option.name}</option>`).join("")}
+          </select>
+          <select data-pve-hero-exclusive-option-grade="${heroIndex}">
+            <option value="">등급</option>
+            <option value="고급">고급</option>
+            <option value="희귀">희귀</option>
+            <option value="전설">전설</option>
+          </select>
+          <input data-pve-hero-exclusive-option-value="${heroIndex}" type="text" maxlength="12" placeholder="수치" />
+          <button type="button" data-remove-exclusive-option aria-label="전용 옵션 삭제">×</button>
+        `;
+        const nameSelect = row.querySelector("[data-pve-hero-exclusive-option-name]");
+        const gradeSelect = row.querySelector("[data-pve-hero-exclusive-option-grade]");
+        const valueInput = row.querySelector("[data-pve-hero-exclusive-option-value]");
+        nameSelect.value = parsed.name;
+        gradeSelect.value = parsed.grade;
+        valueInput.value = parsed.value;
+        const syncValue = () => {
+          const nextValue = getExclusiveOptionDefaultValue(nameSelect.value, gradeSelect.value);
+          if (nextValue) valueInput.value = nextValue;
+          scheduleDraftSave();
+        };
+        nameSelect.addEventListener("change", syncValue);
+        gradeSelect.addEventListener("change", syncValue);
+        valueInput.addEventListener("input", scheduleDraftSave);
+        row.querySelector("[data-remove-exclusive-option]")?.addEventListener("click", () => {
+          row.remove();
+          refreshExclusiveOptionRows(heroIndex);
+          scheduleDraftSave();
+        });
+        box.append(row);
+        refreshExclusiveOptionRows(heroIndex);
       }
 
       function refreshSpecRowIndexes() {
@@ -646,8 +717,8 @@
         row.dataset.pveSpecRow = String(index);
         row.innerHTML = `
           <span class="pve-spec-row-head">
-            <input data-pve-spec-label="${index}" type="text" maxlength="30" placeholder="항목" />
-            <button type="button" data-remove-pve-spec aria-label="항목 삭제">-</button>
+            <input data-pve-spec-label="${index}" type="text" maxlength="30" placeholder="체크 이름" />
+            <button type="button" data-remove-pve-spec aria-label="체크포인트 삭제">-</button>
           </span>
           <input data-pve-spec-value="${index}" type="text" maxlength="40" placeholder="권장 수치" />
           <input data-pve-spec-memo="${index}" type="text" maxlength="80" placeholder="메모" />
@@ -714,7 +785,7 @@
               <h3>추천 스킬 사용 순서</h3>
               <p>선택한 영웅과 스킬 이미지를 순서대로 저장합니다.</p>
             </div>
-            <button class="mini-add-button" id="addSkillStepButton" type="button">+ 단계 추가</button>
+            <button class="mini-add-button" id="addSkillStepButton" type="button">+ 스킬 순서</button>
           </div>
           <div class="strategy-skill-grid" id="skillSequenceGrid"></div>
         `;
@@ -929,9 +1000,15 @@
             name: pveGuideEditor.querySelector(`[data-pve-hero-name="${index}"]`)?.value.trim() || "",
             role: pveGuideEditor.querySelector(`[data-pve-hero-role="${index}"]`)?.value.trim() || "",
             exclusive: pveGuideEditor.querySelector(`[data-pve-hero-exclusive="${index}"]`)?.value.trim() || "",
-            exclusiveOptions: Array.from({ length: 4 }).map((_, optionIndex) =>
-              pveGuideEditor.querySelector(`[data-pve-hero-exclusive-option="${index}:${optionIndex}"]`)?.value.trim() || ""
-            ).filter(Boolean),
+            exclusiveOptions: [...pveGuideEditor.querySelectorAll(`[data-pve-exclusive-options="${index}"] [data-exclusive-option-row]`)]
+              .map((row) => {
+                const name = row.querySelector("[data-pve-hero-exclusive-option-name]")?.value.trim() || "";
+                const grade = row.querySelector("[data-pve-hero-exclusive-option-grade]")?.value.trim() || "";
+                const value = row.querySelector("[data-pve-hero-exclusive-option-value]")?.value.trim() || "";
+                return name ? `${name}${grade ? ` / ${grade}` : ""}${value ? ` ${value}` : ""}` : "";
+              })
+              .filter(Boolean)
+              .slice(0, 4),
             accessory: pveGuideEditor.querySelector(`[data-pve-hero-accessory="${index}"]`)?.value.trim() || "",
             refine: pveGuideEditor.querySelector(`[data-pve-hero-refine="${index}"]`)?.value.trim() || "",
             grade: pveGuideEditor.querySelector(`[data-pve-hero-grade="${index}"]`)?.value.trim() || "",
@@ -972,10 +1049,12 @@
           if (name) name.value = hero.name || "";
           if (role) role.value = hero.role || "";
           if (exclusive) exclusive.value = hero.exclusive || "";
-          Array.from({ length: 4 }).forEach((_, optionIndex) => {
-            const option = pveGuideEditor.querySelector(`[data-pve-hero-exclusive-option="${index}:${optionIndex}"]`);
-            if (option) option.value = hero.exclusiveOptions?.[optionIndex] || "";
-          });
+          const exclusiveBox = pveGuideEditor.querySelector(`[data-pve-exclusive-options="${index}"]`);
+          if (exclusiveBox) {
+            exclusiveBox.innerHTML = "";
+            (hero.exclusiveOptions || []).slice(0, 4).forEach((option) => addExclusiveOptionRow(index, option));
+            refreshExclusiveOptionRows(index);
+          }
           if (accessory) accessory.value = hero.accessory || "";
           if (refine) refine.value = hero.refine || "";
           if (grade) grade.value = hero.grade || "";
