@@ -321,30 +321,54 @@
             <h3>이용 내역</h3>
           </div>
           <div class="account-tabs">
-            <section>
-              <h4>내가 쓴 글</h4>
-              <div class="account-list" id="accountPostList">
-                <p class="account-empty">불러오는 중...</p>
-              </div>
-            </section>
-            <section>
-              <h4>좋아요 누른 글</h4>
-              <div class="account-list" id="accountLikedList">
-                <p class="account-empty">불러오는 중...</p>
-              </div>
-            </section>
-            <section>
-              <h4>북마크</h4>
-              <div class="account-list" id="accountBookmarkList">
-                <p class="account-empty">불러오는 중...</p>
-              </div>
-            </section>
-            <section>
-              <h4>댓글</h4>
-              <div class="account-list" id="accountCommentList">
-                <p class="account-empty">불러오는 중...</p>
-              </div>
-            </section>
+            <button class="account-activity-card" type="button" data-account-view="posts">
+              <span>내가 쓴 글</span>
+              <strong id="accountPostList">0개</strong>
+            </button>
+            <button class="account-activity-card" type="button" data-account-view="comments">
+              <span>작성한 댓글</span>
+              <strong id="accountCommentList">0개</strong>
+            </button>
+            <button class="account-activity-card" type="button" data-account-view="commentedPosts">
+              <span>댓글 단 글</span>
+              <strong id="accountCommentedPostList">0개</strong>
+            </button>
+            <button class="account-activity-card" type="button" data-account-view="liked">
+              <span>좋아요한 글</span>
+              <strong id="accountLikedList">0개</strong>
+            </button>
+            <button class="account-activity-card" type="button" data-account-view="bookmarks">
+              <span>북마크</span>
+              <strong id="accountBookmarkList">0개</strong>
+            </button>
+          </div>
+        </section>
+
+        <section class="account-section account-detail-section" id="accountActivityDetail" hidden>
+          <div class="account-section-head">
+            <button class="account-back-button" id="accountDetailBackButton" type="button">← 내정보</button>
+            <h3 id="accountDetailTitle">활동 내역</h3>
+            <a class="account-link-button" href="/board/write">글쓰기</a>
+          </div>
+          <div class="account-detail-tabs" id="accountActivityTabs">
+            <button type="button" data-account-view="posts">작성글</button>
+            <button type="button" data-account-view="comments">작성댓글</button>
+            <button type="button" data-account-view="commentedPosts">댓글단 글</button>
+            <button type="button" data-account-view="liked">좋아요한 글</button>
+            <button type="button" data-account-view="bookmarks">북마크</button>
+          </div>
+          <div class="account-detail-table-wrap">
+            <table class="account-detail-table">
+              <thead>
+                <tr>
+                  <th>제목</th>
+                  <th>작성일</th>
+                  <th>조회</th>
+                </tr>
+              </thead>
+              <tbody id="accountActivityTableBody"></tbody>
+            </table>
+            <p class="account-empty" id="accountActivityEmpty" hidden>표시할 내역이 없습니다.</p>
           </div>
         </section>
 

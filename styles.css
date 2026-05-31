@@ -1235,11 +1235,12 @@ textarea:focus {
 
 .account-tabs {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
 }
 
-.account-tabs > section {
+.account-tabs > section,
+.account-activity-card {
   display: grid;
   align-content: start;
   gap: 10px;
@@ -1248,6 +1249,121 @@ textarea:focus {
   border: 1px solid rgba(var(--theme-mid-rgb), 0.16);
   border-radius: 8px;
   background: rgba(7, 8, 15, 0.58);
+}
+
+.account-activity-card {
+  min-height: 86px;
+  border-color: rgba(var(--theme-mid-rgb), 0.2);
+  color: #aaa1c9;
+  text-align: left;
+  cursor: pointer;
+}
+
+.account-activity-card:hover,
+.account-activity-card.active {
+  border-color: rgba(var(--theme-mid-rgb), 0.62);
+  color: #ffffff;
+  background: rgba(var(--theme-mid-rgb), 0.13);
+}
+
+.account-activity-card span {
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.account-activity-card strong {
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 1000;
+}
+
+.account-detail-section[hidden] {
+  display: none;
+}
+
+.account-back-button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.22);
+  border-radius: 8px;
+  color: #f3f0ff;
+  background: rgba(7, 8, 15, 0.72);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.account-detail-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px solid rgba(var(--theme-mid-rgb), 0.2);
+}
+
+.account-detail-tabs button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: #aaa1c9;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.account-detail-tabs button.active {
+  color: var(--theme-mid);
+  border-bottom-color: var(--theme-mid);
+}
+
+.account-detail-table-wrap {
+  overflow-x: auto;
+}
+
+.account-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #f3f0ff;
+  table-layout: fixed;
+}
+
+.account-detail-table th,
+.account-detail-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid rgba(var(--theme-mid-rgb), 0.14);
+  font-size: 13px;
+  font-weight: 900;
+  text-align: left;
+  vertical-align: top;
+}
+
+.account-detail-table th:nth-child(2),
+.account-detail-table td:nth-child(2) {
+  width: 150px;
+}
+
+.account-detail-table th:nth-child(3),
+.account-detail-table td:nth-child(3) {
+  width: 70px;
+  text-align: right;
+}
+
+.account-detail-table a {
+  display: block;
+  overflow: hidden;
+  color: #ffffff;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-detail-table small {
+  display: block;
+  overflow: hidden;
+  margin-top: 4px;
+  color: #aaa1c9;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .account-list {

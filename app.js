@@ -210,6 +210,13 @@ const accountPostList = document.querySelector("#accountPostList");
 const accountLikedList = document.querySelector("#accountLikedList");
 const accountBookmarkList = document.querySelector("#accountBookmarkList");
 const accountCommentList = document.querySelector("#accountCommentList");
+const accountCommentedPostList = document.querySelector("#accountCommentedPostList");
+const accountActivityCards = [...document.querySelectorAll("[data-account-view]")];
+const accountActivityDetail = document.querySelector("#accountActivityDetail");
+const accountDetailBackButton = document.querySelector("#accountDetailBackButton");
+const accountDetailTitle = document.querySelector("#accountDetailTitle");
+const accountActivityTableBody = document.querySelector("#accountActivityTableBody");
+const accountActivityEmpty = document.querySelector("#accountActivityEmpty");
 const notificationList = document.querySelector("#notificationList");
 const notificationReadButton = document.querySelector("#notificationReadButton");
 const notificationClearButton = document.querySelector("#notificationClearButton");
@@ -250,6 +257,14 @@ const adminManageCategories = [
 ];
 let guideAdminMenu = null;
 let guideAdminMenuGuide = null;
+let accountActivityData = {
+  posts: [],
+  comments: [],
+  commentedPosts: [],
+  liked: [],
+  bookmarks: [],
+};
+let accountActiveView = "posts";
 
 const boardInfo = {
   [popularBoardCategory]: {
@@ -924,6 +939,152 @@ function renderAccountPostList(container, items, emptyText, metaBuilder, hrefBui
   });
 }
 
+function setAccountCount(target, items) {
+  if (!target) return;
+  target.textContent = `${formatNumber(Array.isArray(items) ? items.length : Number(items) || 0)}개`;
+}
+
+function buildCommentedPosts(comments = []) {
+  const seen = new Map();
+  comments.forEach((comment) => {
+    if (!comment?.postId || seen.has(comment.postId)) return;
+    seen.set(comment.postId, {
+      id: comment.postId,
+      title: comment.postTitle || "게시글",
+      category: comment.postCategory || "",
+      createdAt: comment.createdAt,
+      views: 0,
+      votes: 0,
+    });
+  });
+  return [...seen.values()];
+}
+
+function syncAccountActivitySummary() {
+  setAccountCount(accountPostList, accountActivityData.posts);
+  setAccountCount(accountCommentList, accountActivityData.comments);
+  setAccountCount(accountCommentedPostList, accountActivityData.commentedPosts);
+  setAccountCount(accountLikedList, accountActivityData.liked);
+  setAccountCount(accountBookmarkList, accountActivityData.bookmarks);
+}
+
+function getAccountActivityRows(type) {
+  const rows = {
+    posts: {
+      title: "작성글",
+      empty: "작성하신 게시글이 없습니다.",
+      items: accountActivityData.posts,
+      build: (item) => ({
+        href: `/board/post?id=${encodeURIComponent(item.id)}`,
+        title: item.title || "제목 없음",
+        meta: item.summary || item.category || "",
+        date: formatFeedDate(item.createdAt),
+        views: formatNumber(Number(item.views) || 0),
+      }),
+    },
+    comments: {
+      title: "작성한 댓글",
+      empty: "작성하신 댓글이 없습니다.",
+      items: accountActivityData.comments,
+      build: (item) => ({
+        href: `/board/post?id=${encodeURIComponent(item.postId)}`,
+        title: item.content || "댓글",
+        meta: item.postTitle ? `원문: ${item.postTitle}` : "게시글",
+        date: formatFeedDate(item.createdAt),
+        views: "-",
+      }),
+    },
+    commentedPosts: {
+      title: "댓글 단 글",
+      empty: "댓글을 남긴 게시글이 없습니다.",
+      items: accountActivityData.commentedPosts,
+      build: (item) => ({
+        href: `/board/post?id=${encodeURIComponent(item.id)}`,
+        title: item.title || "게시글",
+        meta: item.category || "",
+        date: formatFeedDate(item.createdAt),
+        views: "-",
+      }),
+    },
+    liked: {
+      title: "좋아요한 글",
+      empty: "좋아요한 글이 없습니다.",
+      items: accountActivityData.liked,
+      build: (item) => ({
+        href: `/board/post?id=${encodeURIComponent(item.id)}`,
+        title: item.title || "제목 없음",
+        meta: `추천 ${formatNumber(Number(item.votes) || 0)}`,
+        date: formatFeedDate(item.votedAt || item.createdAt),
+        views: formatNumber(Number(item.views) || 0),
+      }),
+    },
+    bookmarks: {
+      title: "북마크",
+      empty: "아직 북마크한 글이 없습니다.",
+      items: accountActivityData.bookmarks,
+      build: (item) => ({
+        href: `/board/post?id=${encodeURIComponent(item.id)}`,
+        title: item.title || "제목 없음",
+        meta: item.category || "",
+        date: formatFeedDate(item.bookmarkedAt || item.createdAt),
+        views: formatNumber(Number(item.views) || 0),
+      }),
+    },
+  };
+  return rows[type] || rows.posts;
+}
+
+function renderAccountActivityDetail(type = accountActiveView) {
+  if (!accountActivityTableBody || !accountActivityEmpty || !accountDetailTitle) return;
+  const view = getAccountActivityRows(type);
+  accountActiveView = type;
+  accountDetailTitle.textContent = view.title;
+  accountActivityTableBody.innerHTML = "";
+  accountActivityCards.forEach((button) => {
+    button.classList.toggle("active", button.dataset.accountView === type);
+  });
+
+  if (!view.items.length) {
+    accountActivityEmpty.textContent = view.empty;
+    accountActivityEmpty.hidden = false;
+    return;
+  }
+
+  accountActivityEmpty.hidden = true;
+  view.items.forEach((item) => {
+    const row = document.createElement("tr");
+    const titleCell = document.createElement("td");
+    const dateCell = document.createElement("td");
+    const viewCell = document.createElement("td");
+    const link = document.createElement("a");
+    const meta = document.createElement("small");
+    const rowData = view.build(item);
+
+    link.href = rowData.href;
+    link.textContent = rowData.title;
+    meta.textContent = rowData.meta || "";
+    titleCell.append(link);
+    if (rowData.meta) titleCell.append(meta);
+    dateCell.textContent = rowData.date || "-";
+    viewCell.textContent = rowData.views || "-";
+    row.append(titleCell, dateCell, viewCell);
+    accountActivityTableBody.append(row);
+  });
+}
+
+function openAccountActivityDetail(type) {
+  if (!accountActivityDetail) return;
+  accountActivityDetail.hidden = false;
+  renderAccountActivityDetail(type);
+  accountActivityDetail.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function closeAccountActivityDetail() {
+  if (!accountActivityDetail) return;
+  accountActivityDetail.hidden = true;
+  profileModal?.querySelector(".account-summary-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), timeoutMs);
@@ -1244,8 +1405,10 @@ async function loadAccountDashboard() {
   if (accountName) appendNameWithRole(accountName, currentUser.displayName || currentUser.username, currentUser.role);
   setAccountText(accountMeta, currentUser.email || getProviderLabel(currentUser.provider));
   if (accountAvatar) accountAvatar.textContent = (currentUser.displayName || currentUser.username || "?").slice(0, 1).toUpperCase();
-  renderAccountPostList(accountPostList, [], "불러오는 중...", () => "");
-  renderAccountPostList(accountLikedList, [], "불러오는 중...", () => "");
+  setAccountCount(accountPostList, 0);
+  setAccountCount(accountLikedList, 0);
+  setAccountCount(accountCommentList, 0);
+  setAccountCount(accountCommentedPostList, 0);
 
   try {
     const response = await fetchWithTimeout("/api/me/activity");
@@ -1261,73 +1424,51 @@ async function loadAccountDashboard() {
     const displayName = user.displayName || user.username || currentUser.displayName || currentUser.username || "-";
 
     if (accountName) appendNameWithRole(accountName, displayName, user.role);
-    setAccountText(accountMeta, [user.email, getProviderLabel(user.provider)].filter(Boolean).join(" · "));
+    setAccountText(accountMeta, [user.email, getProviderLabel(user.provider)].filter(Boolean).join(" \u00b7 "));
     if (accountAvatar) accountAvatar.textContent = displayName.slice(0, 1).toUpperCase();
     setAccountText(accountStatPosts, formatNumber(Number(stats.postCount) || 0));
     setAccountText(accountStatViews, formatNumber(Number(stats.viewCount) || 0));
     setAccountText(accountStatVotes, formatNumber(Number(stats.voteCount) || 0));
     setAccountText(accountStatComments, formatNumber(Number(stats.commentCount) || 0));
     setAccountText(accountUsername, user.username || currentUser.username);
-    setAccountText(accountEmail, user.email || "등록된 이메일 없음");
+    setAccountText(accountEmail, user.email || "\uB4F1\uB85D\uB41C \uC774\uBA54\uC77C \uC5C6\uC74C");
     setAccountText(accountProvider, getProviderLabel(user.provider));
     setAccountText(accountRole, getAccountRoleLabel(user));
     setAccountText(accountCreatedAt, formatFeedDate(user.createdAt));
-    setAccountText(accountPostPermission, user.canWritePosts ? "ON" : "차단");
-    setAccountText(accountAdminPermission, user.canAccessAdminDb ? "ON" : user.canManageGuild ? "족보" : "OFF");
+    setAccountText(accountPostPermission, user.canWritePosts ? "ON" : "\uCC28\uB2E8");
+    setAccountText(accountAdminPermission, user.canAccessAdminDb ? "ON" : user.canManageGuild ? "\uC871\uBCF4" : "OFF");
     setNotificationBadge(activity.unreadNotificationCount);
     renderNotificationList(notifications);
 
-    renderAccountPostList(
-      accountPostList,
-      recentPosts,
-      "아직 작성한 글이 없습니다.",
-      (post) => `${formatFeedDate(post.createdAt)} · 조회 ${formatNumber(Number(post.views) || 0)} · 추천 ${formatNumber(Number(post.votes) || 0)}`,
-    );
-    renderAccountPostList(
-      accountLikedList,
-      likedPosts,
-      "좋아요 누른 글이 없습니다.",
-      (post) => `${formatFeedDate(post.votedAt || post.createdAt)} · 추천 ${formatNumber(Number(post.votes) || 0)}`,
-    );
-    renderAccountPostList(
-      accountBookmarkList,
-      bookmarkedPosts,
-      "아직 북마크한 글이 없습니다.",
-      (post) => `${formatFeedDate(post.bookmarkedAt || post.createdAt)} · 조회 ${formatNumber(Number(post.views) || 0)} · 추천 ${formatNumber(Number(post.votes) || 0)}`,
-    );
-
-    if (accountCommentList) {
-      renderAccountPostList(
-        accountCommentList,
-        comments,
-        "아직 작성한 댓글이 없습니다.",
-        (comment) => `${comment.postTitle || "게시글"} · ${formatFeedDate(comment.createdAt)}`,
-        (comment) => `/board/post?id=${encodeURIComponent(comment.postId)}`,
-      );
-    }
+    accountActivityData = {
+      posts: recentPosts,
+      comments,
+      commentedPosts: buildCommentedPosts(comments),
+      liked: likedPosts,
+      bookmarks: bookmarkedPosts,
+    };
+    syncAccountActivitySummary();
+    if (!accountActivityDetail?.hidden) renderAccountActivityDetail(accountActiveView);
   } catch {
-    renderAccountPostList(accountPostList, [], "내 정보를 불러오지 못했습니다.", () => "");
-    renderAccountPostList(accountLikedList, [], "내 정보를 불러오지 못했습니다.", () => "");
+    accountActivityData = { posts: [], comments: [], commentedPosts: [], liked: [], bookmarks: accountActivityData.bookmarks || [] };
+    syncAccountActivitySummary();
   }
 }
 
 async function loadAccountBookmarks() {
   if (!profileModal || profileModal.hidden || !currentUser?.loggedIn || !accountBookmarkList) return;
-  renderAccountPostList(accountBookmarkList, [], "불러오는 중...", () => "");
+  setAccountCount(accountBookmarkList, accountActivityData.bookmarks || 0);
 
   try {
     const response = await fetchWithTimeout("/api/me/bookmarks");
     if (!response.ok) throw new Error("bookmarks failed");
     const data = await response.json();
     const bookmarkedPosts = Array.isArray(data.bookmarkedPosts) ? data.bookmarkedPosts : [];
-    renderAccountPostList(
-      accountBookmarkList,
-      bookmarkedPosts,
-      "아직 북마크한 글이 없습니다.",
-      (post) => `${formatFeedDate(post.bookmarkedAt || post.createdAt)} · 조회 ${formatNumber(Number(post.views) || 0)} · 추천 ${formatNumber(Number(post.votes) || 0)}`,
-    );
+    accountActivityData.bookmarks = bookmarkedPosts;
+    syncAccountActivitySummary();
+    if (!accountActivityDetail?.hidden && accountActiveView === "bookmarks") renderAccountActivityDetail("bookmarks");
   } catch {
-    renderAccountPostList(accountBookmarkList, [], "북마크를 불러오지 못했습니다.", () => "");
+    setAccountCount(accountBookmarkList, accountActivityData.bookmarks || []);
   }
 }
 
@@ -2001,6 +2142,12 @@ loginForm?.addEventListener("submit", submitLogin);
 profileButton?.addEventListener("click", openProfileModal);
 profileCloseButton?.addEventListener("click", closeProfileModal);
 profileForm?.addEventListener("submit", submitProfile);
+accountActivityCards.forEach((button) => {
+  button.addEventListener("click", () => {
+    if (button.dataset.accountView) openAccountActivityDetail(button.dataset.accountView);
+  });
+});
+accountDetailBackButton?.addEventListener("click", closeAccountActivityDetail);
 notificationTopButton?.addEventListener("click", (event) => {
   event.stopPropagation();
   toggleNotificationPanel();
