@@ -40,7 +40,6 @@
                 <option value="파괴신">파괴신</option>
                 <option value="공성전">공성전</option>
                 <option value="돌발레이드">돌발레이드</option>
-                <option value="기술">기술</option>
                 <option value="임시 채널1">임시 채널1</option>
               </select>
             </label>
@@ -122,6 +121,9 @@
               </div>
               <datalist id="strategyPetOptions"></datalist>
               <datalist id="strategyHeroOptions"></datalist>
+              <datalist id="strategyExclusiveOptions">
+                <option value="전용장비"></option>
+              </datalist>
             </div>
             <div class="pve-mini-section">
               <h3 id="strategyHeroTitle">핵심 영웅</h3>
@@ -443,6 +445,7 @@
               영웅 ${index + 1}
               <input data-pve-hero-name="${index}" type="text" maxlength="30" list="strategyHeroOptions" placeholder="영웅 이름" />
               <input data-pve-hero-role="${index}" type="text" maxlength="40" placeholder="역할 / 대체" />
+              <input data-pve-hero-exclusive="${index}" type="text" maxlength="40" list="strategyExclusiveOptions" placeholder="전용장비" />
               <select data-pve-hero-accessory="${index}"></select>
               <select data-pve-hero-refine="${index}"></select>
               <select data-pve-hero-grade="${index}"></select>
@@ -518,6 +521,7 @@
           heroes: Array.from({ length: heroCount }).map((_, index) => ({
             name: pveGuideEditor.querySelector(`[data-pve-hero-name="${index}"]`)?.value.trim() || "",
             role: pveGuideEditor.querySelector(`[data-pve-hero-role="${index}"]`)?.value.trim() || "",
+            exclusive: pveGuideEditor.querySelector(`[data-pve-hero-exclusive="${index}"]`)?.value.trim() || "",
             accessory: pveGuideEditor.querySelector(`[data-pve-hero-accessory="${index}"]`)?.value.trim() || "",
             refine: pveGuideEditor.querySelector(`[data-pve-hero-refine="${index}"]`)?.value.trim() || "",
             grade: pveGuideEditor.querySelector(`[data-pve-hero-grade="${index}"]`)?.value.trim() || "",
@@ -539,11 +543,13 @@
         (pveGuide.heroes || []).forEach((hero, index) => {
           const name = pveGuideEditor.querySelector(`[data-pve-hero-name="${index}"]`);
           const role = pveGuideEditor.querySelector(`[data-pve-hero-role="${index}"]`);
+          const exclusive = pveGuideEditor.querySelector(`[data-pve-hero-exclusive="${index}"]`);
           const accessory = pveGuideEditor.querySelector(`[data-pve-hero-accessory="${index}"]`);
           const refine = pveGuideEditor.querySelector(`[data-pve-hero-refine="${index}"]`);
           const grade = pveGuideEditor.querySelector(`[data-pve-hero-grade="${index}"]`);
           if (name) name.value = hero.name || "";
           if (role) role.value = hero.role || "";
+          if (exclusive) exclusive.value = hero.exclusive || "";
           if (accessory) accessory.value = hero.accessory || "";
           if (refine) refine.value = hero.refine || "";
           if (grade) grade.value = hero.grade || "";

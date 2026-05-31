@@ -429,6 +429,7 @@ const GuildWar = (() => {
       return [
         String(line.hero || "").trim(),
         String(line.set || "").trim(),
+        String(line.exclusive || "").trim(),
         String(line.weapon || "").trim(),
         String(line.armor || "").trim(),
         String(line.accessory || "").trim(),
@@ -440,7 +441,8 @@ const GuildWar = (() => {
     const parts = String(line || "")
       .split(/\s+\/\s+/)
       .map((part) => part.trim());
-    return [...parts, "", "", "", "", "", "", ""].slice(0, 8);
+    if (parts.length <= 8) parts.splice(2, 0, "");
+    return [...parts, "", "", "", "", "", "", "", ""].slice(0, 9);
   }
 
   function normalizeGearEntry(line, fallbackLine = {}) {
@@ -450,12 +452,13 @@ const GuildWar = (() => {
     return {
       hero: valueAt(0),
       set: valueAt(1),
-      weapon: valueAt(2),
-      armor: valueAt(3),
-      accessory: valueAt(4),
-      memo: valueAt(5),
-      weapon2: valueAt(6),
-      armor2: valueAt(7),
+      exclusive: valueAt(2),
+      weapon: valueAt(3),
+      armor: valueAt(4),
+      accessory: valueAt(5),
+      memo: valueAt(6),
+      weapon2: valueAt(7),
+      armor2: valueAt(8),
     };
   }
 
@@ -509,13 +512,14 @@ const GuildWar = (() => {
   function fillGearFields(form, gearList) {
     gearList.slice(0, 3).forEach((line, index) => {
       const parts = parseGear(line);
-      const accessory = parseAccessory(parts[4]);
+      const accessory = parseAccessory(parts[5]);
       setSelectValue(field(form, `gearHero${index}`), toAdminInputValue(parts[0]));
       field(form, `gearSet${index}`).value = toAdminInputValue(parts[1]);
-      field(form, `gearWeapon${index}`).value = toAdminInputValue(parts[2]);
-      field(form, `gearArmor${index}`).value = toAdminInputValue(parts[3]);
-      field(form, `gearWeapon2${index}`).value = toAdminInputValue(parts[6]);
-      field(form, `gearArmor2${index}`).value = toAdminInputValue(parts[7]);
+      field(form, `gearExclusive${index}`).value = toAdminInputValue(parts[2]);
+      field(form, `gearWeapon${index}`).value = toAdminInputValue(parts[3]);
+      field(form, `gearArmor${index}`).value = toAdminInputValue(parts[4]);
+      field(form, `gearWeapon2${index}`).value = toAdminInputValue(parts[7]);
+      field(form, `gearArmor2${index}`).value = toAdminInputValue(parts[8]);
       setSelectValue(field(form, `gearAccessoryType${index}`), toAdminInputValue(accessory.type));
       setSelectValue(field(form, `gearAccessoryRefine${index}`), toAdminInputValue(accessory.refine));
       setSelectValue(field(form, `gearAccessoryGrade${index}`), accessory.grade);
@@ -576,6 +580,7 @@ const GuildWar = (() => {
       const gear = {
         hero: field(form, `${sourcePrefix}Hero${index}`).value.trim(),
         set: field(form, `gearSet${index}`).value.trim(),
+        exclusive: field(form, `gearExclusive${index}`).value.trim(),
         weapon: field(form, `gearWeapon${index}`).value.trim(),
         armor: field(form, `gearArmor${index}`).value.trim(),
         weapon2: field(form, `gearWeapon2${index}`).value.trim(),
@@ -1006,9 +1011,12 @@ const GuildWar = (() => {
       const setCell = document.createElement("span");
       setCell.textContent = parts[1] || "-";
       row.append(setCell);
+      const exclusiveCell = document.createElement("span");
+      exclusiveCell.textContent = parts[2] || "-";
+      row.append(exclusiveCell);
       [
-        [parts[2], parts[6]],
         [parts[3], parts[7]],
+        [parts[4], parts[8]],
       ].forEach(([firstValue, secondValue]) => {
         const cell = document.createElement("span");
         const first = document.createElement("i");
@@ -1019,9 +1027,9 @@ const GuildWar = (() => {
         cell.append(first, second);
         row.append(cell);
       });
-      row.append(renderAccessoryCell(parts[4]));
+      row.append(renderAccessoryCell(parts[5]));
       const memo = document.createElement("small");
-      memo.textContent = parts[5] || "-";
+      memo.textContent = parts[6] || "-";
       row.append(memo);
       rows.append(row);
     });

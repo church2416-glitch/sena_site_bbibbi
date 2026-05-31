@@ -105,7 +105,6 @@ const defaultBoardTagSettings = {
     { name: "파괴신", color: "#ff7144" },
     { name: "공성전", color: "#ffdf63" },
     { name: "돌발레이드", color: "#ff7144" },
-    { name: "기술", color: "#8b5cf6" },
     { name: "잡담", color: "#a779ff" },
     { name: "유머", color: "#ff4d88" },
     { name: "쿠폰", color: "#40d2a3" },
@@ -317,7 +316,8 @@ app.use("/uploads", express.static(uploadRoot, {
 app.use(redirectLegacyHtmlRoutes);
 app.use(requireMemberForPrivatePages);
 
-app.get(["/", "/board", "/board/pvp", "/board/pve", "/board/tech"], sendHtmlPage("index.html"));
+app.get("/board/tech", (req, res) => res.redirect(301, "/board/pve"));
+app.get(["/", "/board", "/board/pvp", "/board/pve"], sendHtmlPage("index.html"));
 app.get("/board/notice", sendHtmlPage("notices.html"));
 app.get("/board/notice/write", requireCleanAdminPage("관리자 권한이 필요합니다.", "공지 작성은 관리자 이상만 사용할 수 있습니다."), sendHtmlPage("notice-upload.html"));
 app.get(["/board/post", "/board/post/:id"], requireCleanMemberPage, sendHtmlPage("post.html"));

@@ -635,7 +635,7 @@
         });
         if (petList.children.length) shell.append(petList);
 
-        const visibleHeroes = (guide.heroes || []).filter((hero) => hero.name || hero.role);
+        const visibleHeroes = (guide.heroes || []).filter((hero) => hero.name || hero.role || hero.exclusive);
         const shouldSplitRounds = mode === "pve" && visibleHeroes.length > 5;
         const appendHeroCard = (target, hero) => {
           const card = document.createElement("span");
@@ -656,6 +656,12 @@
           title.textContent = hero.name || "-";
           role.textContent = hero.role || "핵심 영웅";
           card.append(icon, title, role);
+          if (hero.exclusive) {
+            const exclusive = document.createElement("small");
+            exclusive.className = "strategy-exclusive-label";
+            exclusive.textContent = `전용장비 ${hero.exclusive}`;
+            card.append(exclusive);
+          }
           if (accessory) {
             const badge = document.createElement("em");
             const img = document.createElement("img");

@@ -2865,6 +2865,20 @@ p {
   object-fit: contain;
 }
 
+.strategy-exclusive-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 3px 7px;
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.28);
+  border-radius: 999px;
+  color: var(--theme-mid);
+  background: rgba(var(--theme-mid-rgb), 0.08);
+  font-size: 10px;
+  font-weight: 900;
+}
+
 .strategy-pet-card {
   display: grid;
   justify-items: center;
@@ -6102,7 +6116,7 @@ p {
 
 .gear-editor-row {
   display: grid;
-  grid-template-columns: repeat(6, minmax(120px, 1fr));
+  grid-template-columns: repeat(7, minmax(105px, 1fr));
   gap: 10px;
   margin: 0;
   padding: 14px;
@@ -6139,7 +6153,7 @@ p {
 }
 
 .gear-editor-row > input:last-child {
-  grid-column: span 3;
+  grid-column: span 4;
 }
 
 .accessory-editor {
@@ -6753,7 +6767,7 @@ p {
 .table-head,
 .table-row {
   display: grid;
-  grid-template-columns: 0.9fr 0.9fr 1fr 1fr 1fr 1.4fr;
+  grid-template-columns: 0.9fr 0.8fr 1fr 1fr 1fr 1fr 1.3fr;
   gap: 6px;
   align-items: center;
 }

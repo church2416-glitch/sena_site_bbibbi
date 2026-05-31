@@ -115,9 +115,9 @@ const seedGuides = [
     title: "방어덱 생존력 계산 방식",
     comments: 12,
     game: "세븐나이츠 리버스",
-    category: "기술",
+    category: "잡담",
     summary: "진형, 펫, 세공이 생존력에 주는 영향을 테스트 기준으로 적었습니다.",
-    tags: ["기술", "계산"],
+    tags: ["계산"],
     attachment: "",
     votes: 980,
     views: 1770,
@@ -259,7 +259,6 @@ const adminManageCategories = [
   "PVE 공략",
   "파괴신",
   "공성전",
-  "기술",
   "잡담",
   "유머",
   "임시 채널1",
@@ -312,10 +311,6 @@ const boardInfo = {
     title: "공성전 게시판",
     desc: "공성전별 소식과 플레이 경험을 나누는 공간",
   },
-  기술: {
-    title: "기술 게시판",
-    desc: "빌드 계산, 최적화, 자동화와 관련된 깊은 이야기",
-  },
   잡담: {
     title: "잡담 게시판",
     desc: "가볍게 떠드는 플레이 후기와 커뮤니티 이야기",
@@ -340,7 +335,6 @@ function getBoardFromPath() {
     "/board": "\uC804\uCCB4",
     "/board/pvp": "PVP \uAC8C\uC2DC\uD310",
     "/board/pve": "PVE \uACF5\uB7B5",
-    "/board/tech": "\uAE30\uC220",
   };
   return pathMap[pathname] || null;
 }
@@ -361,7 +355,6 @@ const boardCategoryGroups = {
   파괴신: "pve",
   공성전: "pve",
   돌발레이드: "pve",
-  기술: "pve",
 };
 
 const boardTabSets = {
@@ -511,7 +504,6 @@ function getBoardUrl(category) {
     "\uC804\uCCB4": "/board",
     "PVP \uAC8C\uC2DC\uD310": "/board/pvp",
     "PVE \uACF5\uB7B5": "/board/pve",
-    "\uAE30\uC220": "/board/tech",
   };
   if (pathMap[normalized]) return pathMap[normalized];
   return `/board?board=${encodeURIComponent(normalized)}`;
