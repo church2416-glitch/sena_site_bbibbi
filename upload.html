@@ -830,6 +830,14 @@
         if (input) input.value = position ? String(position) : "";
       }
 
+      function clearStrategyDragState() {
+        document.body.classList.remove("is-strategy-dragging");
+        document.querySelectorAll(".strategy-formation-slot.is-drag-over, .strategy-formation-pool.is-drag-over")
+          .forEach((node) => node.classList.remove("is-drag-over"));
+        document.querySelectorAll(".strategy-draggable-hero.is-dragging")
+          .forEach((node) => node.classList.remove("is-dragging"));
+      }
+
       function makeDraggableHero(hero) {
         const chip = document.createElement("button");
         chip.type = "button";
@@ -843,6 +851,14 @@
         `;
         chip.addEventListener("dragstart", (event) => {
           event.dataTransfer?.setData("text/plain", String(hero.index));
+          if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+          requestAnimationFrame(() => {
+            chip.classList.add("is-dragging");
+            document.body.classList.add("is-strategy-dragging");
+          });
+        });
+        chip.addEventListener("dragend", () => {
+          clearStrategyDragState();
         });
         chip.addEventListener("click", () => {
           setHeroPosition(hero.index, "");
@@ -873,10 +889,20 @@
           target.style.top = `${y}%`;
           target.innerHTML = `<span>${slot}</span>`;
           target.addEventListener("dragover", (event) => event.preventDefault());
+          target.addEventListener("dragenter", (event) => {
+            event.preventDefault();
+            target.classList.add("is-drag-over");
+          });
+          target.addEventListener("dragleave", (event) => {
+            if (!event.relatedTarget || !target.contains(event.relatedTarget)) {
+              target.classList.remove("is-drag-over");
+            }
+          });
           target.addEventListener("drop", (event) => {
             event.preventDefault();
             const heroIndex = Number(event.dataTransfer?.getData("text/plain"));
             if (Number.isNaN(heroIndex)) return;
+            clearStrategyDragState();
             heroes.forEach((hero) => {
               if (hero.position === String(slot)) setHeroPosition(hero.index, "");
             });
@@ -888,6 +914,26 @@
           if (hero) target.append(makeDraggableHero(hero));
           board.append(target);
         });
+
+        pool.ondragover = (event) => event.preventDefault();
+        pool.ondragenter = (event) => {
+          event.preventDefault();
+          pool.classList.add("is-drag-over");
+        };
+        pool.ondragleave = (event) => {
+          if (!event.relatedTarget || !pool.contains(event.relatedTarget)) {
+            pool.classList.remove("is-drag-over");
+          }
+        };
+        pool.ondrop = (event) => {
+          event.preventDefault();
+          const heroIndex = Number(event.dataTransfer?.getData("text/plain"));
+          if (Number.isNaN(heroIndex)) return;
+          clearStrategyDragState();
+          setHeroPosition(heroIndex, "");
+          renderFormationBuilder();
+          scheduleDraftSave();
+        };
 
         const unplaced = heroes.filter((hero) => !hero.position);
         if (!unplaced.length) {
