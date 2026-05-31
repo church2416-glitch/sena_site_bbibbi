@@ -163,6 +163,9 @@
       let postVoted = false;
       let currentUser = null;
       let replyTargetId = null;
+      let currentComments = [];
+      const commentSortStorageKey = "bbibbi.commentSortMode";
+      let commentSortMode = loadCommentSortMode();
       let editImageFiles = [];
       let editVideoFiles = [];
       const maxImageSize = 8 * 1024 * 1024;
@@ -175,6 +178,22 @@
       };
       function normalizeBoard(value) {
         return boardAliases[value] || value;
+      }
+
+      function loadCommentSortMode() {
+        try {
+          const saved = localStorage.getItem(commentSortStorageKey);
+          return saved === "latest" ? "latest" : "registered";
+        } catch {
+          return "registered";
+        }
+      }
+
+      function saveCommentSortMode(value) {
+        commentSortMode = value === "latest" ? "latest" : "registered";
+        try {
+          localStorage.setItem(commentSortStorageKey, commentSortMode);
+        } catch {}
       }
 
       function isNoticePost(post) {
@@ -908,6 +927,72 @@
         };
       }
 
+      function getCommentTime(comment) {
+        const raw = String(comment?.createdAt || "").trim();
+        const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(raw) ? `${raw.replace(" ", "T")}Z` : raw;
+        const time = new Date(normalized).getTime();
+        return Number.isFinite(time) ? time : 0;
+      }
+
+      function sortCommentsForDisplay(comments) {
+        const byParent = new Map();
+        const byId = new Map(comments.map((comment) => [comment.id, comment]));
+        comments.forEach((comment) => {
+          const parentId = comment.parentId && byId.has(comment.parentId) ? comment.parentId : null;
+          if (!byParent.has(parentId)) byParent.set(parentId, []);
+          byParent.get(parentId).push(comment);
+        });
+
+        const sortByTime = (items, mode = "registered") => {
+          const direction = mode === "latest" ? -1 : 1;
+          return [...items].sort((left, right) => {
+            const diff = getCommentTime(left) - getCommentTime(right);
+            if (diff) return diff * direction;
+            return (Number(left.id) || 0) - (Number(right.id) || 0);
+          });
+        };
+
+        const sorted = [];
+        const appendThread = (comment) => {
+          sorted.push(comment);
+          sortByTime(byParent.get(comment.id) || [], "registered").forEach(appendThread);
+        };
+        sortByTime(byParent.get(null) || [], commentSortMode).forEach(appendThread);
+        return sorted;
+      }
+
+      function updateCommentSortControls() {
+        document.querySelectorAll("[data-comment-sort]").forEach((button) => {
+          button.classList.toggle("active", button.dataset.commentSort === commentSortMode);
+          button.setAttribute("aria-pressed", String(button.dataset.commentSort === commentSortMode));
+        });
+      }
+
+      function setupCommentSortControls() {
+        const sectionTitle = document.querySelector(".comment-section .section-title");
+        if (!sectionTitle || sectionTitle.querySelector(".comment-sort-control")) return;
+        const control = document.createElement("div");
+        control.className = "comment-sort-control";
+        control.setAttribute("aria-label", "\uB313\uAE00 \uC815\uB82C");
+        [
+          ["registered", "\uB4F1\uB85D\uC21C"],
+          ["latest", "\uCD5C\uC2E0\uC21C"],
+        ].forEach(([value, label]) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.dataset.commentSort = value;
+          button.textContent = label;
+          button.addEventListener("click", () => {
+            saveCommentSortMode(value);
+            updateCommentSortControls();
+            renderComments(currentComments);
+          });
+          control.append(button);
+        });
+        sectionTitle.append(control);
+        updateCommentSortControls();
+      }
+
       function renderComments(comments) {
         const list = document.querySelector("#commentList");
         list.innerHTML = "";
@@ -922,7 +1007,7 @@
 
         const commentMap = new Map(comments.map((comment) => [comment.id, comment]));
 
-        comments.forEach((comment) => {
+        sortCommentsForDisplay(comments).forEach((comment) => {
           const item = document.createElement("article");
           const head = document.createElement("div");
           const author = document.createElement("strong");
@@ -989,7 +1074,8 @@
       async function loadComments() {
         const response = await fetch(`/api/posts/${encodeURIComponent(postId)}/comments`);
         if (!response.ok) return;
-        renderComments(await response.json());
+        currentComments = await response.json();
+        renderComments(currentComments);
       }
 
       async function togglePostVote() {
@@ -1177,6 +1263,7 @@
           renderEditMediaPreview();
         });
         if (!isNotice) {
+          setupCommentSortControls();
           document.querySelectorAll("[data-comment-mention]").forEach((button) => {
             button.addEventListener("click", () => insertCommentMention(button.dataset.commentMention));
           });
