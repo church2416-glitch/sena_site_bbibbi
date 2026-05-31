@@ -723,12 +723,14 @@ const GuildWar = (() => {
   }
 
   function fillGearFields(form, gearList) {
-    gearList.slice(0, 3).forEach((line, index) => {
+    normalizeGearLines(gearList).forEach((line, index) => {
       const entry = normalizeGearEntry(line);
       const parts = parseGear(entry);
       const accessory = parseAccessory(parts[5]);
-      setSelectValue(field(form, `gearHero${index}`), toAdminInputValue(parts[0]));
-      field(form, `gearSet${index}`).value = toAdminInputValue(parts[1]);
+      const heroField = field(form, `gearHero${index}`);
+      const setField = field(form, `gearSet${index}`);
+      if (heroField) setSelectValue(heroField, toAdminInputValue(parts[0]));
+      if (setField) setField.value = toAdminInputValue(parts[1]);
       const exclusiveToggle = field(form, `gearExclusive${index}`);
       if (exclusiveToggle) exclusiveToggle.checked = Boolean(toAdminInputValue(parts[2]) || entry.exclusiveOptions.length);
       const exclusiveBox = form.querySelector(`[data-gear-exclusive-options="${index}"]`);
@@ -737,14 +739,18 @@ const GuildWar = (() => {
         entry.exclusiveOptions.forEach((option) => addGearExclusiveOptionRow(form, index, option));
       }
       refreshGearExclusiveRows(form, index);
-      field(form, `gearWeapon${index}`).value = toAdminInputValue(parts[3]);
-      field(form, `gearArmor${index}`).value = toAdminInputValue(parts[4]);
-      field(form, `gearWeapon2${index}`).value = toAdminInputValue(parts[7]);
-      field(form, `gearArmor2${index}`).value = toAdminInputValue(parts[8]);
+      const assignInput = (name, value) => {
+        const input = field(form, name);
+        if (input) input.value = toAdminInputValue(value);
+      };
+      assignInput(`gearWeapon${index}`, parts[3]);
+      assignInput(`gearArmor${index}`, parts[4]);
+      assignInput(`gearWeapon2${index}`, parts[7]);
+      assignInput(`gearArmor2${index}`, parts[8]);
       setSelectValue(field(form, `gearAccessoryType${index}`), toAdminInputValue(accessory.type));
       setSelectValue(field(form, `gearAccessoryRefine${index}`), toAdminInputValue(accessory.refine));
       setSelectValue(field(form, `gearAccessoryGrade${index}`), accessory.grade);
-      field(form, `gearMemo${index}`).value = toAdminInputValue(parts[6]);
+      assignInput(`gearMemo${index}`, parts[6]);
     });
   }
 
@@ -766,7 +772,11 @@ const GuildWar = (() => {
 
   function syncGearHeroes(form, sourcePrefix = "ally") {
     [0, 1, 2].forEach((index) => {
-      setSelectValue(field(form, `gearHero${index}`), field(form, `${sourcePrefix}Hero${index}`).value);
+      const gearHero = field(form, `gearHero${index}`);
+      const sourceHero = field(form, `${sourcePrefix}Hero${index}`).value.trim();
+      if (gearHero && sourceHero && !gearHero.value.trim()) {
+        setSelectValue(gearHero, sourceHero);
+      }
     });
   }
 
