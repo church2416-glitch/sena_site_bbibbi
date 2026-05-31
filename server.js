@@ -2769,7 +2769,7 @@ app.get("/api/posts", requireContentAccess, (req, res) => {
 app.post("/api/posts", requireContentAccess, requirePermission("canWritePosts", "게시글 작성 권한이 없습니다."), requireMediaUploadPermission, maybeUploadPostMedia, (req, res) => {
   const title = String(req.body?.title || "").trim();
   const category = String(req.body?.category || "").trim();
-  const game = String(req.body?.game || "").trim();
+  const game = String(req.body?.game || "세븐나이츠 리버스").trim() || "세븐나이츠 리버스";
   const summary = String(req.body?.summary || "").trim();
   const body = String(req.body?.body || "").trim();
   const attachment = String(req.body?.attachment || "").trim();
@@ -2874,7 +2874,7 @@ app.patch("/api/posts/:id", requireContentAccess, requireMediaUploadPermission, 
 
   const title = String(req.body?.title || "").trim();
   const category = String(req.body?.category || "").trim();
-  const game = String(req.body?.game || "").trim();
+  const game = String(req.body?.game || "세븐나이츠 리버스").trim() || "세븐나이츠 리버스";
   const summary = String(req.body?.summary || "").trim();
   const body = String(req.body?.body || "").trim();
   const tags = normalizeTagsInput(req.body?.tags);

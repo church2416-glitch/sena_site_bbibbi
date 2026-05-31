@@ -29,11 +29,8 @@
             제목
             <input id="titleInput" name="title" type="text" maxlength="70" placeholder="공략 제목" required />
           </label>
+          <input id="gameInput" name="game" type="hidden" value="세븐나이츠 리버스" />
           <div class="form-grid">
-            <label>
-              게임
-              <input id="gameInput" name="game" type="text" maxlength="40" placeholder="게임 이름" required />
-            </label>
             <label>
               게시판
               <select id="categoryInput" name="category" required>
@@ -582,7 +579,7 @@
         const formData = new FormData(form);
         return {
           title: String(formData.get("title") || ""),
-          game: String(formData.get("game") || ""),
+          game: "세븐나이츠 리버스",
           category: String(formData.get("category") || ""),
           summary: String(formData.get("summary") || ""),
           body: String(formData.get("body") || ""),
@@ -595,7 +592,7 @@
       }
 
       function draftHasContent(draft) {
-        return ["title", "game", "summary", "body", "tags", "youtube"].some((key) => String(draft[key] || "").trim());
+        return ["title", "summary", "body", "tags", "youtube"].some((key) => String(draft[key] || "").trim());
       }
 
       function saveDraftNow() {
@@ -622,7 +619,6 @@
           const draft = JSON.parse(localStorage.getItem(draftKey) || "null");
           if (!draft || !draftHasContent(draft)) return;
           form.elements.namedItem("title").value = draft.title || "";
-          form.elements.namedItem("game").value = draft.game || "";
           form.elements.namedItem("category").value = draft.category || form.elements.namedItem("category").value;
           form.elements.namedItem("summary").value = draft.summary || "";
           form.elements.namedItem("body").value = draft.body || "";
@@ -952,6 +948,7 @@
 
         const formData = new FormData(form);
         formData.delete("file");
+        formData.set("game", "세븐나이츠 리버스");
         formData.set("tags", JSON.stringify(normalizeTags(formData.get("tags") || "")));
         formData.set("attachment", fileInput.files[0]?.name || "");
         formData.set("youtube", youtubeInput.value.trim());
