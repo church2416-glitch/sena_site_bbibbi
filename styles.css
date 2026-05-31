@@ -7129,13 +7129,14 @@ p {
   z-index: 40;
   top: calc(100% + 6px);
   left: 0;
-  right: 0;
   display: grid;
-  max-height: 260px;
+  width: max(100%, 260px);
+  max-width: min(420px, calc(100vw - 32px));
+  max-height: 340px;
   overflow: auto;
-  padding: 6px;
+  padding: 8px;
   border: 1px solid rgba(var(--theme-mid-rgb), 0.36);
-  border-radius: 8px;
+  border-radius: 10px;
   background: #181b27;
   box-shadow: 0 18px 34px rgba(0, 0, 0, 0.42);
 }
@@ -7146,15 +7147,16 @@ p {
 
 .character-combobox-menu button,
 .character-combobox-empty {
-  min-height: 30px;
-  padding: 0 10px;
+  min-height: 38px;
+  padding: 0 12px;
   border: 0;
   border-radius: 6px;
   color: #f7f3ff;
   background: transparent;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 900;
   text-align: left;
+  white-space: nowrap;
 }
 
 .character-combobox-menu button:hover,
