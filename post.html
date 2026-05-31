@@ -727,6 +727,7 @@
           if (accessory) {
             const badge = document.createElement("em");
             const img = document.createElement("img");
+            badge.className = "strategy-accessory-label";
             img.src = accessory.src;
             img.alt = accessory.label;
             badge.append(img, document.createTextNode(accessory.label));

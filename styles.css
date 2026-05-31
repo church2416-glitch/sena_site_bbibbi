@@ -3554,8 +3554,9 @@ p {
 }
 
 .pve-guide-heroes .strategy-hero-card {
-  align-content: start;
-  justify-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   min-height: 156px;
   text-align: center;
 }
@@ -3639,6 +3640,10 @@ p {
   width: 20px;
   height: 20px;
   object-fit: contain;
+}
+
+.strategy-hero-card .strategy-accessory-label {
+  margin-top: auto;
 }
 
 .strategy-exclusive-label {
