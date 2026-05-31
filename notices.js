@@ -8,13 +8,13 @@ function formatNumber(value) {
 }
 
 const roleIconMap = {
-  superadmin: { label: "최고관리자", src: "assets/common/최고관리자.webp" },
-  admin: { label: "관리자", src: "assets/common/관리자.webp" },
-  elite: { label: "정예", src: "assets/common/정예.webp" },
-  verified: { label: "정예", src: "assets/common/정예.webp" },
-  user: { label: "일반", src: "assets/common/일반.webp" },
-  blocked: { label: "기본", src: "assets/common/기본.webp" },
-  default: { label: "기본", src: "assets/common/기본.webp" },
+  superadmin: { label: "최고관리자", src: "/assets/common/최고관리자.webp" },
+  admin: { label: "관리자", src: "/assets/common/관리자.webp" },
+  elite: { label: "정예", src: "/assets/common/정예.webp" },
+  verified: { label: "정예", src: "/assets/common/정예.webp" },
+  user: { label: "일반", src: "/assets/common/일반.webp" },
+  blocked: { label: "기본", src: "/assets/common/기본.webp" },
+  default: { label: "기본", src: "/assets/common/기본.webp" },
 };
 
 function appendNameWithRole(target, name, role) {
@@ -103,7 +103,7 @@ function renderNotices(items) {
 
     type.className = "notice-row-type";
     type.textContent = "!";
-    link.href = `post.html?id=${encodeURIComponent(item.id)}`;
+    link.href = `/board/post?id=${encodeURIComponent(item.id)}`;
     link.classList.toggle("manager-notice-title", managerNotice);
     link.textContent = item.title || "제목 없음";
     titleCell.append(type, link);
@@ -133,7 +133,7 @@ async function loadNotices() {
   }
 
   if (noticePageSource) {
-    noticePageSource.href = "notice-upload.html";
+    noticePageSource.href = "/board/notice/write";
     noticePageSource.hidden = true;
     try {
       const meResponse = await fetch("/api/me", { credentials: "same-origin" });

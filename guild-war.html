@@ -4,20 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>길드전 족보 - 삣베이 온다</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="/styles.css" />
   </head>
   <body class="guild-page">
     <main class="guild-shell">
       <header class="guild-header">
-        <a class="brand upload-brand" href="index.html">
-          <img class="site-logo" src="assets/common/logo.webp" alt="bbitsena" />
+        <a class="brand upload-brand" href="/">
+          <img class="site-logo" src="/assets/common/logo.webp" alt="bbitsena" />
           <span class="brand-kicker">삣삐 커뮤니티</span>
           <strong>길드전 족보</strong>
           <small>SEVENKNIGHT : REBIRTH</small>
         </a>
         <nav class="guild-links" aria-label="길드전 메뉴">
-          <a href="index.html">게시판</a>
-          <a id="guildAdminUploadLink" href="guild-war-admin.html" hidden>족보 업로드</a>
+          <a href="/">게시판</a>
+          <a id="guildAdminUploadLink" href="/guild/war_admin" hidden>족보 업로드</a>
         </nav>
       </header>
 
@@ -65,7 +65,7 @@
             </div>
             <div class="battle-stage" id="enemyStage"></div>
             <div class="formation-preview">
-              <img id="formationTypeImage" src="assets/formation/att.webp" alt="공격진형" />
+              <img id="formationTypeImage" src="/assets/formation/att.webp" alt="공격진형" />
               <span id="formationTypeLabel">공격진형</span>
             </div>
           </aside>
@@ -124,8 +124,8 @@
       </section>
     </main>
 
-    <script src="theme.js"></script>
-    <script src="guild-war.js?v=ring-assets-20260530"></script>
+    <script src="/theme.js"></script>
+    <script src="/guild-war.js?v=ring-assets-20260530"></script>
     <script>
       let guildState = GuildWar.loadState();
       let activeMode = "attack";
@@ -205,6 +205,6 @@
       syncGuildAdminLink();
       loadGuildWarSheets().then(loadSeasonSettings);
     </script>
-    <script src="notification-client.js"></script>
+    <script src="/notification-client.js"></script>
   </body>
 </html>

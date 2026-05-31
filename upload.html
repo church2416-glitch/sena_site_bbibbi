@@ -4,12 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>공략 업로드 - 삣삐이 온다</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="/styles.css" />
   </head>
   <body class="upload-page">
     <main class="upload-shell">
-      <a class="brand upload-brand" href="index.html">
-        <img class="site-logo" src="assets/common/logo.webp" alt="bbitsena" />
+      <a class="brand upload-brand" href="/">
+        <img class="site-logo" src="/assets/common/logo.webp" alt="bbitsena" />
         <span class="brand-kicker">삣삐 커뮤니티</span>
         <strong>공략 업로드</strong>
         <small>SEVENKNIGHT : REBITH</small>
@@ -200,15 +200,15 @@
             </label>
           </div>
           <div class="upload-actions">
-            <a href="index.html">게시판으로</a>
+            <a href="/">게시판으로</a>
             <button class="submit-button" type="submit">업로드</button>
           </div>
         </form>
       </section>
     </main>
 
-    <script src="theme.js"></script>
-    <script src="mention-autocomplete.js"></script>
+    <script src="/theme.js"></script>
+    <script src="/mention-autocomplete.js"></script>
     <script>
       const storageKey = "bbibbi-board-items-v2";
       const draftKey = "bbibbi-upload-draft-v1";
@@ -988,13 +988,13 @@
         youtubeField.hidden = true;
         fileName.textContent = "첨부 선택";
         draftState.textContent = "업로드 완료";
-        location.href = `post.html?id=${encodeURIComponent(saved.id)}`;
+        location.href = `/board/post?id=${encodeURIComponent(saved.id)}`;
       });
 
       createPveRows();
       togglePveEditor();
       restoreDraft();
     </script>
-    <script src="notification-client.js"></script>
+    <script src="/notification-client.js"></script>
   </body>
 </html>

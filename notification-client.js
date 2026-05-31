@@ -4,7 +4,7 @@
 
   const soundKey = "bbibbi-notification-sound";
   const volumeKey = "bbibbi-notification-volume";
-  const audio = new Audio("assets/sound/notification-pling.mp3");
+  const audio = new Audio("/assets/sound/notification-pling.mp3");
   const channel = "BroadcastChannel" in window ? new BroadcastChannel("bbibbi-notifications") : null;
   let stream = null;
   let audioContext = null;

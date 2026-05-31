@@ -4,18 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>공지 작성 - bbitsena</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="/styles.css" />
   </head>
   <body class="notice-compose-page">
     <header class="notice-page-topbar">
-      <a class="notice-page-brand" href="index.html">
-        <img class="site-logo" src="assets/common/logo.webp" alt="bbitsena" />
+      <a class="notice-page-brand" href="/">
+        <img class="site-logo" src="/assets/common/logo.webp" alt="bbitsena" />
         <strong>bbitsena</strong>
       </a>
       <nav>
-        <a href="index.html">홈</a>
-        <a class="active" href="notices.html">공지사항</a>
-        <a href="guild-war.html">길드전 족보</a>
+        <a href="/">홈</a>
+        <a class="active" href="/board/notice">공지사항</a>
+        <a href="/guild/war">길드전 족보</a>
       </nav>
     </header>
 
@@ -54,13 +54,13 @@
         <div class="media-preview" id="noticeMediaPreview" aria-live="polite"></div>
         <p class="auth-error" id="noticeError" hidden></p>
         <div class="notice-compose-actions">
-          <a href="notices.html">목록으로</a>
+          <a href="/board/notice">목록으로</a>
           <button type="submit" id="noticeSubmitButton">공지 등록</button>
         </div>
       </form>
     </main>
 
-    <script src="theme.js?v=notice-compose-theme-20260530"></script>
+    <script src="/theme.js?v=notice-compose-theme-20260530"></script>
     <script>
       const form = document.querySelector("#noticeForm");
       const imageInput = document.querySelector("#noticeImages");
@@ -130,7 +130,7 @@
           });
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(payload.error || "공지 등록 실패");
-          location.href = `post.html?id=${encodeURIComponent(payload.id)}`;
+          location.href = `/board/post?id=${encodeURIComponent(payload.id)}`;
         } catch (error) {
           errorBox.textContent = error.message || "공지 등록 실패";
           errorBox.hidden = false;

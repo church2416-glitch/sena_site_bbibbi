@@ -4,40 +4,40 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BBITSENA</title>
-    <link rel="stylesheet" href="styles.css?v=theme-vars-20260530" />
+    <link rel="stylesheet" href="/styles.css?v=theme-vars-20260530" />
   </head>
   <body>
     <header class="board-mode-topbar">
-      <a class="notice-page-brand" href="index.html">
-        <img class="site-logo" src="assets/common/logo.webp" alt="bbitsena" />
+      <a class="notice-page-brand" href="/">
+        <img class="site-logo" src="/assets/common/logo.webp" alt="bbitsena" />
         <strong>bbitsena</strong>
       </a>
       <nav>
-        <a href="index.html">홈</a>
-        <a href="notices.html">공지사항</a>
-        <a href="guild-war.html">길드전 족보</a>
-        <a href="upload.html">글쓰기</a>
+        <a href="/">홈</a>
+        <a href="/board/notice">공지사항</a>
+        <a href="/guild/war">길드전 족보</a>
+        <a href="/board/write">글쓰기</a>
       </nav>
     </header>
     <div class="app-shell">
       <aside class="sidebar" aria-label="사이드 메뉴">
         <a class="brand" href="#">
-          <img class="site-logo" src="assets/common/logo.webp" alt="bbitsena" />
+          <img class="site-logo" src="/assets/common/logo.webp" alt="bbitsena" />
           <span class="brand-kicker">bbitsena utility</span>
           <strong>삣삐</strong>
           <small>SevenKnight : Rebith</small>
         </a>
 
         <nav class="side-nav">
-          <a href="index.html"><span>⌂</span>홈</a>
-          <a href="notices.html"><span>▦</span>공지사항</a>
-          <a href="index.html?board=전체" data-board-link="전체"><span>★</span>전체 게시판</a>
-          <a href="index.html?board=PVP 게시판" data-board-link="PVP 게시판" data-board-group="pvp"><span>✹</span>PVP 게시판</a>
-          <a href="index.html?board=PVE 공략" data-board-link="PVE 공략" data-board-group="pve"><span>✦</span>PVE 게시판</a>
-          <a href="upload.html" target="_blank" rel="noopener"><span>✦</span>공략 업로드</a>
-          <a id="adminDashboardLink" href="admin.html" hidden><span>▣</span>관리자 DB</a>
-          <a id="guildWarSideLink" href="guild-war-admin.html" hidden><span>⌬</span>길드전 족보</a>
-          <a href="coupon.html"><span>▤</span>쿠폰</a>
+          <a href="/"><span>⌂</span>홈</a>
+          <a href="/board/notice"><span>▦</span>공지사항</a>
+          <a href="/board" data-board-link="??"><span>★</span>전체 게시판</a>
+          <a href="/board/pvp" data-board-link="PVP ???" data-board-group="pvp"><span>✹</span>PVP 게시판</a>
+          <a href="/board/pve" data-board-link="PVE ??" data-board-group="pve"><span>✦</span>PVE 게시판</a>
+          <a href="/board/write" target="_blank" rel="noopener"><span>✦</span>공략 업로드</a>
+          <a id="adminDashboardLink" href="/admin" hidden><span>▣</span>관리자 DB</a>
+          <a id="guildWarSideLink" href="/guild/war_admin" hidden><span>⌬</span>길드전 족보</a>
+          <a href="/coupon"><span>▤</span>쿠폰</a>
         </nav>
 
         <section class="score-card">
@@ -59,7 +59,7 @@
             <input id="searchInput" type="search" placeholder="검색..." />
           </label>
           <div class="top-actions">
-            <a class="write-button" href="upload.html" target="_blank" rel="noopener">글쓰기</a>
+            <a class="write-button" href="/board/write" target="_blank" rel="noopener">글쓰기</a>
             <button class="mobile-login-button" id="mobileLoginButton" type="button">로그인</button>
             <button class="icon-button notification-top-button" id="notificationTopButton" type="button" aria-label="알림" aria-expanded="false">
               ⌁
@@ -95,13 +95,13 @@
         </header>
 
         <section class="hero">
-          <img src="assets/common/singularity-hero.webp" alt="" />
+          <img src="/assets/common/singularity-hero.webp" alt="" />
           <div class="hero-shade"></div>
           <div class="hero-copy">
             <p>삣삐,</p>
             <h1>BBITSENA..</h1>
             <span>삣삐 커뮤니티</span>
-            <a href="guild-war.html">길드전 가이드 보기</a>
+            <a href="/guild/war">길드전 가이드 보기</a>
           </div>
           <button class="hero-slide-button prev" id="heroPrevButton" type="button" aria-label="이전 배너" hidden>‹</button>
           <button class="hero-slide-button next" id="heroNextButton" type="button" aria-label="다음 배너" hidden>›</button>
@@ -161,8 +161,8 @@
       <footer class="site-footer" aria-label="사이트 정보">
         <span>© 2026 bbitsena. All rights reserved.</span>
         <nav aria-label="법적 안내">
-          <a href="terms.html">이용약관 <small>Terms of Service</small></a>
-          <a href="privacy.html">개인정보처리방침 <small>Privacy Policy</small></a>
+          <a href="/terms">이용약관 <small>Terms of Service</small></a>
+          <a href="/privacy">개인정보처리방침 <small>Privacy Policy</small></a>
         </nav>
         <a class="footer-contact" href="mailto:support@bbitsena.com">Contact : support@bbitsena.com</a>
         <p class="footer-disclaimer">
@@ -226,13 +226,13 @@
         <div class="provider-divider"><span>또는 SNS 로그인</span></div>
         <div class="provider-login-list">
           <a class="provider-login-button kakao-login-button" id="kakaoLoginButton" href="/auth/kakao" aria-label="카카오 로그인">
-            <img src="assets/common/kakao.webp" alt="" />
+            <img src="/assets/common/kakao.webp" alt="" />
           </a>
           <button class="provider-login-button naver-login-button" type="button" data-provider-soon="네이버" aria-label="네이버 로그인">
-            <img src="assets/common/naver.webp" alt="" />
+            <img src="/assets/common/naver.webp" alt="" />
           </button>
           <a class="provider-login-button google-login-button" href="/auth/google" aria-label="구글 로그인">
-            <img src="assets/common/google.webp" alt="" />
+            <img src="/assets/common/google.webp" alt="" />
           </a>
         </div>
       </form>
@@ -387,7 +387,7 @@
       </form>
     </div>
 
-    <script src="theme.js"></script>
-    <script src="app.js?v=guild-war-admin-link-20260530"></script>
+    <script src="/theme.js"></script>
+    <script src="/app.js?v=guild-war-admin-link-20260530"></script>
   </body>
 </html>

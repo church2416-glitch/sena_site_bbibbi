@@ -6,10 +6,10 @@ const GuildWar = (() => {
     defense: "방어 족보",
   };
   const formationTypes = {
-    att: { label: "공격진형", src: "assets/formation/att.webp" },
-    bal: { label: "밸런스진형", src: "assets/formation/Bal.webp" },
-    base: { label: "기본진형", src: "assets/formation/base.webp" },
-    def: { label: "보호진형", src: "assets/formation/def.webp" },
+    att: { label: "공격진형", src: "/assets/formation/att.webp" },
+    bal: { label: "밸런스진형", src: "/assets/formation/Bal.webp" },
+    base: { label: "기본진형", src: "/assets/formation/base.webp" },
+    def: { label: "보호진형", src: "/assets/formation/def.webp" },
   };
   const planCards = [
     { label: "필수 조합" },
@@ -52,58 +52,58 @@ const GuildWar = (() => {
       label: "불사",
       tone: "immortal",
       images: {
-        4: "assets/ring/immortality1.webp",
-        5: "assets/ring/immortality2.webp",
-        6: "assets/ring/immortality3.webp",
+        4: "/assets/ring/immortality1.webp",
+        5: "/assets/ring/immortality2.webp",
+        6: "/assets/ring/immortality3.webp",
       },
     },
     부활의반지: {
       label: "부활",
       tone: "revive",
       images: {
-        4: "assets/ring/resurrection1.webp",
-        5: "assets/ring/resurrection2.webp",
-        6: "assets/ring/resurrection3.webp",
+        4: "/assets/ring/resurrection1.webp",
+        5: "/assets/ring/resurrection2.webp",
+        6: "/assets/ring/resurrection3.webp",
       },
     },
     권능의반지: {
       label: "권능",
       tone: "power",
       images: {
-        4: "assets/ring/Might1.webp",
-        5: "assets/ring/Might2.webp",
-        6: "assets/ring/Might3.webp",
+        4: "/assets/ring/Might1.webp",
+        5: "/assets/ring/Might2.webp",
+        6: "/assets/ring/Might3.webp",
       },
     },
-    기합의반지: { label: "기합", tone: "power", image: "assets/ring/rousing.webp" },
-    철벽의반지: { label: "철벽", tone: "power", image: "assets/ring/iron wall.webp" },
-    건강의반지: { label: "건강", tone: "power", image: "assets/ring/health.webp" },
-    근성의반지: { label: "근성", tone: "power", image: "assets/ring/grit.webp" },
-    토벌의반지: { label: "토벌", tone: "power", image: "assets/ring/suppression.webp" },
-    공성의반지: { label: "공성", tone: "power", image: "assets/ring/siege.webp" },
-    섬멸의반지: { label: "섬멸", tone: "power", image: "assets/ring/annihilation.webp" },
-    "마법의반지(버프제거)": { label: "마법", tone: "revive", image: "assets/ring/Remove buffs.webp" },
-    "시간의반지(턴제버프감소)": { label: "시간", tone: "revive", image: "assets/ring/Turnzebuff reduction.webp" },
-    "기회의반지(기절)": { label: "기회", tone: "revive", image: "assets/ring/faint.webp" },
-    "저주의반지(침묵)": { label: "저주", tone: "revive", image: "assets/ring/Silence.webp" },
-    "죽음의반지(즉사)": { label: "죽음", tone: "immortal", image: "assets/ring/death.webp" },
-    "재앙의반지(마비)": { label: "재앙", tone: "immortal", image: "assets/ring/Paralysis.webp" },
-    "번뜩이는반지(감전)": { label: "번뜩", tone: "revive", image: "assets/ring/electric shock.webp" },
-    "공포의반지(실명)": { label: "공포", tone: "immortal", image: "assets/ring/blindness.webp" },
-    "설원의반지(빙결)": { label: "설원", tone: "revive", image: "assets/ring/Freezing.webp" },
-    "메두사의반지(석화)": { label: "메두사", tone: "immortal", image: "assets/ring/petrification.webp" },
-    "꿈의반지(수면)": { label: "꿈", tone: "revive", image: "assets/ring/sleep.webp" },
-    "가시반지(출혈)": { label: "가시", tone: "immortal", image: "assets/ring/bleeding.webp" },
-    "샐러맨더의반지(화상)": { label: "샐러맨더", tone: "immortal", image: "assets/ring/Burn.webp" },
-    "독사의반지(중독)": { label: "독사", tone: "immortal", image: "assets/ring/poisoning.webp" },
-    "복수의반지(피해량증가)": { label: "복수", tone: "power", image: "assets/ring/damage.webp" },
-    "보호의반지(방어력증가)": { label: "보호", tone: "power", image: "assets/ring/defensive.webp" },
-    "행운의반지(치명타확률)": { label: "행운", tone: "power", image: "assets/ring/fatal blow.webp" },
-    "수호의반지(막기확률)": { label: "수호", tone: "power", image: "assets/ring/blocking.webp" },
-    "집중의반지(약점공격확률)": { label: "집중", tone: "power", image: "assets/ring/Weakness.webp" },
-    "자연의반지(생명력)": { label: "자연", tone: "power", image: "assets/ring/vitality.webp" },
-    "적중의반지(효과적중)": { label: "적중", tone: "power", image: "assets/ring/being effective.webp" },
-    "저항의반지(효과저항)": { label: "저항", tone: "power", image: "assets/ring/Effectiveness Resistance.webp" },
+    기합의반지: { label: "기합", tone: "power", image: "/assets/ring/rousing.webp" },
+    철벽의반지: { label: "철벽", tone: "power", image: "/assets/ring/iron wall.webp" },
+    건강의반지: { label: "건강", tone: "power", image: "/assets/ring/health.webp" },
+    근성의반지: { label: "근성", tone: "power", image: "/assets/ring/grit.webp" },
+    토벌의반지: { label: "토벌", tone: "power", image: "/assets/ring/suppression.webp" },
+    공성의반지: { label: "공성", tone: "power", image: "/assets/ring/siege.webp" },
+    섬멸의반지: { label: "섬멸", tone: "power", image: "/assets/ring/annihilation.webp" },
+    "마법의반지(버프제거)": { label: "마법", tone: "revive", image: "/assets/ring/Remove buffs.webp" },
+    "시간의반지(턴제버프감소)": { label: "시간", tone: "revive", image: "/assets/ring/Turnzebuff reduction.webp" },
+    "기회의반지(기절)": { label: "기회", tone: "revive", image: "/assets/ring/faint.webp" },
+    "저주의반지(침묵)": { label: "저주", tone: "revive", image: "/assets/ring/Silence.webp" },
+    "죽음의반지(즉사)": { label: "죽음", tone: "immortal", image: "/assets/ring/death.webp" },
+    "재앙의반지(마비)": { label: "재앙", tone: "immortal", image: "/assets/ring/Paralysis.webp" },
+    "번뜩이는반지(감전)": { label: "번뜩", tone: "revive", image: "/assets/ring/electric shock.webp" },
+    "공포의반지(실명)": { label: "공포", tone: "immortal", image: "/assets/ring/blindness.webp" },
+    "설원의반지(빙결)": { label: "설원", tone: "revive", image: "/assets/ring/Freezing.webp" },
+    "메두사의반지(석화)": { label: "메두사", tone: "immortal", image: "/assets/ring/petrification.webp" },
+    "꿈의반지(수면)": { label: "꿈", tone: "revive", image: "/assets/ring/sleep.webp" },
+    "가시반지(출혈)": { label: "가시", tone: "immortal", image: "/assets/ring/bleeding.webp" },
+    "샐러맨더의반지(화상)": { label: "샐러맨더", tone: "immortal", image: "/assets/ring/Burn.webp" },
+    "독사의반지(중독)": { label: "독사", tone: "immortal", image: "/assets/ring/poisoning.webp" },
+    "복수의반지(피해량증가)": { label: "복수", tone: "power", image: "/assets/ring/damage.webp" },
+    "보호의반지(방어력증가)": { label: "보호", tone: "power", image: "/assets/ring/defensive.webp" },
+    "행운의반지(치명타확률)": { label: "행운", tone: "power", image: "/assets/ring/fatal blow.webp" },
+    "수호의반지(막기확률)": { label: "수호", tone: "power", image: "/assets/ring/blocking.webp" },
+    "집중의반지(약점공격확률)": { label: "집중", tone: "power", image: "/assets/ring/Weakness.webp" },
+    "자연의반지(생명력)": { label: "자연", tone: "power", image: "/assets/ring/vitality.webp" },
+    "적중의반지(효과적중)": { label: "적중", tone: "power", image: "/assets/ring/being effective.webp" },
+    "저항의반지(효과저항)": { label: "저항", tone: "power", image: "/assets/ring/Effectiveness Resistance.webp" },
   };
   const accessoryTypeNames = Object.keys(accessoryVisuals);
   const accessoryRefineAliases = {
@@ -136,8 +136,8 @@ const GuildWar = (() => {
   ]);
 
   const petCatalog = ["루", "크리", "이린", "리첼", "파이크", "델로", "윈디", "제브", "유", "요랑", "연지", "카람", "제오", "멜페로"];
-  const petImages = Object.fromEntries(petCatalog.map((name) => [name, `assets/pet/${name}.webp`]));
-  petImages["멜패로"] = "assets/pet/멜페로.webp";
+  const petImages = Object.fromEntries(petCatalog.map((name) => [name, `/assets/pet/${name}.webp`]));
+  petImages["멜패로"] = "/assets/pet/멜페로.webp";
 
   const characterCatalog = [
     "겔리두스", "나타", "델론즈", "라드그리드", "라이언", "란드그리드", "레긴레이프", "레이첼", "로지", "루디",
@@ -147,7 +147,7 @@ const GuildWar = (() => {
     "카린", "카일", "칼헤론", "콜트", "크리스", "키리엘", "태오", "트루드", "파이", "팔라누스",
     "프레이야", "플라튼", "헬레니아",
   ];
-  const characterImages = Object.fromEntries(characterCatalog.map((name) => [name, `assets/character/${name}.webp`]));
+  const characterImages = Object.fromEntries(characterCatalog.map((name) => [name, `/assets/character/${name}.webp`]));
   let characterComboboxId = 0;
   let textOptionComboboxId = 0;
   const gearOptionCatalog = {

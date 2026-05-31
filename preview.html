@@ -230,8 +230,8 @@
   <body>
     <div class="preview-shell" id="previewShell">
       <aside class="preview-sidebar">
-        <a class="preview-brand" href="index.html">
-          <img src="assets/common/logo.webp" alt="bbitsena" />
+        <a class="preview-brand" href="/">
+          <img src="/assets/common/logo.webp" alt="bbitsena" />
           <span>
             <strong>bbitsena Preview</strong>
             <span>사이트 전체 화면 확인용</span>
@@ -240,19 +240,19 @@
 
         <div class="preview-group" data-group="main">
           <h2>Core</h2>
-          <button class="preview-link active" type="button" data-url="index.html" data-title="메인">
+          <button class="preview-link active" type="button" data-url="/" data-title="메인">
             <strong>메인</strong>
             <small>홈, 사이드바, 게시판 목록, 로그인 카드</small>
           </button>
-          <button class="preview-link" type="button" data-url="notices.html" data-title="공지사항">
+          <button class="preview-link" type="button" data-url="/board/notice" data-title="공지사항">
             <strong>공지사항</strong>
             <small>운영진 공지 목록</small>
           </button>
-          <button class="preview-link" type="button" data-url="upload.html" data-title="글쓰기">
+          <button class="preview-link" type="button" data-url="/board/write" data-title="글쓰기">
             <strong>글쓰기</strong>
             <small>일반/PVP/PVE 게시글 작성기</small>
           </button>
-          <button class="preview-link" type="button" data-url="coupon.html" data-title="쿠폰">
+          <button class="preview-link" type="button" data-url="/coupon" data-title="쿠폰">
             <strong>쿠폰</strong>
             <small>회원번호와 쿠폰 등록/전송 화면</small>
           </button>
@@ -260,19 +260,19 @@
 
         <div class="preview-group" data-group="boards">
           <h2>Boards</h2>
-          <button class="preview-link" type="button" data-url="index.html?board=전체" data-title="전체 게시판">
+          <button class="preview-link" type="button" data-url="/board" data-title="전체 게시판">
             <strong>전체 게시판</strong>
             <small>공지 제외 일반 게시글 목록</small>
           </button>
-          <button class="preview-link" type="button" data-url="index.html?board=PVP 게시판" data-title="PVP 게시판">
+          <button class="preview-link" type="button" data-url="/board/pvp" data-title="PVP 게시판">
             <strong>PVP 게시판</strong>
             <small>PVP 게시판 탭</small>
           </button>
-          <button class="preview-link" type="button" data-url="index.html?board=PVE 공략" data-title="PVE 공략">
+          <button class="preview-link" type="button" data-url="/board/pve" data-title="PVE 공략">
             <strong>PVE 공략</strong>
             <small>파괴신, 공성전, 돌발레이드 포함</small>
           </button>
-          <button class="preview-link" type="button" data-url="index.html?board=기술" data-title="기술">
+          <button class="preview-link" type="button" data-url="/board/tech" data-title="기술">
             <strong>기술</strong>
             <small>기술 게시판</small>
           </button>
@@ -280,11 +280,11 @@
 
         <div class="preview-group" data-group="guild">
           <h2>Guild War</h2>
-          <button class="preview-link" type="button" data-url="guild-war.html" data-title="길드전 족보">
+          <button class="preview-link" type="button" data-url="/guild/war" data-title="길드전 족보">
             <strong>길드전 족보</strong>
             <small>사용자 공개 족보 화면</small>
           </button>
-          <button class="preview-link" type="button" data-url="guild-war-admin.html" data-title="족보 관리">
+          <button class="preview-link" type="button" data-url="/guild/war_admin" data-title="족보 관리">
             <strong>족보 관리</strong>
             <small>관리자 권한 필요</small>
           </button>
@@ -292,11 +292,11 @@
 
         <div class="preview-group" data-group="admin">
           <h2>Admin</h2>
-          <button class="preview-link" type="button" data-url="admin.html" data-title="관리자 DB">
+          <button class="preview-link" type="button" data-url="/admin" data-title="관리자 DB">
             <strong>관리자 DB</strong>
             <small>관리자 권한 필요</small>
           </button>
-          <button class="preview-link" type="button" data-url="notice-upload.html" data-title="공지 작성">
+          <button class="preview-link" type="button" data-url="/board/notice/write" data-title="공지 작성">
             <strong>공지 작성</strong>
             <small>관리자 공지 작성 페이지</small>
           </button>
@@ -304,11 +304,11 @@
 
         <div class="preview-group" data-group="legal">
           <h2>Legal</h2>
-          <button class="preview-link" type="button" data-url="terms.html" data-title="이용약관">
+          <button class="preview-link" type="button" data-url="/terms" data-title="이용약관">
             <strong>이용약관</strong>
             <small>서비스 약관</small>
           </button>
-          <button class="preview-link" type="button" data-url="privacy.html" data-title="개인정보처리방침">
+          <button class="preview-link" type="button" data-url="/privacy" data-title="개인정보처리방침">
             <strong>개인정보처리방침</strong>
             <small>개인정보 문서</small>
           </button>
@@ -319,17 +319,17 @@
         <header class="preview-toolbar">
           <div class="preview-title">
             <strong id="previewTitle">메인</strong>
-            <span id="previewUrl">index.html</span>
+            <span id="previewUrl">/</span>
           </div>
           <div class="preview-actions">
             <button type="button" class="active" id="desktopButton">데스크톱</button>
             <button type="button" id="mobileButton">모바일</button>
-            <a class="primary" id="openButton" href="index.html" target="_blank" rel="noopener">새 탭 열기</a>
+            <a class="primary" id="openButton" href="/" target="_blank" rel="noopener">새 탭 열기</a>
           </div>
         </header>
 
         <section class="preview-frame-wrap">
-          <iframe class="preview-frame" id="previewFrame" title="사이트 미리보기" src="index.html"></iframe>
+          <iframe class="preview-frame" id="previewFrame" title="사이트 미리보기" src="/"></iframe>
         </section>
         <p class="preview-note">
           관리자/족보 관리 화면은 로그인 권한이 없으면 로그인 화면 또는 권한 안내로 이동할 수 있습니다.
@@ -378,6 +378,6 @@
       const initialButton = links.find((button) => button.dataset.url === initialUrl);
       if (initialButton) openPreview(initialButton);
     </script>
-    <script src="theme.js?v=preview-theme-20260530"></script>
+    <script src="/theme.js?v=preview-theme-20260530"></script>
   </body>
 </html>

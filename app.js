@@ -310,7 +310,18 @@ const boardInfo = {
   },
 };
 
-const initialBoard = new URLSearchParams(location.search).get("board");
+function getBoardFromPath() {
+  const pathname = decodeURIComponent(location.pathname).replace(/\/+$/, "") || "/";
+  const pathMap = {
+    "/board": "\uC804\uCCB4",
+    "/board/pvp": "PVP \uAC8C\uC2DC\uD310",
+    "/board/pve": "PVE \uACF5\uB7B5",
+    "/board/tech": "\uAE30\uC220",
+  };
+  return pathMap[pathname] || null;
+}
+
+const initialBoard = getBoardFromPath() || new URLSearchParams(location.search).get("board");
 const boardAliases = {
   베스트: "전체",
   "자유 게시판": "PVP 게시판",
@@ -348,28 +359,28 @@ const boardTabSets = {
 
 const heroModes = {
   overview: {
-    image: "assets/common/singularity-hero.webp",
+    image: "/assets/common/singularity-hero.webp",
     kicker: "bbitsena",
     title: "삣삐",
     subtitle: "삣삐에요",
     action: "길드전 가이드 보기",
-    href: "guild-war.html",
+    href: "/guild/war",
   },
   pvp: {
-    image: "assets/common/guide-hero.webp",
+    image: "/assets/common/guide-hero.webp",
     kicker: "BBITSENA · PVP BOARD",
     title: "PVP 게시판",
     subtitle: "결투장 조합과 메타 이야기를 확인하세요",
     action: "공략 작성하기",
-    href: "upload.html",
+    href: "/board/write",
   },
   pve: {
-    image: "assets/common/guide-hero.webp",
+    image: "/assets/common/guide-hero.webp",
     kicker: "BBITSENA · PVE STRATEGY",
     title: "PVE 공략",
     subtitle: "파괴신, 공성전, 돌발레이드 공략을 모아 확인하세요",
     action: "공략 작성하기",
-    href: "upload.html",
+    href: "/board/write",
   },
 };
 let mainHeroSettings = {
@@ -470,10 +481,22 @@ function getBoardGroup(category) {
   return boardCategoryGroups[category] || "";
 }
 
+function getBoardUrl(category) {
+  const normalized = normalizeBoard(category);
+  const pathMap = {
+    "\uC804\uCCB4": "/board",
+    "PVP \uAC8C\uC2DC\uD310": "/board/pvp",
+    "PVE \uACF5\uB7B5": "/board/pve",
+    "\uAE30\uC220": "/board/tech",
+  };
+  if (pathMap[normalized]) return pathMap[normalized];
+  return `/board?board=${encodeURIComponent(normalized)}`;
+}
+
 function setActiveCategory(category, { replace = false, scroll = false } = {}) {
   activeCategory = normalizeBoard(category);
   boardPage = 1;
-  const nextUrl = `?board=${encodeURIComponent(activeCategory)}`;
+  const nextUrl = getBoardUrl(activeCategory);
   if (replace) {
     history.replaceState(null, "", nextUrl);
   } else {
@@ -545,7 +568,7 @@ if (!Number.isFinite(notificationVolume)) notificationVolume = 0.2;
 notificationVolume = Math.max(0, Math.min(1, notificationVolume));
 let notificationAudioContext = null;
 const notificationBroadcastChannel = "BroadcastChannel" in window ? new BroadcastChannel("bbibbi-notifications") : null;
-const notificationAudio = new Audio("assets/sound/notification-pling.mp3");
+const notificationAudio = new Audio("/assets/sound/notification-pling.mp3");
 notificationAudio.preload = "auto";
 notificationAudio.volume = notificationVolume;
 let notificationUnreadCountReady = false;
@@ -832,14 +855,14 @@ function getAccountRoleLabel(user) {
 }
 
 const roleIconMap = {
-  superadmin: { label: "최고관리자", src: "assets/common/최고관리자.webp" },
-  admin: { label: "관리자", src: "assets/common/관리자.webp" },
-  elite: { label: "정예", src: "assets/common/정예.webp" },
-  verified: { label: "정예", src: "assets/common/정예.webp" },
-  user: { label: "일반", src: "assets/common/일반.webp" },
-  blocked: { label: "기본", src: "assets/common/기본.webp" },
-  guest: { label: "기본", src: "assets/common/기본.webp" },
-  default: { label: "기본", src: "assets/common/기본.webp" },
+  superadmin: { label: "최고관리자", src: "/assets/common/최고관리자.webp" },
+  admin: { label: "관리자", src: "/assets/common/관리자.webp" },
+  elite: { label: "정예", src: "/assets/common/정예.webp" },
+  verified: { label: "정예", src: "/assets/common/정예.webp" },
+  user: { label: "일반", src: "/assets/common/일반.webp" },
+  blocked: { label: "기본", src: "/assets/common/기본.webp" },
+  guest: { label: "기본", src: "/assets/common/기본.webp" },
+  default: { label: "기본", src: "/assets/common/기본.webp" },
 };
 
 function createRoleIcon(role) {
@@ -873,7 +896,7 @@ function isVotedGuide(guide) {
   return voted.has(guide.id) || voted.has(String(guide.id)) || voted.has(Number(guide.id));
 }
 
-function renderAccountPostList(container, items, emptyText, metaBuilder, hrefBuilder = (item) => `post.html?id=${encodeURIComponent(item.id)}`) {
+function renderAccountPostList(container, items, emptyText, metaBuilder, hrefBuilder = (item) => `/board/post?id=${encodeURIComponent(item.id)}`) {
   if (!container) return;
   container.innerHTML = "";
 
@@ -1035,7 +1058,7 @@ function renderNotificationList(notifications = []) {
     link.className = "account-history-item notification-item";
     link.classList.toggle("unread", !notification.readAt);
     applyNotificationStyle(link, notification);
-    link.href = `post.html?id=${encodeURIComponent(notification.postId || notification.targetId)}`;
+    link.href = `/board/post?id=${encodeURIComponent(notification.postId || notification.targetId)}`;
     title.innerHTML = renderNotificationMessage(notification.message);
     meta.textContent = [notification.postTitle, formatFeedDate(notification.createdAt)].filter(Boolean).join(" · ");
     deleteButton.className = "notification-delete-button";
@@ -1068,7 +1091,7 @@ function renderNotificationPanelList(notifications = []) {
     link.className = "notification-panel-item";
     link.classList.toggle("unread", !notification.readAt);
     applyNotificationStyle(link, notification);
-    link.href = `post.html?id=${encodeURIComponent(notification.postId || notification.targetId)}`;
+    link.href = `/board/post?id=${encodeURIComponent(notification.postId || notification.targetId)}`;
     title.innerHTML = renderNotificationMessage(notification.message);
     meta.textContent = [notification.postTitle, formatFeedDate(notification.createdAt)].filter(Boolean).join(" · ");
     link.append(title, meta);
@@ -1268,7 +1291,7 @@ async function loadAccountDashboard() {
         comments,
         "아직 작성한 댓글이 없습니다.",
         (comment) => `${comment.postTitle || "게시글"} · ${formatFeedDate(comment.createdAt)}`,
-        (comment) => `post.html?id=${encodeURIComponent(comment.postId)}`,
+        (comment) => `/board/post?id=${encodeURIComponent(comment.postId)}`,
       );
     }
   } catch {
@@ -1489,7 +1512,7 @@ async function handleGuideAdminMenuClick(event) {
   const action = button.dataset.adminAction;
   try {
     if (action === "edit") {
-      location.href = `post.html?id=${encodeURIComponent(guide.id)}`;
+      location.href = `/board/post?id=${encodeURIComponent(guide.id)}`;
       return;
     }
     if (action === "move") {
@@ -1571,7 +1594,7 @@ function renderGuides() {
     row.addEventListener("contextmenu", (event) => openGuideAdminMenu(guide, event));
     status.className = "status";
     main.className = "guide-main";
-    main.href = `post.html?id=${encodeURIComponent(guide.id)}`;
+    main.href = `/board/post?id=${encodeURIComponent(guide.id)}`;
     meta.className = "meta";
     stats.className = "guide-stats";
     voteButton.className = "vote-button";
@@ -1714,7 +1737,7 @@ function renderSideLists() {
 
     item.className = "hot-item";
     thumb.className = "thumb";
-    title.href = `post.html?id=${encodeURIComponent(guide.id)}`;
+    title.href = `/board/post?id=${encodeURIComponent(guide.id)}`;
     title.textContent = guide.title;
     meta.textContent = `조회 ${formatNumber(guide.views || guide.votes)}  추천 ${formatNumber(guide.votes)}`;
     text.append(title, meta);
@@ -1934,7 +1957,7 @@ sideBoardLinks.forEach((link) => {
 });
 
 window.addEventListener("popstate", () => {
-  const board = normalizeBoard(new URLSearchParams(location.search).get("board"));
+  const board = normalizeBoard(getBoardFromPath() || new URLSearchParams(location.search).get("board"));
   activeCategory = boardInfo[board] && board !== "공지사항" ? board : "전체";
   boardPage = 1;
   renderGuides();

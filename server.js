@@ -304,7 +304,57 @@ app.use("/uploads", express.static(uploadRoot, {
   },
 }));
 app.use(requireMemberForPrivatePages);
+
+app.get(["/", "/board", "/board/pvp", "/board/pve", "/board/tech"], sendHtmlPage("index.html"));
+app.get("/board/notice", sendHtmlPage("notices.html"));
+app.get("/board/notice/write", requireCleanAdminPage("관리자 권한이 필요합니다.", "공지 작성은 관리자 이상만 사용할 수 있습니다."), sendHtmlPage("notice-upload.html"));
+app.get(["/board/post", "/board/post/:id"], requireCleanMemberPage, sendHtmlPage("post.html"));
+app.get("/board/write", requireCleanMemberPage, sendHtmlPage("upload.html"));
+app.get("/coupon", requireCleanMemberPage, sendHtmlPage("coupon.html"));
+app.get("/guild/war", requireCleanMemberPage, sendHtmlPage("guild-war.html"));
+app.get("/guild/war_admin", requireCleanPermissionPage("canManageGuild", "족보 관리 권한이 필요합니다.", "길드전 족보 작성과 수정은 권한이 있는 계정만 사용할 수 있습니다."), sendHtmlPage("guild-war-admin.html"));
+app.get("/admin", requireCleanPermissionPage("canAccessAdminDb", "최고관리자 권한이 필요합니다.", "관리자 DB는 권한이 있는 계정만 접근할 수 있습니다."), sendHtmlPage("admin.html"));
+app.get("/preview", requireCleanMemberPage, sendHtmlPage("preview.html"));
+app.get("/terms", sendHtmlPage("terms.html"));
+app.get("/privacy", sendHtmlPage("privacy.html"));
+
 app.use(express.static(__dirname));
+
+function sendHtmlPage(filename) {
+  return (req, res) => {
+    res.sendFile(path.join(__dirname, filename));
+  };
+}
+
+function requireCleanMemberPage(req, res, next) {
+  const session = readSession(req);
+  if (!session) return res.redirect("/?login=required");
+  next();
+}
+
+function requireCleanAdminPage(message, detail) {
+  return (req, res, next) => {
+    const session = readSession(req);
+    if (!session) return res.redirect("/?login=required");
+    const user = findUserByUsername(session.username);
+    if (!user || !hasRole(user, "admin")) {
+      return res.status(403).send(renderAccessDeniedPage(message, detail));
+    }
+    next();
+  };
+}
+
+function requireCleanPermissionPage(permission, message, detail) {
+  return (req, res, next) => {
+    const session = readSession(req);
+    if (!session) return res.redirect("/?login=required");
+    const user = findUserByUsername(session.username);
+    if (!user || !hasPermission(user, permission)) {
+      return res.status(403).send(renderAccessDeniedPage(message, detail));
+    }
+    next();
+  };
+}
 
 function signSession(username) {
   const user = findUserByUsername(username);
@@ -541,29 +591,29 @@ function renderAccessDeniedPage(message, detail = "현재 계정으로는 이 �
 function requireMemberForPrivatePages(req, res, next) {
   if (req.method !== "GET" && req.method !== "HEAD") return next();
 
-  const requestPath = req.path === "/" ? "/index.html" : req.path;
-  const publicPages = new Set(["/index.html", "/notices.html", "/terms.html", "/privacy.html"]);
+  const requestPath = req.path === "/" ? "//" : req.path;
+  const publicPages = new Set(["//", "//board/notice", "//terms", "//privacy"]);
   const isHtmlPage = requestPath.endsWith(".html");
 
   if (!isHtmlPage || publicPages.has(requestPath)) return next();
   const session = readSession(req);
-  if (requestPath === "/preview.html") {
+  if (requestPath === "//preview") {
     if (!session) return res.redirect("/?login=required");
     return next();
   }
-  if (requestPath === "/notice-upload.html") {
+  if (requestPath === "//board/notice/write") {
     if (!session) return res.redirect("/?login=required");
     const user = findUserByUsername(session.username);
     if (!user || !hasRole(user, "admin")) return res.status(403).send(renderAccessDeniedPage("관리자 권한이 필요합니다.", "공지 작성은 관리자 이상만 사용할 수 있습니다."));
     return next();
   }
-  if (requestPath === "/admin.html") {
+  if (requestPath === "//admin") {
     if (!session) return res.redirect("/?login=required");
     const user = findUserByUsername(session.username);
     if (!user || !hasPermission(user, "canAccessAdminDb")) return res.status(403).send(renderAccessDeniedPage("최고관리자 권한이 필요합니다.", "관리자 DB는 최고관리자 권한이 있는 계정만 접근할 수 있습니다."));
     return next();
   }
-  if (requestPath === "/guild-war-admin.html") {
+  if (requestPath === "//guild/war_admin") {
     if (!session) return res.redirect("/?login=required");
     const user = findUserByUsername(session.username);
     if (!user || !hasPermission(user, "canManageGuild")) return res.status(403).send(renderAccessDeniedPage("족보 관리 권한이 필요합니다.", "길드전 족보 작성과 수정은 권한이 있는 계정만 사용할 수 있습니다."));

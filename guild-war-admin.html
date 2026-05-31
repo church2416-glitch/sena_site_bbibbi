@@ -4,20 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>길드전 족보 작성기 - 삣삐 </title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="/styles.css" />
   </head>
   <body class="guild-page">
     <main class="guild-shell admin-shell">
       <header class="guild-header">
-        <a class="brand upload-brand" href="index.html">
-          <img class="site-logo" src="assets/common/logo.webp" alt="bbitsena" />
+        <a class="brand upload-brand" href="/">
+          <img class="site-logo" src="/assets/common/logo.webp" alt="bbitsena" />
           <span class="brand-kicker">삣삐 커뮤니티</span>
           <strong>길드전 족보 작성기</strong>
           <small>ADMIN TOOL</small>
         </a>
         <nav class="guild-links" aria-label="관리자 메뉴">
-          <a href="guild-war.html">공개 화면</a>
-          <a href="upload.html">업로드</a>
+          <a href="/guild/war">공개 화면</a>
+          <a href="/board/write">업로드</a>
         </nav>
       </header>
 
@@ -315,7 +315,7 @@
           </label>
 
           <div class="upload-actions">
-            <a href="guild-war.html">공개 화면 보기</a>
+            <a href="/guild/war">공개 화면 보기</a>
             <span class="guild-save-pill" id="bottomSaveState">저장 대기</span>
             <button class="ghost-button" type="button" id="resetGuild">전체 초기화</button>
             <button class="submit-button" type="submit">저장</button>
@@ -324,8 +324,8 @@
       </section>
     </main>
 
-    <script src="theme.js"></script>
-    <script src="guild-war.js?v=ring-assets-20260530"></script>
+    <script src="/theme.js"></script>
+    <script src="/guild-war.js?v=ring-assets-20260530"></script>
     <script>
       const form = document.querySelector("#guildForm");
       const saveState = document.querySelector("#saveState");
@@ -518,6 +518,6 @@
 
       initializeAdminPage();
     </script>
-    <script src="notification-client.js"></script>
+    <script src="/notification-client.js"></script>
   </body>
 </html>

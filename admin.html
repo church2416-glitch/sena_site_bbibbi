@@ -4,21 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>관리자 데이터베이스 - 삐삐 길드</title>
-    <link rel="stylesheet" href="styles.css?v=admin-guild-label-20260530" />
+    <link rel="stylesheet" href="/styles.css?v=admin-guild-label-20260530" />
   </head>
   <body class="admin-dashboard-page">
     <aside class="admin-sidebar" aria-label="관리자 메뉴">
-      <a class="admin-brand" href="index.html">
-        <img class="site-logo" src="assets/common/logo.webp" alt="bbitsena" />
+      <a class="admin-brand" href="/">
+        <img class="site-logo" src="/assets/common/logo.webp" alt="bbitsena" />
         <strong>삐삐 관리자</strong>
       </a>
       <nav class="admin-nav">
         <button class="active" type="button" data-admin-view="dashboard"><span>▦</span>대시보드</button>
         <button type="button" data-admin-view="users"><span>♙</span>사용자 관리</button>
         <button type="button" data-admin-view="contents"><span>✎</span>콘텐츠 관리</button>
-        <a href="guild-war-admin.html"><span>⚔</span>족보 관리</a>
+        <a href="/guild/war_admin"><span>⚔</span>족보 관리</a>
         <button type="button" data-admin-view="database"><span>▣</span>데이터베이스</button>
-        <a href="index.html"><span>⌂</span>사이트로</a>
+        <a href="/"><span>⌂</span>사이트로</a>
       </nav>
       <div class="admin-locale">한국어</div>
     </aside>
@@ -126,10 +126,10 @@
             </div>
           </div>
           <div class="admin-quick-links">
-            <a href="coupon.html">쿠폰북 관리</a>
-            <a href="notice-upload.html">공지 작성</a>
-            <a href="guild-war-admin.html">길드전 족보</a>
-            <a href="upload.html">게시글 업로드</a>
+            <a href="/coupon">쿠폰북 관리</a>
+            <a href="/board/notice/write">공지 작성</a>
+            <a href="/guild/war_admin">길드전 족보</a>
+            <a href="/board/write">게시글 업로드</a>
           </div>
         </section>
 
@@ -333,8 +333,8 @@
       </section>
     </main>
 
-    <script src="theme.js?v=admin-theme-20260530"></script>
-    <script src="admin.js?v=admin-theme-20260530"></script>
-    <script src="notification-client.js"></script>
+    <script src="/theme.js?v=admin-theme-20260530"></script>
+    <script src="/admin.js?v=admin-theme-20260530"></script>
+    <script src="/notification-client.js"></script>
   </body>
 </html>
