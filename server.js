@@ -63,6 +63,7 @@ const smtpSecure = process.env.SMTP_SECURE === "true" || smtpPort === 465;
 const smtpUser = process.env.SMTP_USER || "";
 const smtpPass = process.env.SMTP_PASS || "";
 const smtpFrom = process.env.SMTP_FROM || smtpUser || `no-reply@${siteHostname.replace(/^www\./, "")}`;
+const resendApiKey = process.env.RESEND_API_KEY || (smtpUser === "resend" && /^re_/.test(smtpPass) ? smtpPass : "");
 const couponRedeemUrl = process.env.COUPON_REDEEM_URL || "https://coupon.netmarble.com/api/coupon";
 const couponApiToken = process.env.COUPON_API_TOKEN || "";
 const couponGameCode = process.env.COUPON_GAME_CODE || "tskgb";
@@ -926,7 +927,7 @@ function findPasswordResetByToken(token) {
 }
 
 function smtpConfigured() {
-  return Boolean(smtpHost && smtpPort && smtpFrom);
+  return Boolean((resendApiKey || (smtpHost && smtpPort)) && smtpFrom);
 }
 
 function readSmtpResponse(socket) {
@@ -992,6 +993,25 @@ function dotStuff(value) {
 async function sendRecoveryEmail({ to, subject, text }) {
   if (!smtpConfigured()) {
     throw new Error("이메일 발송 설정이 필요합니다.");
+  }
+
+  if (resendApiKey) {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: smtpFrom,
+        to,
+        subject,
+        text,
+      }),
+    });
+    if (response.ok) return;
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Resend mail failed: ${response.status} ${detail}`.slice(0, 260));
   }
 
   let socket = await createSmtpSocket();
@@ -1834,11 +1854,12 @@ function normalizePveGuide(value) {
     heroes: cleanList(raw.heroes, 10, (hero) => ({
       name: String(hero?.name || "").trim().slice(0, 30),
       role: String(hero?.role || "").trim().slice(0, 40),
+      exclusive: String(hero?.exclusive || "").trim().slice(0, 40),
       accessory: String(hero?.accessory || "").trim().slice(0, 20),
       refine: normalizePveAccessoryRefine(hero?.refine).slice(0, 20),
       grade: String(hero?.grade || "").trim().slice(0, 10),
     })),
-    specs: cleanList(raw.specs, 6, (spec) => ({
+    specs: cleanList(raw.specs, 20, (spec) => ({
       label: String(spec?.label || "").trim().slice(0, 30),
       value: String(spec?.value || "").trim().slice(0, 40),
       memo: String(spec?.memo || "").trim().slice(0, 80),
@@ -3414,6 +3435,7 @@ app.patch("/api/posts/:id", requireContentAccess, requireMediaUploadPermission, 
         videoFile: [...existingVideos, ...(uploadedMedia.videos || [])][0] || null,
         youtube: nextYoutube || existingMedia.youtube || "",
         youtubeEmbed: nextYoutubeEmbed || existingMedia.youtubeEmbed || "",
+        pveGuide: uploadedMedia.pveGuide || existingMedia.pveGuide || null,
       };
     } else if (req.body?.media && typeof req.body.media === "object") {
       media = normalizePostMedia(req.body.media);

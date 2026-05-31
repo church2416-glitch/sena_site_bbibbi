@@ -146,6 +146,7 @@ const devNoteStatus = document.querySelector("#devNoteStatus");
 const boardTitle = document.querySelector("#boardTitle");
 const boardDesc = document.querySelector("#boardDesc");
 const boardCount = document.querySelector("#boardCount");
+const boardSortButtons = [...document.querySelectorAll("[data-board-sort]")];
 const searchInput = document.querySelector("#searchInput");
 const categoryStrip = document.querySelector(".category-strip");
 const boardPager = document.createElement("nav");
@@ -577,6 +578,7 @@ let guides = loadGuides();
 let voted = new Set(JSON.parse(localStorage.getItem(votedKey) || "[]"));
 let boardPage = 1;
 const boardPageSize = 10;
+let boardSortMode = localStorage.getItem("bbibbi-board-sort") || "latest";
 let currentUser = { loggedIn: false, role: "guest" };
 let recoveryMode = "find-id";
 let recoveryResetToken = "";
@@ -1005,6 +1007,7 @@ async function submitSignup(event) {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: "회원가입 실패" }));
+    signupError.classList.remove("success");
     signupError.textContent = error.error || "회원가입 실패";
     signupError.hidden = false;
     return;
@@ -1022,6 +1025,7 @@ async function requestSignupEmailCode() {
   if (signupError) {
     signupError.hidden = true;
     signupError.textContent = "";
+    signupError.classList.remove("success");
   }
   signupEmailCodeButton.disabled = true;
   signupEmailCodeButton.textContent = "발송 중";
@@ -1034,12 +1038,14 @@ async function requestSignupEmailCode() {
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.error || "인증코드 발송 실패");
     if (signupError) {
-      signupError.textContent = result.message || "인증코드를 이메일로 보냈습니다.";
+      signupError.classList.add("success");
+      signupError.textContent = "발송 되었습니다. 메일함에서 인증코드를 확인해주세요.";
       signupError.hidden = false;
     }
     signupForm.emailCode?.focus();
   } catch (error) {
     if (signupError) {
+      signupError.classList.remove("success");
       signupError.textContent = error.message || "인증코드 발송 실패";
       signupError.hidden = false;
     }
@@ -1778,6 +1784,14 @@ function getFilteredGuides() {
   return filteredGuides.sort((left, right) => {
     const orderDiff = Number(right.sortOrder || 0) - Number(left.sortOrder || 0);
     if (orderDiff) return orderDiff;
+    if (boardSortMode === "views") {
+      const viewDiff = Number(right.views || 0) - Number(left.views || 0);
+      if (viewDiff) return viewDiff;
+    }
+    if (boardSortMode === "votes") {
+      const voteDiff = Number(right.votes || 0) - Number(left.votes || 0);
+      if (voteDiff) return voteDiff;
+    }
     return new Date(right.createdAt || 0) - new Date(left.createdAt || 0);
   });
 }
@@ -1918,6 +1932,9 @@ function renderGuides() {
   boardTitle.textContent = currentBoard.title;
   boardDesc.textContent = currentBoard.desc;
   boardCount.textContent = `${visibleGuides.length}개`;
+  boardSortButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.boardSort === boardSortMode);
+  });
   sideBoardLinks.forEach((link) => {
     const linkBoard = normalizeBoard(link.dataset.boardLink);
     const linkGroup = link.dataset.boardGroup || getBoardGroup(linkBoard);
@@ -2395,6 +2412,14 @@ signupToLoginButton?.addEventListener("click", () => {
 });
 signupEmailCodeButton?.addEventListener("click", requestSignupEmailCode);
 signupForm?.addEventListener("submit", submitSignup);
+boardSortButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    boardSortMode = button.dataset.boardSort || "latest";
+    localStorage.setItem("bbibbi-board-sort", boardSortMode);
+    boardPage = 1;
+    renderGuides();
+  });
+});
 syncNotificationSoundButton();
 syncNotificationVolumeControl();
 window.setInterval(pollNotificationsForSound, 8000);

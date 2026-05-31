@@ -332,6 +332,10 @@
 
       function openPostEditor() {
         if (!currentPost) return;
+        if (currentPost.media?.pveGuide) {
+          location.href = `/board/write?edit=${encodeURIComponent(currentPost.id)}`;
+          return;
+        }
         const form = document.querySelector("#postEditForm");
         form.hidden = false;
         form.elements.title.value = currentPost.title || "";
@@ -656,10 +660,18 @@
           title.textContent = hero.name || "-";
           role.textContent = hero.role || "핵심 영웅";
           card.append(icon, title, role);
-          if (hero.exclusive) {
+          const exclusiveImage = getExclusiveEquipmentImage(hero.name);
+          if (exclusiveImage || hero.exclusive) {
             const exclusive = document.createElement("small");
             exclusive.className = "strategy-exclusive-label";
-            exclusive.textContent = `전용장비 ${hero.exclusive}`;
+            if (exclusiveImage) {
+              const exclusiveImg = document.createElement("img");
+              exclusiveImg.src = exclusiveImage;
+              exclusiveImg.alt = `${hero.name || "영웅"} 전용장비`;
+              exclusiveImg.onerror = () => exclusiveImg.remove();
+              exclusive.append(exclusiveImg);
+            }
+            exclusive.append(document.createTextNode(hero.exclusive || "전용장비"));
             card.append(exclusive);
           }
           if (accessory) {
@@ -708,6 +720,12 @@
         const aliases = { 브브: "브란즈브란셀" };
         const cleanName = aliases[String(name || "").trim()] || String(name || "").trim();
         return cleanName ? `/assets/character/${cleanName}.webp?v=20260531-character-refresh` : "";
+      }
+
+      function getExclusiveEquipmentImage(name) {
+        const aliases = { 브브: "브란즈브란셀", 손오공: "오공" };
+        const cleanName = aliases[String(name || "").trim()] || String(name || "").trim();
+        return cleanName ? `/assets/equipment/${cleanName}_전용장비.webp?v=20260531-equipment-refresh` : "";
       }
 
       function getPetImage(name) {

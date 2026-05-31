@@ -118,7 +118,14 @@
               <h2 id="boardTitle">전체 게시판</h2>
               <p id="boardDesc">지금 올라온 공략과 사람들이 주목하는 게시글들</p>
             </div>
-            <span id="boardCount">0개</span>
+            <div class="board-head-tools">
+              <div class="board-sort-tabs" aria-label="게시글 정렬">
+                <button type="button" class="active" data-board-sort="latest">최신순</button>
+                <button type="button" data-board-sort="views">조회순</button>
+                <button type="button" data-board-sort="votes">추천순</button>
+              </div>
+              <span id="boardCount">0개</span>
+            </div>
           </div>
           <div id="guideList" class="guide-list" aria-live="polite"></div>
         </section>

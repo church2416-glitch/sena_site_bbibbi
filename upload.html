@@ -130,7 +130,10 @@
               <div class="pve-hero-grid" id="pveHeroGrid"></div>
             </div>
             <div class="pve-mini-section">
-              <h3 id="strategySpecTitle">스펙 체크</h3>
+              <div class="pve-section-title-row">
+                <h3 id="strategySpecTitle">스펙 체크</h3>
+                <button class="mini-add-button" id="addPveSpecButton" type="button">+ 항목</button>
+              </div>
               <div class="pve-spec-grid" id="pveSpecGrid"></div>
             </div>
             <label class="pve-note-field">
@@ -243,6 +246,7 @@
       const strategyNoteInput = document.querySelector("#strategyNoteInput");
       const strategyHeroTitle = document.querySelector("#strategyHeroTitle");
       const strategySpecTitle = document.querySelector("#strategySpecTitle");
+      const addPveSpecButton = document.querySelector("#addPveSpecButton");
       const strategyMainPetInput = document.querySelector("#strategyMainPetInput");
       const strategySubPetInput = document.querySelector("#strategySubPetInput");
       const strategyBossOptions = document.querySelector("#strategyBossOptions");
@@ -253,6 +257,8 @@
       let isUploading = false;
       let uploadProgress = 0;
       let draftTimer = null;
+      const editPostId = new URLSearchParams(location.search).get("edit");
+      let editPost = null;
       const maxImageSize = 8 * 1024 * 1024;
       const maxVideoSize = 500 * 1024 * 1024;
       const strategyCategories = new Set(["PVE 공략", "파괴신", "공성전", "돌발레이드", "PVP 게시판", "PVP 공략"]);
@@ -563,24 +569,49 @@
           });
         }
         if (pveSpecGrid && !pveSpecGrid.children.length) {
-          ["공격력", "방어", "속공", "치명", "막기", "기타"].forEach((label, index) => {
-            const row = document.createElement("label");
-            row.innerHTML = `
-              ${label}
-              <input data-pve-spec-label="${index}" type="text" maxlength="30" value="${label}" />
-              <input data-pve-spec-value="${index}" type="text" maxlength="40" placeholder="권장 수치" />
-              <input data-pve-spec-memo="${index}" type="text" maxlength="80" placeholder="메모" />
-            `;
-            pveSpecGrid.append(row);
-          });
+          ["공격력", "방어", "속공", "치명", "막기", "기타"].forEach((label) => addSpecRow(label));
         }
+      }
+
+      function refreshSpecRowIndexes() {
+        pveSpecGrid?.querySelectorAll("[data-pve-spec-row]").forEach((row, index) => {
+          row.dataset.pveSpecRow = String(index);
+          row.querySelector("[data-pve-spec-label]")?.setAttribute("data-pve-spec-label", String(index));
+          row.querySelector("[data-pve-spec-value]")?.setAttribute("data-pve-spec-value", String(index));
+          row.querySelector("[data-pve-spec-memo]")?.setAttribute("data-pve-spec-memo", String(index));
+        });
+      }
+
+      function addSpecRow(label = "", value = "", memo = "") {
+        if (!pveSpecGrid) return;
+        const index = pveSpecGrid.querySelectorAll("[data-pve-spec-row]").length;
+        const row = document.createElement("label");
+        row.className = "pve-spec-row";
+        row.dataset.pveSpecRow = String(index);
+        row.innerHTML = `
+          <span class="pve-spec-row-head">
+            <input data-pve-spec-label="${index}" type="text" maxlength="30" placeholder="항목" />
+            <button type="button" data-remove-pve-spec aria-label="항목 삭제">-</button>
+          </span>
+          <input data-pve-spec-value="${index}" type="text" maxlength="40" placeholder="권장 수치" />
+          <input data-pve-spec-memo="${index}" type="text" maxlength="80" placeholder="메모" />
+        `;
+        row.querySelector("[data-pve-spec-label]").value = label;
+        row.querySelector("[data-pve-spec-value]").value = value;
+        row.querySelector("[data-pve-spec-memo]").value = memo;
+        row.querySelector("[data-remove-pve-spec]")?.addEventListener("click", () => {
+          row.remove();
+          refreshSpecRowIndexes();
+          scheduleDraftSave();
+        });
+        pveSpecGrid.append(row);
       }
 
       function getStrategyHeroCount() {
         const mode = getStrategyMode();
         if (mode !== "pve") return 5;
         const type = strategyTypeInput?.value || "";
-        return ["파괴신", "공성전"].includes(categoryInput.value) || ["파괴신", "공성전"].includes(type) ? 10 : 5;
+        return categoryInput.value === "파괴신" || type === "파괴신" ? 10 : 5;
       }
 
       function updateStrategyHeroSlots() {
@@ -632,7 +663,7 @@
             refine: pveGuideEditor.querySelector(`[data-pve-hero-refine="${index}"]`)?.value.trim() || "",
             grade: pveGuideEditor.querySelector(`[data-pve-hero-grade="${index}"]`)?.value.trim() || "",
           })),
-          specs: Array.from({ length: 6 }).map((_, index) => ({
+          specs: [...pveSpecGrid.querySelectorAll("[data-pve-spec-row]")].map((row, index) => ({
             label: pveGuideEditor.querySelector(`[data-pve-spec-label="${index}"]`)?.value.trim() || "",
             value: pveGuideEditor.querySelector(`[data-pve-spec-value="${index}"]`)?.value.trim() || "",
             memo: pveGuideEditor.querySelector(`[data-pve-spec-memo="${index}"]`)?.value.trim() || "",
@@ -660,14 +691,10 @@
           if (refine) refine.value = hero.refine || "";
           if (grade) grade.value = hero.grade || "";
         });
-        (pveGuide.specs || []).forEach((spec, index) => {
-          const label = pveGuideEditor.querySelector(`[data-pve-spec-label="${index}"]`);
-          const value = pveGuideEditor.querySelector(`[data-pve-spec-value="${index}"]`);
-          const memo = pveGuideEditor.querySelector(`[data-pve-spec-memo="${index}"]`);
-          if (label) label.value = spec.label || "";
-          if (value) value.value = spec.value || "";
-          if (memo) memo.value = spec.memo || "";
-        });
+        if (Array.isArray(pveGuide.specs) && pveGuide.specs.length) {
+          pveSpecGrid.innerHTML = "";
+          pveGuide.specs.forEach((spec) => addSpecRow(spec.label || "", spec.value || "", spec.memo || ""));
+        }
         updateStrategyHeroSlots();
       }
 
@@ -727,6 +754,7 @@
       }
 
       function restoreDraft() {
+        if (editPostId) return;
         try {
           const draft = JSON.parse(localStorage.getItem(draftKey) || "null");
           if (!draft || !draftHasContent(draft)) return;
@@ -749,6 +777,32 @@
       function clearDraft() {
         clearTimeout(draftTimer);
         localStorage.removeItem(draftKey);
+      }
+
+      async function loadEditPost() {
+        if (!editPostId) return;
+        draftState.textContent = "수정 데이터 불러오는 중";
+        try {
+          const response = await fetch(`/api/posts/${encodeURIComponent(editPostId)}`);
+          if (!response.ok) throw new Error("edit_load_failed");
+          const payload = await response.json();
+          editPost = payload.post;
+          if (!editPost) throw new Error("edit_load_failed");
+          form.elements.namedItem("title").value = editPost.title || "";
+          form.elements.namedItem("category").value = editPost.category || form.elements.namedItem("category").value;
+          form.elements.namedItem("summary").value = editPost.summary || "";
+          form.elements.namedItem("body").value = editPost.body || "";
+          form.elements.namedItem("tags").value = Array.isArray(editPost.tags) ? editPost.tags.join(", ") : "";
+          youtubeInput.value = editPost.media?.youtube || "";
+          youtubeField.hidden = !youtubeInput.value.trim();
+          togglePveEditor();
+          restorePveGuide(editPost.media?.pveGuide);
+          submitButton.textContent = "수정 완료";
+          draftState.textContent = "수정 대기";
+          renderMediaPreview();
+        } catch {
+          draftState.textContent = "수정 데이터를 불러오지 못했습니다";
+        }
       }
 
       function getYoutubeEmbed(url) {
@@ -789,7 +843,9 @@
       function uploadPost(formData, onProgress) {
         return new Promise((resolve, reject) => {
           const request = new XMLHttpRequest();
-          request.open("POST", "/api/posts");
+          const method = editPostId ? "PATCH" : "POST";
+          const endpoint = editPostId ? `/api/posts/${encodeURIComponent(editPostId)}` : "/api/posts";
+          request.open(method, endpoint);
           request.upload.addEventListener("progress", (event) => {
             if (!event.lengthComputable) return;
             onProgress(Math.max(1, Math.min(99, Math.round((event.loaded / event.total) * 100))));
@@ -802,7 +858,7 @@
               payload = {};
             }
             if (request.status >= 200 && request.status < 300) {
-              resolve(payload);
+              resolve(payload.post || payload);
             } else {
               reject(new Error(payload.error || "업로드 실패"));
             }
@@ -1047,6 +1103,10 @@
         updateStrategyHeroSlots();
         scheduleDraftSave();
       });
+      addPveSpecButton?.addEventListener("click", () => {
+        addSpecRow();
+        scheduleDraftSave();
+      });
 
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -1088,7 +1148,9 @@
 
         uploadProgress = 100;
         draftState.textContent = "업로드 완료";
-        localStorage.setItem(storageKey, JSON.stringify([saved, ...loadGuides()]));
+        if (!editPostId) {
+          localStorage.setItem(storageKey, JSON.stringify([saved, ...loadGuides()]));
+        }
         clearDraft();
         form.reset();
         imageFiles = [];
@@ -1102,7 +1164,11 @@
 
       createPveRows();
       togglePveEditor();
-      restoreDraft();
+      if (editPostId) {
+        loadEditPost();
+      } else {
+        restoreDraft();
+      }
     </script>
     <script src="/notification-client.js"></script>
   </body>

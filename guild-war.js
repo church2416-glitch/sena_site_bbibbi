@@ -615,6 +615,13 @@ const GuildWar = (() => {
     return `${type}${gradeText}${refineText}`;
   }
 
+  function getExclusiveEquipmentImage(heroName) {
+    const name = normalizeCharacterName(heroName);
+    if (!name) return "";
+    const equipmentName = name === "손오공" ? "오공" : name;
+    return withAssetVersion(`/assets/equipment/${equipmentName}_전용장비.webp`);
+  }
+
   function fillGearFields(form, gearList) {
     gearList.slice(0, 3).forEach((line, index) => {
       const parts = parseGear(line);
@@ -629,7 +636,7 @@ const GuildWar = (() => {
       setSelectValue(field(form, `gearAccessoryType${index}`), toAdminInputValue(accessory.type));
       setSelectValue(field(form, `gearAccessoryRefine${index}`), toAdminInputValue(accessory.refine));
       setSelectValue(field(form, `gearAccessoryGrade${index}`), accessory.grade);
-      field(form, `gearMemo${index}`).value = toAdminInputValue(parts[5]);
+      field(form, `gearMemo${index}`).value = toAdminInputValue(parts[6]);
     });
   }
 
@@ -1118,7 +1125,18 @@ const GuildWar = (() => {
       setCell.textContent = parts[1] || "-";
       row.append(setCell);
       const exclusiveCell = document.createElement("span");
-      exclusiveCell.textContent = parts[2] || "-";
+      exclusiveCell.className = "exclusive-gear-cell";
+      const exclusiveImage = getExclusiveEquipmentImage(parts[0]);
+      if (exclusiveImage) {
+        const image = document.createElement("img");
+        image.src = exclusiveImage;
+        image.alt = `${parts[0] || "영웅"} 전용장비`;
+        image.onerror = () => image.remove();
+        exclusiveCell.append(image);
+      }
+      const exclusiveText = document.createElement("b");
+      exclusiveText.textContent = parts[2] || "전용장비";
+      exclusiveCell.append(exclusiveText);
       row.append(exclusiveCell);
       [
         [parts[3], parts[7]],

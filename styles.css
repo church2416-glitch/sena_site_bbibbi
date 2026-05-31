@@ -1015,18 +1015,23 @@ textarea:focus {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   align-items: stretch;
+  padding: 10px;
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.18);
+  background: rgba(var(--theme-mid-rgb), 0.055);
 }
 
 .auth-mini-button {
   min-width: 126px;
   min-height: 54px;
-  border: 1px solid rgba(var(--theme-mid-rgb), 0.34);
-  border-radius: 0;
-  color: #f7f1ff;
-  background: rgba(var(--theme-mid-rgb), 0.16);
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.48);
+  border-radius: 8px;
+  color: #fff;
+  background:
+    linear-gradient(135deg, rgba(var(--theme-mid-rgb), 0.72), rgba(var(--theme-soft-rgb), 0.36));
   font-size: 13px;
   font-weight: 1000;
   cursor: pointer;
+  box-shadow: 0 0 22px rgba(var(--theme-mid-rgb), 0.16);
 }
 
 .auth-mini-button:disabled {
@@ -1682,6 +1687,16 @@ textarea:focus {
   font-weight: 900;
 }
 
+.auth-error.success {
+  display: block;
+  padding: 10px 12px;
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.38);
+  border-radius: 8px;
+  color: var(--theme-soft);
+  background: rgba(var(--theme-mid-rgb), 0.08);
+  box-shadow: inset 0 0 18px rgba(var(--theme-mid-rgb), 0.06);
+}
+
 .settings-head {
   display: flex;
   align-items: center;
@@ -2169,6 +2184,39 @@ p {
   border-radius: 999px;
   color: #d9d1ff;
   background: var(--accent-weak);
+}
+
+.board-head-tools {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.board-sort-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(7, 8, 16, 0.72);
+}
+
+.board-sort-tabs button {
+  min-height: 27px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.board-sort-tabs button.active {
+  color: #07110f;
+  background: var(--theme-soft);
 }
 
 .guide-list {
@@ -2769,6 +2817,38 @@ p {
   gap: 8px;
 }
 
+.pve-section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mini-add-button,
+.pve-spec-row-head button {
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.42);
+  border-radius: 8px;
+  color: #fff8c4;
+  background: rgba(var(--theme-dark-rgb), 0.24);
+  font-weight: 1000;
+  cursor: pointer;
+}
+
+.mini-add-button {
+  min-height: 30px;
+  padding: 0 12px;
+}
+
+.pve-spec-row-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 32px;
+  gap: 6px;
+}
+
+.pve-spec-row-head button {
+  min-width: 32px;
+}
+
 .pve-guide-summary,
 .pve-guide-heroes,
 .pve-guide-pets,
@@ -2788,9 +2868,11 @@ p {
   gap: 4px;
   min-height: 58px;
   padding: 10px;
-  border: 1px solid #efd8a0;
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.26);
   border-radius: 8px;
-  background: #fffdf7;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 222, 104, 0.12), transparent 48%),
+    rgba(12, 14, 24, 0.78);
 }
 
 .pve-guide-heroes {
@@ -2893,6 +2975,7 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 5px;
   min-height: 22px;
   padding: 3px 7px;
   border: 1px solid rgba(var(--theme-mid-rgb), 0.28);
@@ -2901,6 +2984,13 @@ p {
   background: rgba(var(--theme-mid-rgb), 0.08);
   font-size: 10px;
   font-weight: 900;
+}
+
+.strategy-exclusive-label img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  border-radius: 4px;
 }
 
 .strategy-pet-card {
@@ -6850,6 +6940,41 @@ p {
   font-weight: 900;
   line-height: 1.15;
   text-align: center;
+}
+
+.table-row .exclusive-gear-cell {
+  display: inline-grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+  justify-content: start;
+  min-height: 32px;
+  text-align: left;
+}
+
+.table-row .exclusive-gear-cell img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 5px;
+}
+
+.table-row .exclusive-gear-cell b {
+  overflow: hidden;
+  color: inherit;
+  font-size: 10px;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-row small {
+  min-width: 0;
+  color: #d8d0f8;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.3;
+  word-break: keep-all;
 }
 
 .table-row .accessory-cell {
