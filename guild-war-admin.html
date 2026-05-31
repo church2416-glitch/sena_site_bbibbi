@@ -162,7 +162,14 @@
               <legend>장비 1</legend>
               <select name="gearHero0" data-character-select data-gear-hero readonly disabled data-placeholder="영웅"></select>
               <input name="gearSet0" maxlength="18" placeholder="세트" list="gearSetOptions" />
-              <input name="gearExclusive0" maxlength="30" placeholder="전용장비" />
+              <div class="gear-exclusive-editor">
+                <label class="gear-exclusive-toggle">
+                  <input name="gearExclusive0" type="checkbox" value="전용장비 채용" />
+                  <span>전용장비 채용</span>
+                </label>
+                <button class="mini-add-button" type="button" data-add-gear-exclusive-option="0">+ 옵션</button>
+                <div class="gear-exclusive-options" data-gear-exclusive-options="0"></div>
+              </div>
               <input name="gearWeapon0" maxlength="18" placeholder="무기 1" data-gear-option="weapon" />
               <input name="gearWeapon20" maxlength="18" placeholder="무기 2" data-gear-option="weapon" />
               <input name="gearArmor0" maxlength="18" placeholder="방어구 1" data-gear-option="armor" />
@@ -207,7 +214,14 @@
               <legend>장비 2</legend>
               <select name="gearHero1" data-character-select data-gear-hero readonly disabled data-placeholder="영웅"></select>
               <input name="gearSet1" maxlength="18" placeholder="세트" list="gearSetOptions" />
-              <input name="gearExclusive1" maxlength="30" placeholder="전용장비" />
+              <div class="gear-exclusive-editor">
+                <label class="gear-exclusive-toggle">
+                  <input name="gearExclusive1" type="checkbox" value="전용장비 채용" />
+                  <span>전용장비 채용</span>
+                </label>
+                <button class="mini-add-button" type="button" data-add-gear-exclusive-option="1">+ 옵션</button>
+                <div class="gear-exclusive-options" data-gear-exclusive-options="1"></div>
+              </div>
               <input name="gearWeapon1" maxlength="18" placeholder="무기 1" data-gear-option="weapon" />
               <input name="gearWeapon21" maxlength="18" placeholder="무기 2" data-gear-option="weapon" />
               <input name="gearArmor1" maxlength="18" placeholder="방어구 1" data-gear-option="armor" />
@@ -252,7 +266,14 @@
               <legend>장비 3</legend>
               <select name="gearHero2" data-character-select data-gear-hero readonly disabled data-placeholder="영웅"></select>
               <input name="gearSet2" maxlength="18" placeholder="세트" list="gearSetOptions" />
-              <input name="gearExclusive2" maxlength="30" placeholder="전용장비" />
+              <div class="gear-exclusive-editor">
+                <label class="gear-exclusive-toggle">
+                  <input name="gearExclusive2" type="checkbox" value="전용장비 채용" />
+                  <span>전용장비 채용</span>
+                </label>
+                <button class="mini-add-button" type="button" data-add-gear-exclusive-option="2">+ 옵션</button>
+                <div class="gear-exclusive-options" data-gear-exclusive-options="2"></div>
+              </div>
               <input name="gearWeapon2" maxlength="18" placeholder="무기 1" data-gear-option="weapon" />
               <input name="gearWeapon22" maxlength="18" placeholder="무기 2" data-gear-option="weapon" />
               <input name="gearArmor2" maxlength="18" placeholder="방어구 1" data-gear-option="armor" />

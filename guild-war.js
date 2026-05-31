@@ -287,6 +287,17 @@ const GuildWar = (() => {
       "효과 저항",
     ],
   };
+  const exclusiveOptionCatalog = [
+    { name: "모든 공격력(%)", values: { 고급: "5%", 희귀: "7%", 전설: "12%" } },
+    { name: "방어력(%)", values: { 고급: "5%", 희귀: "7%", 전설: "12%" } },
+    { name: "생명력(%)", values: { 고급: "5%", 희귀: "7%", 전설: "12%" } },
+    { name: "효과 적중", values: { 고급: "4%", 희귀: "6%", 전설: "10%" } },
+    { name: "효과 저항", values: { 고급: "4%", 희귀: "6%", 전설: "10%" } },
+    { name: "피해 증폭", values: { 고급: "1.6%", 희귀: "2.4%", 전설: "4%" } },
+    { name: "파쇄", values: { 고급: "6.4%", 희귀: "7.2%", 전설: "12%" } },
+    { name: "탄성", values: { 고급: "4%", 희귀: "9%", 전설: "15%" } },
+    { name: "재생", values: { 고급: "2.4%", 희귀: "3.6%", 전설: "6%" } },
+  ];
 
   const sheetDefaults = {
     attack: {
@@ -555,10 +566,16 @@ const GuildWar = (() => {
     const parts = parseGear(line);
     const fallbackParts = parseGear(fallbackLine);
     const valueAt = (index) => parts[index] || fallbackParts[index] || "";
+    const exclusiveOptions = Array.isArray(line?.exclusiveOptions)
+      ? line.exclusiveOptions
+      : Array.isArray(fallbackLine?.exclusiveOptions)
+        ? fallbackLine.exclusiveOptions
+        : [];
     return {
       hero: valueAt(0),
       set: valueAt(1),
       exclusive: valueAt(2),
+      exclusiveOptions: exclusiveOptions.map((option) => String(option || "").trim()).filter(Boolean).slice(0, 4),
       weapon: valueAt(3),
       armor: valueAt(4),
       accessory: valueAt(5),
@@ -622,13 +639,104 @@ const GuildWar = (() => {
     return withAssetVersion(`/assets/equipment/${equipmentName}_전용장비.webp`);
   }
 
+  function getExclusiveOptionDefaultValue(name, grade) {
+    const item = exclusiveOptionCatalog.find((option) => option.name === name);
+    return item?.values?.[grade] || "";
+  }
+
+  function parseExclusiveOptionValue(value) {
+    const text = String(value || "").trim();
+    const match = text.match(/^(.*?)\s*\/\s*(고급|희귀|전설)\s*(.*?)$/);
+    if (match) return { name: match[1].trim(), grade: match[2], value: match[3].trim() };
+    const item = exclusiveOptionCatalog.find((option) => text.startsWith(option.name));
+    return { name: item?.name || "", grade: "", value: item ? text.replace(item.name, "").trim() : text };
+  }
+
+  function refreshGearExclusiveRows(form, index) {
+    const box = form.querySelector(`[data-gear-exclusive-options="${index}"]`);
+    const addButton = form.querySelector(`[data-add-gear-exclusive-option="${index}"]`);
+    const enabled = Boolean(field(form, `gearExclusive${index}`)?.checked);
+    if (!box) return;
+    box.closest(".gear-exclusive-editor")?.classList.toggle("is-disabled", !enabled);
+    box.querySelectorAll("[data-gear-exclusive-option-row]").forEach((row, optionIndex) => {
+      row.dataset.gearExclusiveOptionRow = String(optionIndex);
+      row.querySelector("[data-gear-exclusive-option-index]").textContent = String(optionIndex + 1);
+      row.querySelectorAll("select, input, button").forEach((input) => {
+        input.disabled = !enabled;
+      });
+    });
+    if (addButton) addButton.disabled = !enabled || box.querySelectorAll("[data-gear-exclusive-option-row]").length >= 4;
+  }
+
+  function addGearExclusiveOptionRow(form, index, rawValue = "") {
+    const box = form.querySelector(`[data-gear-exclusive-options="${index}"]`);
+    if (!box || box.querySelectorAll("[data-gear-exclusive-option-row]").length >= 4) return;
+    const parsed = parseExclusiveOptionValue(rawValue);
+    const row = document.createElement("div");
+    row.className = "gear-exclusive-option-row";
+    row.dataset.gearExclusiveOptionRow = String(box.querySelectorAll("[data-gear-exclusive-option-row]").length);
+    row.innerHTML = `
+      <b data-gear-exclusive-option-index></b>
+      <select data-gear-exclusive-option-name>
+        <option value="">옵션 선택</option>
+        ${exclusiveOptionCatalog.map((option) => `<option value="${option.name}">${option.name}</option>`).join("")}
+      </select>
+      <select data-gear-exclusive-option-grade>
+        <option value="">등급</option>
+        <option value="고급">고급</option>
+        <option value="희귀">희귀</option>
+        <option value="전설">전설</option>
+      </select>
+      <input data-gear-exclusive-option-value type="text" maxlength="12" placeholder="수치" />
+      <button type="button" data-remove-gear-exclusive-option aria-label="전용 옵션 삭제">×</button>
+    `;
+    const nameSelect = row.querySelector("[data-gear-exclusive-option-name]");
+    const gradeSelect = row.querySelector("[data-gear-exclusive-option-grade]");
+    const valueInput = row.querySelector("[data-gear-exclusive-option-value]");
+    nameSelect.value = parsed.name;
+    gradeSelect.value = parsed.grade;
+    valueInput.value = parsed.value;
+    const syncValue = () => {
+      const nextValue = getExclusiveOptionDefaultValue(nameSelect.value, gradeSelect.value);
+      if (nextValue) valueInput.value = nextValue;
+    };
+    nameSelect.addEventListener("change", syncValue);
+    gradeSelect.addEventListener("change", syncValue);
+    row.querySelector("[data-remove-gear-exclusive-option]")?.addEventListener("click", () => {
+      row.remove();
+      refreshGearExclusiveRows(form, index);
+    });
+    box.append(row);
+    refreshGearExclusiveRows(form, index);
+  }
+
+  function readGearExclusiveOptions(form, index) {
+    return [...form.querySelectorAll(`[data-gear-exclusive-options="${index}"] [data-gear-exclusive-option-row]`)]
+      .map((row) => {
+        const name = row.querySelector("[data-gear-exclusive-option-name]")?.value.trim() || "";
+        const grade = row.querySelector("[data-gear-exclusive-option-grade]")?.value.trim() || "";
+        const value = row.querySelector("[data-gear-exclusive-option-value]")?.value.trim() || "";
+        return name && grade ? `${name} / ${grade} ${value}`.trim() : "";
+      })
+      .filter(Boolean)
+      .slice(0, 4);
+  }
+
   function fillGearFields(form, gearList) {
     gearList.slice(0, 3).forEach((line, index) => {
-      const parts = parseGear(line);
+      const entry = normalizeGearEntry(line);
+      const parts = parseGear(entry);
       const accessory = parseAccessory(parts[5]);
       setSelectValue(field(form, `gearHero${index}`), toAdminInputValue(parts[0]));
       field(form, `gearSet${index}`).value = toAdminInputValue(parts[1]);
-      field(form, `gearExclusive${index}`).value = toAdminInputValue(parts[2]);
+      const exclusiveToggle = field(form, `gearExclusive${index}`);
+      if (exclusiveToggle) exclusiveToggle.checked = Boolean(toAdminInputValue(parts[2]) || entry.exclusiveOptions.length);
+      const exclusiveBox = form.querySelector(`[data-gear-exclusive-options="${index}"]`);
+      if (exclusiveBox) {
+        exclusiveBox.replaceChildren();
+        entry.exclusiveOptions.forEach((option) => addGearExclusiveOptionRow(form, index, option));
+      }
+      refreshGearExclusiveRows(form, index);
       field(form, `gearWeapon${index}`).value = toAdminInputValue(parts[3]);
       field(form, `gearArmor${index}`).value = toAdminInputValue(parts[4]);
       field(form, `gearWeapon2${index}`).value = toAdminInputValue(parts[7]);
@@ -690,10 +798,12 @@ const GuildWar = (() => {
         field(form, `gearAccessoryRefine${index}`).value.trim(),
         field(form, `gearAccessoryGrade${index}`).value.trim(),
       );
+      const hasExclusive = Boolean(field(form, `gearExclusive${index}`)?.checked);
       const gear = {
         hero: field(form, `${sourcePrefix}Hero${index}`).value.trim(),
         set: field(form, `gearSet${index}`).value.trim(),
-        exclusive: field(form, `gearExclusive${index}`).value.trim(),
+        exclusive: hasExclusive ? "전용장비 채용" : "",
+        exclusiveOptions: hasExclusive ? readGearExclusiveOptions(form, index) : [],
         weapon: field(form, `gearWeapon${index}`).value.trim(),
         armor: field(form, `gearArmor${index}`).value.trim(),
         weapon2: field(form, `gearWeapon2${index}`).value.trim(),
@@ -701,7 +811,10 @@ const GuildWar = (() => {
         accessory,
         memo: field(form, `gearMemo${index}`).value.trim(),
       };
-      const hasMeaningfulValue = Object.values(gear).some((part) => part && part !== "-");
+      const hasMeaningfulValue = Object.entries(gear).some(([key, part]) => {
+        if (Array.isArray(part)) return key === "exclusiveOptions" && part.length > 0;
+        return part && part !== "-";
+      });
       if (!hasMeaningfulValue) return fallback[index];
       return gear;
     });
@@ -1015,6 +1128,22 @@ const GuildWar = (() => {
     form.querySelectorAll("[data-gear-option]").forEach(enhanceTextOptionInput);
   }
 
+  function initGearExclusiveEditors(form) {
+    [0, 1, 2].forEach((index) => {
+      const toggle = field(form, `gearExclusive${index}`);
+      if (toggle && !toggle.dataset.gearExclusiveReady) {
+        toggle.dataset.gearExclusiveReady = "1";
+        toggle.addEventListener("change", () => refreshGearExclusiveRows(form, index));
+      }
+      const addButton = form.querySelector(`[data-add-gear-exclusive-option="${index}"]`);
+      if (addButton && !addButton.dataset.gearExclusiveReady) {
+        addButton.dataset.gearExclusiveReady = "1";
+        addButton.addEventListener("click", () => addGearExclusiveOptionRow(form, index));
+      }
+      refreshGearExclusiveRows(form, index);
+    });
+  }
+
   function initAccessoryTypeSelects(form) {
     form.querySelectorAll('select[name^="gearAccessoryType"]').forEach((select) => {
       const currentValue = select.value;
@@ -1115,7 +1244,8 @@ const GuildWar = (() => {
     const rows = document.querySelector("#gearRows");
     rows.replaceChildren();
     sheet.gear.slice(0, 3).forEach((line) => {
-      const parts = parseGear(line);
+      const entry = normalizeGearEntry(line);
+      const parts = parseGear(entry);
       const row = document.createElement("div");
       row.className = "table-row";
       const hero = document.createElement("b");
@@ -1126,8 +1256,9 @@ const GuildWar = (() => {
       row.append(setCell);
       const exclusiveCell = document.createElement("span");
       exclusiveCell.className = "exclusive-gear-cell";
-      const exclusiveImage = getExclusiveEquipmentImage(parts[0]);
-      if (exclusiveImage) {
+      const hasExclusive = Boolean(parts[2] || entry.exclusiveOptions.length);
+      const exclusiveImage = hasExclusive ? getExclusiveEquipmentImage(parts[0]) : "";
+      if (hasExclusive && exclusiveImage) {
         const image = document.createElement("img");
         image.src = exclusiveImage;
         image.alt = `${parts[0] || "영웅"} 전용장비`;
@@ -1135,8 +1266,14 @@ const GuildWar = (() => {
         exclusiveCell.append(image);
       }
       const exclusiveText = document.createElement("b");
-      exclusiveText.textContent = parts[2] || "전용장비";
+      exclusiveText.textContent = hasExclusive ? (parts[2] || "전용장비 채용") : "-";
       exclusiveCell.append(exclusiveText);
+      if (hasExclusive && entry.exclusiveOptions.length) {
+        const optionList = document.createElement("em");
+        optionList.className = "exclusive-option-list";
+        optionList.textContent = entry.exclusiveOptions.join(" / ");
+        exclusiveCell.append(optionList);
+      }
       row.append(exclusiveCell);
       [
         [parts[3], parts[7]],
@@ -1248,6 +1385,7 @@ const GuildWar = (() => {
     initPetDatalist();
     initCharacterSelects(form);
     initGearOptionInputs(form);
+    initGearExclusiveEditors(form);
     initAccessoryTypeSelects(form);
     syncAdminModeVisibility(mode);
     field(form, "formationType").value = baseTarget.formationType;
