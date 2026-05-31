@@ -2252,6 +2252,34 @@ app.get("/api/mentions", requireMember, (req, res) => {
   res.json({ items: [...groups, ...users].slice(0, 10) });
 });
 
+app.get("/api/me/bookmarks", requireMember, (req, res) => {
+  const bookmarkedPosts = db
+    .prepare(
+      `
+        SELECT
+          posts.*,
+          users.display_name AS author_name,
+          users.username AS author_username,
+          users.role AS author_role,
+          post_bookmarks.created_at AS bookmarked_at
+        FROM post_bookmarks
+        JOIN posts ON posts.id = post_bookmarks.post_id
+        LEFT JOIN users ON users.id = posts.author_id
+        WHERE post_bookmarks.user_id = ?
+          AND posts.status = 'published'
+        ORDER BY datetime(post_bookmarks.created_at) DESC
+        LIMIT 12
+      `,
+    )
+    .all(req.user.id)
+    .map((row) => ({
+      ...serializePost(row),
+      bookmarkedAt: row.bookmarked_at,
+    }));
+
+  res.json({ bookmarkedPosts });
+});
+
 app.get("/api/me/activity", requireMember, (req, res) => {
   const user = req.user;
   const stats = db

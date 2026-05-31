@@ -776,6 +776,7 @@ function openProfileModal() {
     profileForm.displayName.value = currentUser?.displayName || currentUser?.username || "";
   }
   loadAccountDashboard();
+  loadAccountBookmarks();
 }
 
 function closeProfileModal() {
@@ -900,7 +901,8 @@ function renderAccountPostList(container, items, emptyText, metaBuilder, hrefBui
   if (!container) return;
   container.innerHTML = "";
 
-  if (!items.length) {
+  const safeItems = Array.isArray(items) ? items : [];
+  if (!safeItems.length) {
     const empty = document.createElement("p");
     empty.className = "account-empty";
     empty.textContent = emptyText;
@@ -908,7 +910,7 @@ function renderAccountPostList(container, items, emptyText, metaBuilder, hrefBui
     return;
   }
 
-  items.forEach((post) => {
+  safeItems.forEach((post) => {
     const link = document.createElement("a");
     const title = document.createElement("strong");
     const meta = document.createElement("small");
@@ -920,6 +922,16 @@ function renderAccountPostList(container, items, emptyText, metaBuilder, hrefBui
     link.append(title, meta);
     container.append(link);
   });
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timer);
+  }
 }
 
 function setNotificationBadge(count) {
@@ -1234,10 +1246,9 @@ async function loadAccountDashboard() {
   if (accountAvatar) accountAvatar.textContent = (currentUser.displayName || currentUser.username || "?").slice(0, 1).toUpperCase();
   renderAccountPostList(accountPostList, [], "불러오는 중...", () => "");
   renderAccountPostList(accountLikedList, [], "불러오는 중...", () => "");
-  renderAccountPostList(accountBookmarkList, [], "불러오는 중...", () => "");
 
   try {
-    const response = await fetch("/api/me/activity");
+    const response = await fetchWithTimeout("/api/me/activity");
     if (!response.ok) throw new Error("activity failed");
     const activity = await response.json();
     const user = activity.user || currentUser;
@@ -1297,7 +1308,26 @@ async function loadAccountDashboard() {
   } catch {
     renderAccountPostList(accountPostList, [], "내 정보를 불러오지 못했습니다.", () => "");
     renderAccountPostList(accountLikedList, [], "내 정보를 불러오지 못했습니다.", () => "");
-    renderAccountPostList(accountBookmarkList, [], "내 정보를 불러오지 못했습니다.", () => "");
+  }
+}
+
+async function loadAccountBookmarks() {
+  if (!profileModal || profileModal.hidden || !currentUser?.loggedIn || !accountBookmarkList) return;
+  renderAccountPostList(accountBookmarkList, [], "불러오는 중...", () => "");
+
+  try {
+    const response = await fetchWithTimeout("/api/me/bookmarks");
+    if (!response.ok) throw new Error("bookmarks failed");
+    const data = await response.json();
+    const bookmarkedPosts = Array.isArray(data.bookmarkedPosts) ? data.bookmarkedPosts : [];
+    renderAccountPostList(
+      accountBookmarkList,
+      bookmarkedPosts,
+      "아직 북마크한 글이 없습니다.",
+      (post) => `${formatFeedDate(post.bookmarkedAt || post.createdAt)} · 조회 ${formatNumber(Number(post.views) || 0)} · 추천 ${formatNumber(Number(post.votes) || 0)}`,
+    );
+  } catch {
+    renderAccountPostList(accountBookmarkList, [], "북마크를 불러오지 못했습니다.", () => "");
   }
 }
 
