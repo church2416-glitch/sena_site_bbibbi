@@ -2790,6 +2790,226 @@ p {
   display: none;
 }
 
+.pve-main-dealer-toggle {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  color: #d9d1ff;
+}
+
+.pve-main-dealer-toggle input {
+  width: 16px;
+  min-width: 16px;
+}
+
+.pve-hero-stat-grid {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(7, minmax(64px, 1fr));
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.pve-hero-stat-grid label {
+  gap: 4px;
+  color: #aaa5bd;
+}
+
+.pve-hero-stat-grid input {
+  text-align: center;
+}
+
+.strategy-builder-section {
+  padding: 14px;
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.18);
+  border-radius: 10px;
+  background: rgba(7, 9, 18, 0.42);
+}
+
+.pve-section-title-row p {
+  margin: 2px 0 0;
+  color: #9d96b8;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.strategy-formation-builder {
+  display: grid;
+  grid-template-columns: minmax(260px, 420px) minmax(220px, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.strategy-formation-board,
+.strategy-formation-pool {
+  min-height: 270px;
+  border: 1px dashed rgba(154, 139, 205, 0.28);
+  border-radius: 16px;
+  background: #101827;
+}
+
+.strategy-formation-board {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 50%, transparent 50%),
+    radial-gradient(circle at 70% 24%, rgba(255, 255, 255, 0.08), transparent 18%),
+    #111a2a;
+}
+
+.strategy-formation-board::before,
+.strategy-formation-board::after {
+  position: absolute;
+  top: 48%;
+  color: rgba(231, 226, 255, 0.36);
+  font-size: 11px;
+  font-weight: 1000;
+}
+
+.strategy-formation-board::before {
+  content: "후열";
+  left: 28%;
+}
+
+.strategy-formation-board::after {
+  content: "전열";
+  right: 24%;
+}
+
+.strategy-formation-slot {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 70px;
+  min-height: 70px;
+  transform: translate(-50%, -50%);
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.strategy-formation-slot > span {
+  position: absolute;
+  inset: 8px auto auto 8px;
+  font-size: 10px;
+  font-weight: 1000;
+}
+
+.strategy-formation-pool {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 10px;
+  padding: 14px;
+}
+
+.strategy-formation-pool p {
+  margin: auto;
+  color: #767089;
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.strategy-draggable-hero {
+  display: inline-grid;
+  grid-template-columns: 38px auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 116px;
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 218, 94, 0.42);
+  border-radius: 12px;
+  color: #fff;
+  background: rgba(14, 16, 27, 0.94);
+  font-weight: 1000;
+  cursor: grab;
+}
+
+.strategy-formation-slot .strategy-draggable-hero {
+  grid-template-columns: 44px;
+  justify-items: center;
+  min-width: 58px;
+  padding: 6px;
+}
+
+.strategy-formation-slot .strategy-draggable-hero span {
+  max-width: 62px;
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.strategy-draggable-hero i {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 218, 94, 0.56);
+  border-radius: 9px;
+  background: linear-gradient(135deg, #5930d2, #e34cae);
+}
+
+.strategy-draggable-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.strategy-skill-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.strategy-skill-card {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 96px 44px 30px;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.22);
+  border-radius: 12px;
+  background: rgba(14, 16, 27, 0.82);
+}
+
+.strategy-skill-card strong {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  color: #161211;
+  background: #ffe978;
+}
+
+.strategy-skill-card i {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.strategy-skill-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.strategy-skill-card button {
+  min-height: 34px;
+  border: 1px solid rgba(255, 88, 88, 0.48);
+  border-radius: 8px;
+  color: #ff8b8b;
+  background: rgba(255, 88, 88, 0.08);
+  cursor: pointer;
+}
+
 .pve-spec-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -2920,6 +3140,122 @@ p {
   font-size: 12px;
 }
 
+.strategy-formation-preview.is-board {
+  align-items: center;
+  justify-items: center;
+  max-width: 360px;
+  min-height: 260px;
+}
+
+.strategy-formation-preview.is-board > strong {
+  color: #f8ec93;
+  font-size: 12px;
+}
+
+.strategy-formation-mini-board {
+  position: relative;
+  width: 260px;
+  height: 190px;
+  border-radius: 22px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 50%, transparent 50%),
+    #202737;
+}
+
+.strategy-formation-mini-board span {
+  position: absolute;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  width: 58px;
+  min-height: 58px;
+  transform: translate(-50%, -50%);
+}
+
+.strategy-formation-mini-board img {
+  width: 42px;
+  height: 42px;
+  border: 2px solid #ffe15d;
+  border-radius: 9px;
+  object-fit: cover;
+}
+
+.strategy-formation-mini-board em {
+  max-width: 64px;
+  overflow: hidden;
+  color: #fff;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 1000;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.strategy-formation-mini-board i {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.38);
+  font-style: normal;
+  font-weight: 1000;
+}
+
+.pve-guide-skill-sequence {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.22);
+  border-radius: 10px;
+  background: rgba(12, 14, 24, 0.7);
+}
+
+.pve-guide-skill-sequence h3 {
+  margin: 0;
+  color: #f8ec93;
+  font-size: 13px;
+}
+
+.pve-guide-skill-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+.pve-guide-skill-grid span {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid rgba(255, 218, 94, 0.16);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.pve-guide-skill-grid b {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  color: #161211;
+  background: #ffe978;
+}
+
+.pve-guide-skill-grid img {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.pve-guide-skill-grid small {
+  color: #d8d2ee;
+  font-weight: 900;
+}
+
 .pve-guide-heroes .strategy-hero-card {
   align-content: start;
   justify-items: center;
@@ -2947,6 +3283,43 @@ p {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.strategy-main-dealer-badge {
+  padding: 3px 7px;
+  border: 1px solid rgba(255, 218, 94, 0.44);
+  border-radius: 999px;
+  color: #17120c;
+  background: #ffe978;
+  font-size: 10px;
+}
+
+.strategy-hero-stat-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  width: 100%;
+}
+
+.strategy-hero-stat-list span {
+  display: grid;
+  gap: 1px;
+  min-height: auto;
+  padding: 5px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.strategy-hero-stat-list b {
+  color: #9f98ba;
+  font-size: 9px;
+}
+
+.strategy-hero-stat-list em {
+  color: #fff;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 1000;
 }
 
 .strategy-hero-card em {
@@ -8187,6 +8560,27 @@ p {
 
 /* Mobile polish layer: keep every page readable without changing desktop layout. */
 @media (max-width: 760px) {
+  .strategy-formation-builder {
+    grid-template-columns: 1fr;
+  }
+
+  .pve-hero-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .strategy-skill-card {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .strategy-skill-card i,
+  .strategy-skill-card button {
+    justify-self: end;
+  }
+
+  .strategy-formation-mini-board {
+    width: min(260px, 78vw);
+  }
+
   html,
   body {
     max-width: 100%;

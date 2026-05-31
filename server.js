@@ -1835,8 +1835,14 @@ function normalizePveAccessoryRefine(value) {
 function normalizePveGuide(value) {
   const raw = typeof value === "string" ? safeJsonParse(value, {}) : value;
   if (!raw || typeof raw !== "object") return null;
+  const hasMeaningfulValue = (value) => {
+    if (typeof value === "boolean") return value;
+    if (value && typeof value === "object") return Object.values(value).some(hasMeaningfulValue);
+    const text = String(value || "").trim();
+    return Boolean(text) && text !== "0";
+  };
   const cleanList = (items, limit, mapper) => Array.isArray(items)
-    ? items.map(mapper).filter((item) => Object.values(item).some(Boolean)).slice(0, limit)
+    ? items.map(mapper).filter((item) => Object.values(item).some(hasMeaningfulValue)).slice(0, limit)
     : [];
   return {
     mode: ["pve", "pvp"].includes(String(raw.mode || "")) ? String(raw.mode) : "pve",
@@ -1858,6 +1864,21 @@ function normalizePveGuide(value) {
       accessory: String(hero?.accessory || "").trim().slice(0, 20),
       refine: normalizePveAccessoryRefine(hero?.refine).slice(0, 20),
       grade: String(hero?.grade || "").trim().slice(0, 10),
+      position: String(hero?.position || "").trim().slice(0, 2),
+      mainDealer: Boolean(hero?.mainDealer),
+      stats: {
+        order: String(hero?.stats?.order || "").trim().slice(0, 6),
+        crit: String(hero?.stats?.crit || "").trim().slice(0, 6),
+        weak: String(hero?.stats?.weak || "").trim().slice(0, 6),
+        critDmg: String(hero?.stats?.critDmg || "").trim().slice(0, 6),
+        attack: String(hero?.stats?.attack || "").trim().slice(0, 6),
+        damageReduce: String(hero?.stats?.damageReduce || "").trim().slice(0, 6),
+        block: String(hero?.stats?.block || "").trim().slice(0, 6),
+      },
+    })),
+    skillSequence: cleanList(raw.skillSequence, 30, (step) => ({
+      hero: String(step?.hero || "").trim().slice(0, 30),
+      skill: String(step?.hero || "").trim() ? (["1", "2"].includes(String(step?.skill || "")) ? String(step.skill) : "1") : "",
     })),
     specs: cleanList(raw.specs, 20, (spec) => ({
       label: String(spec?.label || "").trim().slice(0, 30),

@@ -427,6 +427,21 @@
       const accessoryRefines = ["-","부활세공","권능세공","기합세공","철벽세공","불사세공","치확세공","약공세공","토벌세공","공성세공","도트세공","CC세공","즉사세공"];
       const accessoryGrades = ["6","5","4","6/6","6/5","6/4","5/5","5/4","4/4"];
       const petCatalog = ["루", "크리", "이린", "리첼", "파이크", "델로", "윈디", "제브", "유", "요랑", "연지", "카람", "제오", "멜페로"];
+      const formationSlotLayouts = {
+        att: [[1, 60, 55], [2, 40, 85], [3, 40, 65], [4, 40, 45], [5, 40, 25]],
+        bal: [[1, 60, 70], [2, 60, 50], [3, 60, 30], [4, 40, 60], [5, 40, 40]],
+        base: [[1, 60, 60], [2, 60, 40], [3, 40, 70], [4, 40, 50], [5, 40, 30]],
+        def: [[1, 60, 85], [2, 60, 65], [3, 60, 45], [4, 60, 25], [5, 40, 55]],
+      };
+      const heroStatKeys = [
+        ["order", "순서"],
+        ["crit", "치확(%)"],
+        ["weak", "약공(%)"],
+        ["critDmg", "치피(%)"],
+        ["attack", "모공"],
+        ["damageReduce", "받피감(%)"],
+        ["block", "막기(%)"],
+      ];
       const pveContentOptions = {
         돌발레이드: ["아스트레아", "칼리스트라", "레오니드"],
         공성전: ["수호자의성", "포디나의성", "불멸의성", "죽음의성", "고대용의성", "혹한의성", "지옥의성"],
@@ -561,13 +576,32 @@
               <select data-pve-hero-accessory="${index}"></select>
               <select data-pve-hero-refine="${index}"></select>
               <select data-pve-hero-grade="${index}"></select>
+              <input data-pve-hero-position="${index}" type="hidden" />
+              <label class="pve-main-dealer-toggle">
+                <input data-pve-hero-main-dealer="${index}" type="checkbox" />
+                메인 딜러 설정
+              </label>
+              <div class="pve-hero-stat-grid">
+                ${heroStatKeys.map(([key, label]) => `
+                  <label>
+                    <span>${label}</span>
+                    <input data-pve-hero-stat="${index}:${key}" type="number" min="0" max="999" value="0" />
+                  </label>
+                `).join("")}
+              </div>
             `;
             fillSelect(row.querySelector(`[data-pve-hero-accessory="${index}"]`), accessoryTypes, "반지");
             fillSelect(row.querySelector(`[data-pve-hero-refine="${index}"]`), accessoryRefines, "세공");
             fillSelect(row.querySelector(`[data-pve-hero-grade="${index}"]`), accessoryGrades, "성급");
+            row.querySelector(`[data-pve-hero-name="${index}"]`)?.addEventListener("input", () => {
+              renderFormationBuilder();
+              scheduleDraftSave();
+            });
             pveHeroGrid.append(row);
           });
         }
+        ensureStrategyBuilderSections();
+        if (!document.querySelector("#skillSequenceGrid")?.children.length) addSkillStepRow();
         if (pveSpecGrid && !pveSpecGrid.children.length) {
           ["공격력", "방어", "속공", "치명", "막기", "기타"].forEach((label) => addSpecRow(label));
         }
@@ -607,6 +641,219 @@
         pveSpecGrid.append(row);
       }
 
+      function normalizeAssetName(name) {
+        return String(name || "").trim();
+      }
+
+      function getUploadHeroImage(name) {
+        const clean = normalizeAssetName(name);
+        return clean ? `/assets/character/${clean}.webp?v=20260531-character-refresh` : "";
+      }
+
+      function getUploadPetImage(name) {
+        const clean = normalizeAssetName(name);
+        return clean ? `/assets/pet/${clean}.webp` : "";
+      }
+
+      function getUploadSkillImage(name, skill) {
+        const clean = normalizeAssetName(name);
+        const slot = String(skill || "").trim();
+        return clean && slot ? `/assets/skill/${clean}${slot}.webp?v=20260531-skill` : "";
+      }
+
+      function ensureStrategyBuilderSections() {
+        if (!pveGuideEditor || document.querySelector("#formationBuilderSection")) return;
+        const heroSection = pveHeroGrid?.closest(".pve-mini-section");
+        if (!heroSection) return;
+
+        const formationSection = document.createElement("section");
+        formationSection.className = "pve-mini-section strategy-builder-section";
+        formationSection.id = "formationBuilderSection";
+        formationSection.innerHTML = `
+          <div class="pve-section-title-row">
+            <div>
+              <h3>진형 선택</h3>
+              <p>영웅 카드를 드래그해서 진형 슬롯에 배치하세요.</p>
+            </div>
+            <select id="formationBuilderType"></select>
+          </div>
+          <div class="strategy-formation-builder">
+            <div class="strategy-formation-board" id="formationBoard" aria-label="진형 슬롯"></div>
+            <div class="strategy-formation-pool" id="formationPool" aria-label="미배치 영웅"></div>
+          </div>
+        `;
+
+        const skillSection = document.createElement("section");
+        skillSection.className = "pve-mini-section strategy-builder-section";
+        skillSection.id = "skillSequenceSection";
+        skillSection.innerHTML = `
+          <div class="pve-section-title-row">
+            <div>
+              <h3>추천 스킬 사용 순서</h3>
+              <p>선택한 영웅과 스킬 이미지를 순서대로 저장합니다.</p>
+            </div>
+            <button class="mini-add-button" id="addSkillStepButton" type="button">+ 단계 추가</button>
+          </div>
+          <div class="strategy-skill-grid" id="skillSequenceGrid"></div>
+        `;
+
+        heroSection.after(formationSection, skillSection);
+        const builderType = formationSection.querySelector("#formationBuilderType");
+        fillSelect(builderType, formationOptions, "진형 선택");
+        builderType.addEventListener("change", () => {
+          const mainFormationType = pveGuideEditor.querySelector('[data-pve-field="formationType"]');
+          if (mainFormationType) mainFormationType.value = builderType.value;
+          renderFormationBuilder();
+          scheduleDraftSave();
+        });
+        skillSection.querySelector("#addSkillStepButton")?.addEventListener("click", () => {
+          addSkillStepRow();
+          scheduleDraftSave();
+        });
+      }
+
+      function syncBuilderFormationType() {
+        const mainFormationType = pveGuideEditor?.querySelector('[data-pve-field="formationType"]');
+        const builderType = document.querySelector("#formationBuilderType");
+        if (builderType && mainFormationType && builderType.value !== mainFormationType.value) {
+          builderType.value = mainFormationType.value;
+        }
+      }
+
+      function getBuilderHeroes() {
+        const count = getStrategyHeroCount();
+        return Array.from({ length: count }).map((_, index) => ({
+          index,
+          name: pveGuideEditor.querySelector(`[data-pve-hero-name="${index}"]`)?.value.trim() || "",
+          position: pveGuideEditor.querySelector(`[data-pve-hero-position="${index}"]`)?.value.trim() || "",
+        })).filter((hero) => hero.name);
+      }
+
+      function setHeroPosition(index, position) {
+        const input = pveGuideEditor.querySelector(`[data-pve-hero-position="${index}"]`);
+        if (input) input.value = position ? String(position) : "";
+      }
+
+      function makeDraggableHero(hero) {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "strategy-draggable-hero";
+        chip.draggable = true;
+        chip.dataset.heroIndex = String(hero.index);
+        const img = getUploadHeroImage(hero.name);
+        chip.innerHTML = `
+          <i>${img ? `<img src="${img}" alt="" onerror="this.remove()" />` : hero.name.slice(0, 1)}</i>
+          <span>${hero.name}</span>
+        `;
+        chip.addEventListener("dragstart", (event) => {
+          event.dataTransfer?.setData("text/plain", String(hero.index));
+        });
+        chip.addEventListener("click", () => {
+          setHeroPosition(hero.index, "");
+          renderFormationBuilder();
+          scheduleDraftSave();
+        });
+        return chip;
+      }
+
+      function renderFormationBuilder() {
+        ensureStrategyBuilderSections();
+        syncBuilderFormationType();
+        const board = document.querySelector("#formationBoard");
+        const pool = document.querySelector("#formationPool");
+        if (!board || !pool) return;
+        const type = pveGuideEditor.querySelector('[data-pve-field="formationType"]')?.value || "base";
+        const layout = formationSlotLayouts[type] || formationSlotLayouts.base;
+        const heroes = getBuilderHeroes();
+        const byPosition = new Map(heroes.filter((hero) => hero.position).map((hero) => [String(hero.position), hero]));
+        board.innerHTML = "";
+        pool.innerHTML = "";
+
+        layout.forEach(([slot, x, y]) => {
+          const target = document.createElement("div");
+          target.className = "strategy-formation-slot";
+          target.dataset.slot = String(slot);
+          target.style.left = `${x}%`;
+          target.style.top = `${y}%`;
+          target.innerHTML = `<span>${slot}</span>`;
+          target.addEventListener("dragover", (event) => event.preventDefault());
+          target.addEventListener("drop", (event) => {
+            event.preventDefault();
+            const heroIndex = Number(event.dataTransfer?.getData("text/plain"));
+            if (Number.isNaN(heroIndex)) return;
+            heroes.forEach((hero) => {
+              if (hero.position === String(slot)) setHeroPosition(hero.index, "");
+            });
+            setHeroPosition(heroIndex, slot);
+            renderFormationBuilder();
+            scheduleDraftSave();
+          });
+          const hero = byPosition.get(String(slot));
+          if (hero) target.append(makeDraggableHero(hero));
+          board.append(target);
+        });
+
+        const unplaced = heroes.filter((hero) => !hero.position);
+        if (!unplaced.length) {
+          pool.innerHTML = `<p>모든 영웅이 배치되었습니다. 카드를 클릭하면 다시 미배치로 이동합니다.</p>`;
+        } else {
+          unplaced.forEach((hero) => pool.append(makeDraggableHero(hero)));
+        }
+      }
+
+      function refreshSkillStepIndexes() {
+        document.querySelectorAll("[data-skill-step-row]").forEach((row, index) => {
+          row.dataset.skillStepRow = String(index);
+          row.querySelector("[data-skill-step-hero]")?.setAttribute("data-skill-step-hero", String(index));
+          row.querySelector("[data-skill-step-number]")?.setAttribute("data-skill-step-number", String(index));
+        });
+      }
+
+      function addSkillStepRow(value = {}) {
+        ensureStrategyBuilderSections();
+        const grid = document.querySelector("#skillSequenceGrid");
+        if (!grid) return;
+        const index = grid.querySelectorAll("[data-skill-step-row]").length;
+        const row = document.createElement("div");
+        row.className = "strategy-skill-card";
+        row.dataset.skillStepRow = String(index);
+        row.innerHTML = `
+          <strong>${index + 1}</strong>
+          <input data-skill-step-hero="${index}" type="text" maxlength="30" list="strategyHeroOptions" placeholder="영웅" />
+          <select data-skill-step-number="${index}">
+            <option value="1">1번 스킬</option>
+            <option value="2">2번 스킬</option>
+          </select>
+          <i data-skill-step-preview></i>
+          <button type="button" data-remove-skill-step aria-label="단계 삭제">×</button>
+        `;
+        const heroInput = row.querySelector("[data-skill-step-hero]");
+        const skillSelect = row.querySelector("[data-skill-step-number]");
+        const renderPreview = () => {
+          const img = getUploadSkillImage(heroInput.value, skillSelect.value);
+          row.querySelector("[data-skill-step-preview]").innerHTML = img
+            ? `<img src="${img}" alt="" onerror="this.remove()" />`
+            : "";
+        };
+        heroInput.value = value.hero || "";
+        skillSelect.value = value.skill || "1";
+        heroInput.addEventListener("input", () => {
+          renderPreview();
+          scheduleDraftSave();
+        });
+        skillSelect.addEventListener("change", () => {
+          renderPreview();
+          scheduleDraftSave();
+        });
+        row.querySelector("[data-remove-skill-step]")?.addEventListener("click", () => {
+          row.remove();
+          refreshSkillStepIndexes();
+          scheduleDraftSave();
+        });
+        grid.append(row);
+        renderPreview();
+      }
+
       function getStrategyHeroCount() {
         const mode = getStrategyMode();
         if (mode !== "pve") return 5;
@@ -624,6 +871,7 @@
           const slot = (index % 5) + 1;
           row.childNodes[0].textContent = count === 10 ? `${round} 영웅 ${slot}` : `영웅 ${slot}`;
         });
+        renderFormationBuilder();
       }
 
       function isPveCategory() {
@@ -662,7 +910,17 @@
             accessory: pveGuideEditor.querySelector(`[data-pve-hero-accessory="${index}"]`)?.value.trim() || "",
             refine: pveGuideEditor.querySelector(`[data-pve-hero-refine="${index}"]`)?.value.trim() || "",
             grade: pveGuideEditor.querySelector(`[data-pve-hero-grade="${index}"]`)?.value.trim() || "",
+            position: pveGuideEditor.querySelector(`[data-pve-hero-position="${index}"]`)?.value.trim() || "",
+            mainDealer: Boolean(pveGuideEditor.querySelector(`[data-pve-hero-main-dealer="${index}"]`)?.checked),
+            stats: Object.fromEntries(heroStatKeys.map(([key]) => [
+              key,
+              pveGuideEditor.querySelector(`[data-pve-hero-stat="${index}:${key}"]`)?.value.trim() || "0",
+            ])),
           })),
+          skillSequence: [...document.querySelectorAll("[data-skill-step-row]")].map((row, index) => ({
+            hero: row.querySelector(`[data-skill-step-hero="${index}"]`)?.value.trim() || "",
+            skill: row.querySelector(`[data-skill-step-number="${index}"]`)?.value.trim() || "1",
+          })).filter((step) => step.hero),
           specs: [...pveSpecGrid.querySelectorAll("[data-pve-spec-row]")].map((row, index) => ({
             label: pveGuideEditor.querySelector(`[data-pve-spec-label="${index}"]`)?.value.trim() || "",
             value: pveGuideEditor.querySelector(`[data-pve-spec-value="${index}"]`)?.value.trim() || "",
@@ -684,13 +942,26 @@
           const accessory = pveGuideEditor.querySelector(`[data-pve-hero-accessory="${index}"]`);
           const refine = pveGuideEditor.querySelector(`[data-pve-hero-refine="${index}"]`);
           const grade = pveGuideEditor.querySelector(`[data-pve-hero-grade="${index}"]`);
+          const position = pveGuideEditor.querySelector(`[data-pve-hero-position="${index}"]`);
+          const mainDealer = pveGuideEditor.querySelector(`[data-pve-hero-main-dealer="${index}"]`);
           if (name) name.value = hero.name || "";
           if (role) role.value = hero.role || "";
           if (exclusive) exclusive.value = hero.exclusive || "";
           if (accessory) accessory.value = hero.accessory || "";
           if (refine) refine.value = hero.refine || "";
           if (grade) grade.value = hero.grade || "";
+          if (position) position.value = hero.position || "";
+          if (mainDealer) mainDealer.checked = Boolean(hero.mainDealer);
+          heroStatKeys.forEach(([key]) => {
+            const input = pveGuideEditor.querySelector(`[data-pve-hero-stat="${index}:${key}"]`);
+            if (input) input.value = hero.stats?.[key] || "0";
+          });
         });
+        const skillGrid = document.querySelector("#skillSequenceGrid");
+        if (skillGrid) {
+          skillGrid.innerHTML = "";
+          (pveGuide.skillSequence || []).forEach((step) => addSkillStepRow(step));
+        }
         if (Array.isArray(pveGuide.specs) && pveGuide.specs.length) {
           pveSpecGrid.innerHTML = "";
           pveGuide.specs.forEach((spec) => addSpecRow(spec.label || "", spec.value || "", spec.memo || ""));
@@ -1101,6 +1372,11 @@
       strategyTypeInput?.addEventListener("change", () => {
         updateStrategyBossOptions();
         updateStrategyHeroSlots();
+        scheduleDraftSave();
+      });
+      pveGuideEditor?.querySelector('[data-pve-field="formationType"]')?.addEventListener("change", () => {
+        syncBuilderFormationType();
+        renderFormationBuilder();
         scheduleDraftSave();
       });
       addPveSpecButton?.addEventListener("click", () => {

@@ -609,7 +609,7 @@
         if (summary.children.length) shell.append(summary);
 
         if (guide.formationType) {
-          const formation = createFormationPreview(guide.formationType);
+          const formation = createFormationPreview(guide.formationType, guide.heroes || []);
           if (formation) shell.append(formation);
         }
 
@@ -660,6 +660,31 @@
           title.textContent = hero.name || "-";
           role.textContent = hero.role || "핵심 영웅";
           card.append(icon, title, role);
+          if (hero.mainDealer) {
+            const dealer = document.createElement("strong");
+            dealer.className = "strategy-main-dealer-badge";
+            dealer.textContent = "메인 딜러";
+            card.append(dealer);
+          }
+          const statEntries = [
+            ["순서", hero.stats?.order],
+            ["치확", hero.stats?.crit],
+            ["약공", hero.stats?.weak],
+            ["치피", hero.stats?.critDmg],
+            ["모공", hero.stats?.attack],
+            ["받피감", hero.stats?.damageReduce],
+            ["막기", hero.stats?.block],
+          ].filter(([, value]) => value && value !== "0");
+          if (statEntries.length) {
+            const stats = document.createElement("div");
+            stats.className = "strategy-hero-stat-list";
+            statEntries.forEach(([label, value]) => {
+              const item = document.createElement("span");
+              item.innerHTML = `<b>${label}</b><em>${value}</em>`;
+              stats.append(item);
+            });
+            card.append(stats);
+          }
           const exclusiveImage = getExclusiveEquipmentImage(hero.name);
           if (exclusiveImage || hero.exclusive) {
             const exclusive = document.createElement("small");
@@ -702,6 +727,28 @@
         }
         if (heroList.children.length) shell.append(heroList);
 
+        const skillSteps = Array.isArray(guide.skillSequence) ? guide.skillSequence.filter((step) => step.hero) : [];
+        if (skillSteps.length) {
+          const skillBox = document.createElement("section");
+          const skillTitle = document.createElement("h3");
+          const skillGrid = document.createElement("div");
+          skillBox.className = "pve-guide-skill-sequence";
+          skillTitle.textContent = "추천 스킬 사용 순서";
+          skillGrid.className = "pve-guide-skill-grid";
+          skillSteps.forEach((step, index) => {
+            const card = document.createElement("span");
+            const img = getSkillImage(step.hero, step.skill);
+            card.innerHTML = `
+              <b>${index + 1}</b>
+              ${img ? `<img src="${img}" alt="" onerror="this.remove()" />` : ""}
+              <small>${step.hero} ${step.skill || "1"}번</small>
+            `;
+            skillGrid.append(card);
+          });
+          skillBox.append(skillTitle, skillGrid);
+          shell.append(skillBox);
+        }
+
         (guide.specs || []).filter((spec) => spec.label || spec.value || spec.memo).forEach((spec) => {
           const row = document.createElement("span");
           row.innerHTML = `<b>${spec.label || "-"}</b><em>${spec.value || "-"}</em><small>${spec.memo || ""}</small>`;
@@ -731,6 +778,12 @@
       function getPetImage(name) {
         const cleanName = String(name || "").trim();
         return cleanName ? `/assets/pet/${cleanName}.webp` : "";
+      }
+
+      function getSkillImage(name, skill) {
+        const cleanName = String(name || "").trim();
+        const slot = String(skill || "1").trim();
+        return cleanName && slot ? `/assets/skill/${cleanName}${slot}.webp?v=20260531-skill` : "";
       }
 
       function getAccessoryImage(type, grade, refine) {
@@ -799,18 +852,40 @@
         return aliases[refine] || refine;
       }
 
-      function createFormationPreview(type) {
+      function createFormationPreview(type, heroes = []) {
         const map = {
           att: ["공격진형", "/assets/formation/att.webp"],
           bal: ["밸런스진형", "/assets/formation/Bal.webp"],
           base: ["기본진형", "/assets/formation/base.webp"],
           def: ["보호진형", "/assets/formation/def.webp"],
         };
+        const layouts = {
+          att: [[1, 60, 55], [2, 40, 85], [3, 40, 65], [4, 40, 45], [5, 40, 25]],
+          bal: [[1, 60, 70], [2, 60, 50], [3, 60, 30], [4, 40, 60], [5, 40, 40]],
+          base: [[1, 60, 60], [2, 60, 40], [3, 40, 70], [4, 40, 50], [5, 40, 30]],
+          def: [[1, 60, 85], [2, 60, 65], [3, 60, 45], [4, 60, 25], [5, 40, 55]],
+        };
         const item = map[type];
         if (!item) return null;
         const box = document.createElement("div");
         box.className = "strategy-formation-preview";
         box.innerHTML = `<img src="${item[1]}" alt="${item[0]}" /><b>${item[0]}</b>`;
+        const placed = (heroes || []).filter((hero) => hero.name && hero.position);
+        if (placed.length) {
+          box.classList.add("is-board");
+          box.innerHTML = `<strong>${item[0]}</strong><div class="strategy-formation-mini-board"></div>`;
+          const board = box.querySelector(".strategy-formation-mini-board");
+          (layouts[type] || layouts.base).forEach(([slot, x, y]) => {
+            const cell = document.createElement("span");
+            const hero = placed.find((entry) => String(entry.position) === String(slot));
+            cell.style.left = `${x}%`;
+            cell.style.top = `${y}%`;
+            cell.innerHTML = hero
+              ? `<img src="${getCharacterImage(hero.name)}" alt="" onerror="this.remove()" /><em>${hero.name}</em>`
+              : `<i>${slot}</i>`;
+            board.append(cell);
+          });
+        }
         return box;
       }
 
