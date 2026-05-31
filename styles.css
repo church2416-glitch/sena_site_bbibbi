@@ -2779,7 +2779,7 @@ p {
 
 .pve-hero-grid,
 .pve-hero-grid.is-two-rounds {
-  grid-template-columns: repeat(2, minmax(480px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
 }
 
 .pve-spec-grid {
@@ -2819,14 +2819,19 @@ p {
 .pve-exclusive-editor {
   display: grid;
   gap: 8px;
+  min-width: 0;
   padding: 10px;
   border: 1px solid rgba(255, 218, 94, 0.16);
   border-radius: 10px;
   background: rgba(255, 218, 94, 0.035);
 }
 
+.pve-exclusive-editor.is-disabled {
+  background: rgba(8, 10, 20, 0.38);
+}
+
 .pve-exclusive-head {
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) max-content;
   align-items: center;
 }
 
@@ -2883,13 +2888,19 @@ p {
   display: grid;
   grid-column: 1 / -1;
   gap: 8px;
+  min-width: 0;
+}
+
+.pve-exclusive-editor.is-disabled .pve-exclusive-options {
+  display: none;
 }
 
 .pve-exclusive-option-row {
   display: grid;
-  grid-template-columns: 24px minmax(150px, 1.4fr) minmax(90px, 0.8fr) minmax(80px, 0.8fr) 34px;
+  grid-template-columns: 24px minmax(0, 1.4fr) minmax(76px, 0.7fr) minmax(62px, 0.6fr) 34px;
   gap: 8px;
   align-items: center;
+  min-width: 0;
 }
 
 .pve-exclusive-option-row b {

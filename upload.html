@@ -620,11 +620,16 @@
             fillSelect(row.querySelector(`[data-pve-hero-refine="${index}"]`), accessoryRefines, "세공");
             fillSelect(row.querySelector(`[data-pve-hero-grade="${index}"]`), accessoryGrades, "성급");
             row.querySelector(`[data-add-exclusive-option="${index}"]`)?.addEventListener("click", () => addExclusiveOptionRow(index));
+            row.querySelector(`[data-pve-hero-exclusive="${index}"]`)?.addEventListener("change", () => {
+              syncExclusiveEditorState(index);
+              scheduleDraftSave();
+            });
             row.querySelector(`[data-pve-hero-name="${index}"]`)?.addEventListener("input", () => {
               renderFormationBuilder();
               scheduleDraftSave();
             });
             pveHeroGrid.append(row);
+            syncExclusiveEditorState(index);
           });
         }
         ensureStrategyBuilderSections();
@@ -650,12 +655,23 @@
       function refreshExclusiveOptionRows(heroIndex) {
         const box = pveGuideEditor.querySelector(`[data-pve-exclusive-options="${heroIndex}"]`);
         const addButton = pveGuideEditor.querySelector(`[data-add-exclusive-option="${heroIndex}"]`);
+        const enabled = Boolean(pveGuideEditor.querySelector(`[data-pve-hero-exclusive="${heroIndex}"]`)?.checked);
         if (!box) return;
         box.querySelectorAll("[data-exclusive-option-row]").forEach((row, optionIndex) => {
           row.dataset.exclusiveOptionRow = String(optionIndex);
           row.querySelector("[data-exclusive-option-index]").textContent = String(optionIndex + 1);
+          row.querySelectorAll("select, input, button").forEach((input) => {
+            input.disabled = !enabled;
+          });
         });
-        if (addButton) addButton.disabled = box.querySelectorAll("[data-exclusive-option-row]").length >= 4;
+        if (addButton) addButton.disabled = !enabled || box.querySelectorAll("[data-exclusive-option-row]").length >= 4;
+      }
+
+      function syncExclusiveEditorState(heroIndex) {
+        const checked = Boolean(pveGuideEditor.querySelector(`[data-pve-hero-exclusive="${heroIndex}"]`)?.checked);
+        const editor = pveGuideEditor.querySelector(`[data-pve-hero-exclusive="${heroIndex}"]`)?.closest(".pve-exclusive-editor");
+        if (editor) editor.classList.toggle("is-disabled", !checked);
+        refreshExclusiveOptionRows(heroIndex);
       }
 
       function addExclusiveOptionRow(heroIndex, rawValue = "") {
@@ -1046,18 +1062,25 @@
           subPet: field("subPet"),
           note: field("note"),
           heroes: Array.from({ length: heroCount }).map((_, index) => ({
+            ...(() => {
+              const hasExclusive = Boolean(pveGuideEditor.querySelector(`[data-pve-hero-exclusive="${index}"]`)?.checked);
+              return {
+                exclusive: hasExclusive ? "전용장비 채용" : "",
+                exclusiveOptions: hasExclusive
+                  ? [...pveGuideEditor.querySelectorAll(`[data-pve-exclusive-options="${index}"] [data-exclusive-option-row]`)]
+                    .map((row) => {
+                      const name = row.querySelector("[data-pve-hero-exclusive-option-name]")?.value.trim() || "";
+                      const grade = row.querySelector("[data-pve-hero-exclusive-option-grade]")?.value.trim() || "";
+                      const value = row.querySelector("[data-pve-hero-exclusive-option-value]")?.value.trim() || "";
+                      return name ? `${name}${grade ? ` / ${grade}` : ""}${value ? ` ${value}` : ""}` : "";
+                    })
+                    .filter(Boolean)
+                    .slice(0, 4)
+                  : [],
+              };
+            })(),
             name: pveGuideEditor.querySelector(`[data-pve-hero-name="${index}"]`)?.value.trim() || "",
             role: pveGuideEditor.querySelector(`[data-pve-hero-role="${index}"]`)?.value.trim() || "",
-            exclusive: pveGuideEditor.querySelector(`[data-pve-hero-exclusive="${index}"]`)?.checked ? "전용장비 채용" : "",
-            exclusiveOptions: [...pveGuideEditor.querySelectorAll(`[data-pve-exclusive-options="${index}"] [data-exclusive-option-row]`)]
-              .map((row) => {
-                const name = row.querySelector("[data-pve-hero-exclusive-option-name]")?.value.trim() || "";
-                const grade = row.querySelector("[data-pve-hero-exclusive-option-grade]")?.value.trim() || "";
-                const value = row.querySelector("[data-pve-hero-exclusive-option-value]")?.value.trim() || "";
-                return name ? `${name}${grade ? ` / ${grade}` : ""}${value ? ` ${value}` : ""}` : "";
-              })
-              .filter(Boolean)
-              .slice(0, 4),
             accessory: pveGuideEditor.querySelector(`[data-pve-hero-accessory="${index}"]`)?.value.trim() || "",
             refine: pveGuideEditor.querySelector(`[data-pve-hero-refine="${index}"]`)?.value.trim() || "",
             grade: pveGuideEditor.querySelector(`[data-pve-hero-grade="${index}"]`)?.value.trim() || "",
@@ -1097,13 +1120,14 @@
           const mainDealer = pveGuideEditor.querySelector(`[data-pve-hero-main-dealer="${index}"]`);
           if (name) name.value = hero.name || "";
           if (role) role.value = hero.role || "";
-          if (exclusive) exclusive.checked = Boolean(hero.exclusive || hero.exclusiveOptions?.length);
+          if (exclusive) exclusive.checked = Boolean(hero.exclusive);
           const exclusiveBox = pveGuideEditor.querySelector(`[data-pve-exclusive-options="${index}"]`);
           if (exclusiveBox) {
             exclusiveBox.innerHTML = "";
             (hero.exclusiveOptions || []).slice(0, 4).forEach((option) => addExclusiveOptionRow(index, option));
             refreshExclusiveOptionRows(index);
           }
+          syncExclusiveEditorState(index);
           if (accessory) accessory.value = hero.accessory || "";
           if (refine) refine.value = hero.refine || "";
           if (grade) grade.value = hero.grade || "";
