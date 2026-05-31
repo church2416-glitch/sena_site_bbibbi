@@ -591,7 +591,10 @@
               </div>
               <div class="pve-exclusive-editor">
                 <div class="pve-exclusive-head">
-                  <input data-pve-hero-exclusive="${index}" type="text" maxlength="40" list="strategyExclusiveOptions" placeholder="전용장비 선택" />
+                  <label class="pve-exclusive-toggle">
+                    <input data-pve-hero-exclusive="${index}" type="checkbox" />
+                    <span>전용장비 채용</span>
+                  </label>
                   <button class="mini-add-button" data-add-exclusive-option="${index}" type="button">+ 옵션</button>
                 </div>
                 <div class="pve-exclusive-options" data-pve-exclusive-options="${index}"></div>
@@ -999,7 +1002,7 @@
           heroes: Array.from({ length: heroCount }).map((_, index) => ({
             name: pveGuideEditor.querySelector(`[data-pve-hero-name="${index}"]`)?.value.trim() || "",
             role: pveGuideEditor.querySelector(`[data-pve-hero-role="${index}"]`)?.value.trim() || "",
-            exclusive: pveGuideEditor.querySelector(`[data-pve-hero-exclusive="${index}"]`)?.value.trim() || "",
+            exclusive: pveGuideEditor.querySelector(`[data-pve-hero-exclusive="${index}"]`)?.checked ? "전용장비 채용" : "",
             exclusiveOptions: [...pveGuideEditor.querySelectorAll(`[data-pve-exclusive-options="${index}"] [data-exclusive-option-row]`)]
               .map((row) => {
                 const name = row.querySelector("[data-pve-hero-exclusive-option-name]")?.value.trim() || "";
@@ -1048,7 +1051,7 @@
           const mainDealer = pveGuideEditor.querySelector(`[data-pve-hero-main-dealer="${index}"]`);
           if (name) name.value = hero.name || "";
           if (role) role.value = hero.role || "";
-          if (exclusive) exclusive.value = hero.exclusive || "";
+          if (exclusive) exclusive.checked = Boolean(hero.exclusive || hero.exclusiveOptions?.length);
           const exclusiveBox = pveGuideEditor.querySelector(`[data-pve-exclusive-options="${index}"]`);
           if (exclusiveBox) {
             exclusiveBox.innerHTML = "";

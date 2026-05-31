@@ -2778,12 +2778,8 @@ p {
 }
 
 .pve-hero-grid,
-.pve-spec-grid {
-  grid-template-columns: repeat(2, minmax(320px, 1fr));
-}
-
 .pve-hero-grid.is-two-rounds {
-  grid-template-columns: repeat(2, minmax(320px, 1fr));
+  grid-template-columns: repeat(2, minmax(480px, 1fr));
 }
 
 .pve-spec-grid {
@@ -2832,6 +2828,27 @@ p {
 .pve-exclusive-head {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
+}
+
+.pve-exclusive-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid rgba(var(--theme-mid-rgb), 0.22);
+  border-radius: 9px;
+  background: rgba(8, 10, 20, 0.76);
+  color: #efeaff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.pve-exclusive-toggle input {
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  accent-color: #ffe86f;
 }
 
 .pve-main-dealer-toggle {
@@ -3111,6 +3128,19 @@ p {
   border-color: rgba(137, 106, 255, 0.24);
   color: #f6f2ff;
   background: rgba(14, 16, 27, 0.96);
+}
+
+.pve-guide-editor .pve-exclusive-toggle {
+  display: inline-flex;
+  gap: 9px;
+  color: #efeaff;
+  font-size: 12px;
+}
+
+.pve-guide-editor .pve-exclusive-toggle input {
+  min-width: 16px;
+  border: 0;
+  background: transparent;
 }
 
 .pve-mini-section {
@@ -3614,6 +3644,10 @@ p {
   width: min(760px, calc(100% - 28px));
   margin: 0 auto;
   padding: 42px 0;
+}
+
+.upload-shell {
+  width: min(1280px, calc(100% - 36px));
 }
 
 .coupon-shell {
