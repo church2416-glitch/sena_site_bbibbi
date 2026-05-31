@@ -699,8 +699,9 @@
       }
 
       function getCharacterImage(name) {
-        const cleanName = String(name || "").trim();
-        return cleanName ? `/assets/character/${cleanName}.webp` : "";
+        const aliases = { 브브: "브란즈브란셀" };
+        const cleanName = aliases[String(name || "").trim()] || String(name || "").trim();
+        return cleanName ? `/assets/character/${cleanName}.webp?v=20260531-character-refresh` : "";
       }
 
       function getPetImage(name) {

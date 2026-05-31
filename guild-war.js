@@ -1,5 +1,6 @@
 const GuildWar = (() => {
   const storageKey = "guild-war-sheet-v4";
+  const assetVersion = "20260531-character-refresh";
   const modes = ["attack", "defense"];
   const modeLabels = {
     attack: "공격 족보",
@@ -141,13 +142,18 @@ const GuildWar = (() => {
 
   const characterCatalog = [
     "겔리두스", "나타", "델론즈", "라드그리드", "라이언", "란드그리드", "레긴레이프", "레이첼", "로지", "루디",
-    "룩", "리나", "린", "멜키르", "미스트", "밀리아", "바네사", "발리스타", "브브", "성진우",
+    "룩", "리나", "린", "멜키르", "미스트", "밀리아", "바네사", "발리스타", "브란즈브란셀", "성진우",
     "손오공", "스파이크", "실베스타", "아라곤", "아멜리아", "아일린", "아킬라", "앨리스", "에이스", "엘리시아",
     "여포", "연희", "오목", "제이브", "쥬리", "챈슬러", "초선", "카구라", "카론", "카르마",
     "카린", "카일", "칼헤론", "콜트", "크리스", "키리엘", "태오", "트루드", "파이", "팔라누스",
     "프레이야", "플라튼", "헬레니아",
   ];
-  const characterImages = Object.fromEntries(characterCatalog.map((name) => [name, `/assets/character/${name}.webp`]));
+  const characterAliases = {
+    브브: "브란즈브란셀",
+  };
+  const withAssetVersion = (src) => `${src}?v=${assetVersion}`;
+  const normalizeCharacterName = (name) => characterAliases[String(name || "").trim()] || String(name || "").trim();
+  const characterImages = Object.fromEntries(characterCatalog.map((name) => [name, withAssetVersion(`/assets/character/${name}.webp`)]));
   let characterComboboxId = 0;
   let textOptionComboboxId = 0;
   const gearOptionCatalog = {
@@ -609,28 +615,29 @@ const GuildWar = (() => {
   }
 
   function getTokenImage(name, className = "") {
-    const cleanName = String(name || "").trim();
+    const cleanName = normalizeCharacterName(name);
     if (!cleanName) return "";
     if (className.includes("pet")) return petImages[cleanName] || "";
     return characterImages[cleanName] || "";
   }
 
   function createToken(name, className, subLabel = "") {
+    const displayName = className.includes("pet") ? String(name || "").trim() : normalizeCharacterName(name);
     const token = document.createElement("div");
     const icon = document.createElement("i");
     const label = document.createElement("span");
-    const imageSrc = getTokenImage(name, className);
+    const imageSrc = getTokenImage(displayName, className);
     token.className = `hero-token ${className}`;
     if (imageSrc) {
       const image = document.createElement("img");
       image.src = imageSrc;
-      image.alt = name;
+      image.alt = displayName;
       icon.classList.add("has-image");
       icon.append(image);
     } else {
-      icon.textContent = String(name || "?").slice(0, 1);
+      icon.textContent = String(displayName || "?").slice(0, 1);
     }
-    label.textContent = name || "-";
+    label.textContent = displayName || "-";
     token.append(icon, label);
     if (subLabel) {
       const sub = document.createElement("small");
